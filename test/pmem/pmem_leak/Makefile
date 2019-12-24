@@ -26,16 +26,20 @@
 
 PROGS = normal leaker checker fixer
 OBJS = normal.o leaker.o checker.o fixer.o
+BITCODES = $(OBJS:.o=.bc)
 CXXFLAGS = $(shell pkg-config --cflags libpmemobj++) -std=c++11 -O2
 LDFLAGS = $(shell pkg-config --libs libpmemobj++) -O2
 CXX = g++
 RM = rm
 
-all: $(PROGS)
+all: $(PROGS) $(BITCODES)
 .PHONY : all
 
 %.o : %.cpp common.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.bc: %.cpp common.hpp
+	clang++ -std=c++11 -c -emit-llvm $< -o $@
 
 normal: normal.o
 	$(CXX) $< $(LDFLAGS) -o $@
@@ -47,5 +51,5 @@ fixer: fixer.o
 	$(CXX) $< $(LDFLAGS) -o $@
 
 clean:
-	$(RM) $(OBJS) $(PROGS)
+	$(RM) $(OBJS) $(PROGS) $(BITCODES)
 

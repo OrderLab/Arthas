@@ -26,6 +26,7 @@
 
 PROGS = wordcount
 OBJS = main.o helpers.o persistent_string.o list_entry.o task_list.o pm_mapreduce.o
+BITCODES = $(OBJS:.o=.bc)
 CXXFLAGS = $(shell pkg-config --cflags libpmemobj++) -std=c++11 -O2
 LDFLAGS = $(shell pkg-config --libs libpmemobj++) -lpthread -O2
 CXX = g++
@@ -34,10 +35,13 @@ RM = rm
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-all: $(PROGS)
+%.bc: %.cpp
+	clang++ -std=c++11 -c -emit-llvm $< -o $@
+
+all: $(PROGS) $(BITCODES)
 
 wordcount: $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
 clean:
-	$(RM) $(OBJS) $(PROGS)
+	$(RM) $(OBJS) $(PROGS) $(BITCODES)

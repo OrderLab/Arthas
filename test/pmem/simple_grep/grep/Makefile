@@ -26,6 +26,7 @@
 
 PROGS = grep
 OBJS = grep.o
+BITCODES = grep.bc
 CXXFLAGS = -std=c++11 -O2
 LDFLAGS = -O2
 CXX = g++
@@ -34,10 +35,13 @@ RM = rm
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-all: $(PROGS)
+%.bc: %.cpp
+	clang++ -std=c++11 -c -emit-llvm $< -o $@
+
+all: $(PROGS) $(BITCODES)
 
 grep: $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $@
 
 clean:
-	$(RM) $(OBJS) $(PROGS)
+	$(RM) $(OBJS) $(PROGS) $(BITCODES)
