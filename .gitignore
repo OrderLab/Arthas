@@ -1,0 +1,15 @@
+*.d
+*.o
+*.so
+*.swp
+*.bc
+
+CMakeFiles/
+cmake_install.cmake
+CMakeCache.txt
+compile_commands.json
+
+/build/
+
+.idea/
+cmake-build-debug/
