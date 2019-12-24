@@ -10,8 +10,16 @@ RM = rm
 EXES = hello_libpmem hello_libpmemobj
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
+SUBDIRS = mapreduce pmem_leak simple_grep
 
-all: $(EXES) $(BITCODES)
+.PHONY: all clean subdir
+
+all: $(EXES) $(BITCODES) subdir
+
+subdir:
+	for dir in $(SUBDIRS); do \
+		make -C $$dir; \
+	done
 
 hello_libpmem.o: hello_libpmem.c
 	$(CC) -c $< -o $@ $(LIBPMEM_CFLAGS)
@@ -30,3 +38,6 @@ hello_libpmemobj: hello_libpmemobj.o
 
 clean: 
 	rm -f *.o $(EXES) $(BITCODES)
+	for dir in $(SUBDIRS); do \
+		make -C $$dir clean; \
+	done
