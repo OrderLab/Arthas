@@ -16,11 +16,22 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/InstIterator.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "hello"
 
 STATISTIC(HelloCounter, "Counts number of functions greeted");
+
+void writeCallLocator(Function &F){
+   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I){
+      const Instruction *inst = &*I;
+      if(inst->mayWriteToMemory()){
+         errs() << *I << "\n";
+      }
+   }
+}
 
 namespace {
   // Hello - The first implementation, without getAnalysisUsage.
@@ -50,6 +61,7 @@ namespace {
       ++HelloCounter;
       errs() << "Hello: ";
       errs().write_escaped(F.getName()) << '\n';
+      writeCallLocator(F);
       return false;
     }
 
