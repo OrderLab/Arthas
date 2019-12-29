@@ -17,12 +17,16 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Analysis/PostDominators.h"
+#include "llvm/Analysis/DominanceFrontier.h"
 
 using namespace llvm;
 
 #define DEBUG_TYPE "hello"
 
 STATISTIC(HelloCounter, "Counts number of functions greeted");
+
 
 void writeCallLocator(Function &F){
    for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I){
@@ -75,3 +79,29 @@ namespace {
 char Hello2::ID = 0;
 static RegisterPass<Hello2>
 Y("hello2", "Hello World Pass (with getAnalysisUsage implemented)");
+
+namespace {
+   class Slicer : public ModulePass {
+     public:
+        static char ID;
+        Slicer() : ModulePass(ID) {}
+
+        bool runOnModule(Module &M){
+           errs() << "beginning module slice\n";
+
+	   //TODO: find init functions + proper order to iterate
+	   for(Module::iterator F = M.begin(); F != M.end(); ++F){
+	       errs() << "Function iteration of " << *F << "\n";
+	   }
+        }
+        /*void getAnalysisUsage(AnalysisUsage &AU) const {
+           AU.addRequired<PostDominatorTree>();
+           AU.addRequired<PostDominanceFrontier>();
+        }*/
+
+   };
+}
+
+static RegisterPass<Slicer> Z("slice", "Slices the code");
+char Slicer::ID = 0;
+
