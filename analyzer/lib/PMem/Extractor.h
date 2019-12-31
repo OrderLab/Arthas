@@ -47,6 +47,7 @@ class PMemAPICallLocator {
   private:
     ApiCallList callList;
     static const std::set<std::string> pmdkApiSet;
+    static const std::set<std::string> pmdkPMEMVariableReturnSet;
 };
 
 } // namespace pmem

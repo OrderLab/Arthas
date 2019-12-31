@@ -15,7 +15,11 @@ using namespace llvm;
 using namespace llvm::pmem;
 
 const set<std::string> PMemAPICallLocator::pmdkApiSet {
-  "pmem_map_file", "pmem_persist", "pmem_msync"
+  "pmem_map_file", "pmem_persist", "pmem_msync", "pmemobj_create", "pmemobj_direct_inline"
+  };
+
+const set<std::string> PMemAPICallLocator::pmdkPMEMVariableReturnSet {
+  "pmemobj_direct_inline"
   };
 
 PMemAPICallLocator::PMemAPICallLocator(Function &F) {
@@ -33,6 +37,15 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
     errs().write_escaped(callee->getName()) << '\n';
     if (pmdkApiSet.find(callee->getName()) != pmdkApiSet.end()) {
       callList.push_back(callInst);
+      if (pmdkPMEMVariableReturnSet.find(callee->getName()) != pmdkPMEMVariableReturnSet.end()) {
+	//Value *v = cast<Value>inst;
+	//errs() << v->getName() << " end\n";
+	for(auto U : inst->users()){
+	    if(auto I = dyn_cast<Instruction> (U)){
+		errs() << "This Instruction uses a pmem variable:  " << *I << "\n";
+	    }
+	}
+      }
     }
   }
 }
