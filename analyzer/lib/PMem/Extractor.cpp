@@ -39,8 +39,9 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
       callList.push_back(callInst);
       if (pmdkPMEMVariableReturnSet.find(callee->getName()) != pmdkPMEMVariableReturnSet.end()) {
 	//Value *v = cast<Value>inst;
-	//errs() << v->getName() << " end\n";
-	for(auto U : inst->users()){
+	const Value *v = inst;
+	errs() << v->getName() << " end\n";
+	for(auto U : v->users()){
 	    if(auto I = dyn_cast<Instruction> (U)){
 		errs() << "This Instruction uses a pmem variable:  " << *I << "\n";
 	    }
