@@ -81,6 +81,25 @@ char Hello2::ID = 0;
 static RegisterPass<Hello2>
 Y("hello2", "Hello World Pass (with getAnalysisUsage implemented)");
 
+void defUsePrint(Function &F){
+    //errs() << "Function iteration of " << F << "\n";
+    std::vector<Instruction * > Worklist;
+    for(inst_iterator I = inst_begin(F), E = inst_end(F); I!= E; ++I){
+        Worklist.push_back(&*I);
+    }
+    
+    for(std::vector iterator iter = Worklist.begin(); iter != Worklist.end(); ++iter){
+         Instruction *instr = *iter;
+         errs()  << "def instr: " << *instr << "\n";
+	 errs() << "use: " << "\n";
+         for(Value::use_iterator i = instr->use_begin(); ie = instr->use_end();  i != ie; ++i){
+             Value *v = *i;
+	     Instruction *vi = dyn_cast(*i);
+	     errs() << *vi << "\n";
+         }
+    }
+}
+
 namespace {
    class Slicer : public ModulePass {
      public:
@@ -92,7 +111,7 @@ namespace {
 
 	   //TODO: find init functions + proper order to iterate
 	   for(Module::iterator F = M.begin(); F != M.end(); ++F){
-	       errs() << "Function iteration of " << *F << "\n";
+		defUsePrint(*F);
 	   }
         }
         /*void getAnalysisUsage(AnalysisUsage &AU) const {
