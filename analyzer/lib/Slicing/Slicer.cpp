@@ -88,13 +88,13 @@ void defUsePrint(Function &F){
         Worklist.push_back(&*I);
     }
     
-    for(std::vector iterator iter = Worklist.begin(); iter != Worklist.end(); ++iter){
+    for(std::vector<Instruction *>::iterator iter = Worklist.begin(); iter != Worklist.end(); ++iter){
          Instruction *instr = *iter;
          errs()  << "def instr: " << *instr << "\n";
 	 errs() << "use: " << "\n";
-         for(Value::use_iterator i = instr->use_begin(); ie = instr->use_end();  i != ie; ++i){
+         for(Value::use_iterator i = instr->use_begin();  i != instr->use_end(); ++i){
              Value *v = *i;
-	     Instruction *vi = dyn_cast(*i);
+	     Instruction *vi = dyn_cast<Instruction>(*i);
 	     errs() << *vi << "\n";
          }
     }
