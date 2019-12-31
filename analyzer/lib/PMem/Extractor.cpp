@@ -9,17 +9,22 @@
 //
 
 #include "Extractor.h"
-
+#include "llvm/IR/Type.h"
+#include "llvm/IR/DerivedTypes.h"
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
 
 const set<std::string> PMemAPICallLocator::pmdkApiSet {
-  "pmem_map_file", "pmem_persist", "pmem_msync", "pmemobj_create", "pmemobj_direct_inline"
+  "pmem_map_file", "pmem_persist", "pmem_msync", "pmemobj_create", "pmemobj_direct_inline", "pmemobj_open"
   };
 
 const set<std::string> PMemAPICallLocator::pmdkPMEMVariableReturnSet {
   "pmemobj_direct_inline"
+  };
+
+const set<std::string> PMemAPICallLocator::PMEMFileMappingSet{
+  "pmemobj_create"
   };
 
 PMemAPICallLocator::PMemAPICallLocator(Function &F) {
@@ -35,17 +40,34 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
     errs().write_escaped(F.getName()) << "]";
     errs() << " calling function ";
     errs().write_escaped(callee->getName()) << '\n';
+    //Step 1: Check for persistent variable by using pmemobj_direct calls
     if (pmdkApiSet.find(callee->getName()) != pmdkApiSet.end()) {
       callList.push_back(callInst);
       if (pmdkPMEMVariableReturnSet.find(callee->getName()) != pmdkPMEMVariableReturnSet.end()) {
 	//Value *v = cast<Value>inst;
 	const Value *v = inst;
 	errs() << v->getName() << " end\n";
+	candidateSet.push_back(v);
 	for(auto U : v->users()){
 	    if(auto I = dyn_cast<Instruction> (U)){
 		errs() << "This Instruction uses a pmem variable:  " << *I << "\n";
+		errs() << "Type is : " << I->getType()->getTypeID() << "\n";
 	    }
 	}
+      }
+      //TODO: Step 2: Use alias analysis to find persistent pointers that point to persistent variables
+      //Step 3: Use pmemobj_create calls to find persistent memory regions to check all pointers if they point to a PMEM region.
+      else if (PMEMFileMappingSet.find(callee->getName()) != PMEMFileMappingSet.end()) {
+	int arg_count = 0;
+	for(auto arg = callee->arg_begin(); arg != callee->arg_end(); ++arg){
+		if(arg_count == 2){
+			const Value *v = inst;
+			const Value *v2 = &*arg;
+			pmemRanges.insert(pair <const Value * , const Value *> (v, v2));
+		}
+		arg_count++;
+	}
+	errs() << "pmemobj_create \n";
       }
     }
   }

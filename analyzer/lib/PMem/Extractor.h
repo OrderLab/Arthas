@@ -24,6 +24,8 @@
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/DerivedTypes.h"
 
 namespace llvm {
 namespace pmem {
@@ -48,6 +50,9 @@ class PMemAPICallLocator {
     ApiCallList callList;
     static const std::set<std::string> pmdkApiSet;
     static const std::set<std::string> pmdkPMEMVariableReturnSet;
+    static const std::set<std::string> PMEMFileMappingSet;
+    llvm::SmallVector<const llvm::Value *, 20> candidateSet;
+    std::multimap<const llvm::Value *, const llvm::Value *>pmemRanges;
 };
 
 } // namespace pmem
