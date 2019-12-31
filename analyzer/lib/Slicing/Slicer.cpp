@@ -20,6 +20,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/DominanceFrontier.h"
+#include "LLVM.h"
 
 using namespace llvm;
 
