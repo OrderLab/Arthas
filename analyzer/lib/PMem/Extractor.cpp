@@ -16,15 +16,15 @@ using namespace llvm;
 using namespace llvm::pmem;
 
 const set<std::string> PMemAPICallLocator::pmdkApiSet {
-  "pmem_map_file", "pmem_persist", "pmem_msync", "pmemobj_create", "pmemobj_direct_inline", "pmemobj_open"
+  "pmem_map_file", "pmem_persist", "pmem_msync", "pmemobj_create", "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"
   };
 
 const set<std::string> PMemAPICallLocator::pmdkPMEMVariableReturnSet {
-  "pmemobj_direct_inline"
+  "pmemobj_direct_inline", "pmem_map_file"
   };
 
 const set<std::string> PMemAPICallLocator::PMEMFileMappingSet{
-  "pmemobj_create"
+  "pmemobj_create", "pmem_map_file"
   };
 
 PMemAPICallLocator::PMemAPICallLocator(Function &F) {
@@ -75,7 +75,7 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
       }
       //TODO: Step 2: Use alias analysis to find persistent pointers that point to persistent variables
       //Step 3: Use pmemobj_create calls to find persistent memory regions to check all pointers if they point to a PMEM region.
-      else if (PMEMFileMappingSet.find(callee->getName()) != PMEMFileMappingSet.end()) {
+      if (PMEMFileMappingSet.find(callee->getName()) != PMEMFileMappingSet.end()) {
 	int arg_count = 0;
 	for(auto arg = callee->arg_begin(); arg != callee->arg_end(); ++arg){
 		if(arg_count == 2){
