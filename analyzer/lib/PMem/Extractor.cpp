@@ -30,6 +30,7 @@ const set<std::string> PMemAPICallLocator::PMEMFileMappingSet{
 PMemAPICallLocator::PMemAPICallLocator(Function &F) {
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     const Instruction *inst = &*I;
+    errs() << *I << "\n";
     if (!isa<CallInst>(inst))
       continue;
     const CallInst *callInst = cast<CallInst>(inst);
@@ -52,6 +53,23 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
 	    if(auto I = dyn_cast<Instruction> (U)){
 		errs() << "This Instruction uses a pmem variable:  " << *I << "\n";
 		errs() << "Type is : " << I->getType()->getTypeID() << "\n";
+		//One more level of indirection
+		const Value *v2 = I;
+		for(auto U2: v2->users()){
+		   if(auto I2 = dyn_cast<Instruction> (U2)){
+			errs() << "This Instruction uses a pmem variable:  " << *I2 << "\n";		   	
+			if(auto S = dyn_cast<StoreInst> (I2)){
+			   const Value *val = S->getPointerOperand();
+			   errs() << "PERSISTENT VARIABLE IS: " << *val << "\n";
+			   /*for(auto op = S->op_begin(); op != S->op_end(); op++){
+			      Value *val = op->get();
+			      //errs() << *val << "\n";
+			      //StringRef name = val->getName(); 
+			      //errs() << name.data() << "\n";
+			   }*/
+			}
+		   }
+		}
 	    }
 	}
       }

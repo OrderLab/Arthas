@@ -7,7 +7,7 @@ LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
 CC = gcc
 RM = rm
 
-EXES = hello_libpmem hello_libpmemobj
+EXES = hello_libpmem hello_libpmemobj pmem_variables
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 SUBDIRS = mapreduce pmem_leak simple_grep
@@ -27,10 +27,16 @@ hello_libpmem.o: hello_libpmem.c
 hello_libpmemobj.o: hello_libpmemobj.c
 	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
 
+pmem_variables.o: pmem_variables.c
+	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
+
 hello_libpmem: hello_libpmem.o 
 	 $(CC) -o $@ $< $(LIBPMEM_LDFLAGS)
 
 hello_libpmemobj: hello_libpmemobj.o
+	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
+
+pmem_variables: pmem_variables.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 %.bc: %.c
