@@ -11,6 +11,8 @@
 #include "Extractor.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "DependenceGraph.h"
+
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
@@ -47,17 +49,17 @@ PMemAPICallLocator::PMemAPICallLocator(Function &F) {
       if (pmdkPMEMVariableReturnSet.find(callee->getName()) != pmdkPMEMVariableReturnSet.end()) {
 	//Value *v = cast<Value>inst;
 	const Value *v = inst;
-	errs() << v->getName() << " end\n";
+	//errs() << v->getName() << " end\n";
 	candidateSet.push_back(v);
 	for(auto U : v->users()){
 	    if(auto I = dyn_cast<Instruction> (U)){
 		errs() << "This Instruction uses a pmem variable:  " << *I << "\n";
-		errs() << "Type is : " << I->getType()->getTypeID() << "\n";
+		//errs() << "Type is : " << I->getType()->getTypeID() << "\n";
 		//One more level of indirection
 		const Value *v2 = I;
 		for(auto U2: v2->users()){
 		   if(auto I2 = dyn_cast<Instruction> (U2)){
-			errs() << "This Instruction uses a pmem variable:  " << *I2 << "\n";		   	
+			//errs() << "This Instruction uses a pmem variable:  " << *I2 << "\n";		   	
 			if(auto S = dyn_cast<StoreInst> (I2)){
 			   const Value *val = S->getPointerOperand();
 			   errs() << "PERSISTENT VARIABLE IS: " << *val << "\n";
