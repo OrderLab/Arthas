@@ -11,7 +11,8 @@
 #include "Extractor.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "DependenceGraph.h"
+//#include "dg/DependenceGraph.h"
+//#include "dg/llvm/LLVMDependenceGraphBuilder.h"
 
 using namespace std;
 using namespace llvm;
@@ -117,6 +118,9 @@ char PMemVariablePass::ID = 0;
 static RegisterPass<PMemVariablePass> X("pmem", "Pass that analyzes variables backed by persistent memory");
 
 bool PMemVariablePass::runOnModule(Module &M) {
+
+ //llvmdg::LLVMDependenceGraphOptions options;
+
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
