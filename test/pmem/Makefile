@@ -10,11 +10,12 @@ RM = rm
 EXES = hello_libpmem hello_libpmemobj pmem_variables
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
+ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
 SUBDIRS = mapreduce pmem_leak simple_grep
 
 .PHONY: all clean subdir
 
-all: $(EXES) $(BITCODES) subdir
+all: $(EXES) $(BITCODES) $(ASSEMBLYS) subdir
 
 subdir:
 	for dir in $(SUBDIRS); do \
@@ -41,6 +42,9 @@ pmem_variables: pmem_variables.o
 
 %.bc: %.c
 	clang -c -emit-llvm $< -o $@
+
+%.ll: %.bc
+	llvm-dis $<
 
 clean: 
 	rm -f *.o $(EXES) $(BITCODES)

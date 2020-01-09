@@ -3,6 +3,7 @@
 *.so
 *.swp
 *.bc
+*.ll
 
 CMakeFiles/
 cmake_install.cmake

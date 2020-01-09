@@ -1,10 +1,11 @@
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
+ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
 SUBDIRS = pmem
 
 .PHONY: all clean subdir
 
-all: $(BITCODES) subdir
+all: $(BITCODES) $(ASSEMBLYS) subdir
 
 subdir:
 	for dir in $(SUBDIRS); do \
@@ -14,8 +15,11 @@ subdir:
 %.bc: %.c
 	clang -c -emit-llvm $< -o $@
 
+%.ll: %.bc
+	llvm-dis $<
+
 clean:
-	rm *.bc
+	rm -f $(BITCODES) $(ASSEMBLYS)
 	for dir in $(SUBDIRS); do \
 		make -C $$dir clean; \
 	done
