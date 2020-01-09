@@ -81,45 +81,47 @@ char Hello2::ID = 0;
 static RegisterPass<Hello2>
 Y("hello2", "Hello World Pass (with getAnalysisUsage implemented)");
 
-void defUsePrint(Function &F){
-    //errs() << "Function iteration of " << F << "\n";
-    std::vector<Instruction * > Worklist;
-    for(inst_iterator I = inst_begin(F), E = inst_end(F); I!= E; ++I){
-        Worklist.push_back(&*I);
+void defUsePrint(Function &F) {
+  // errs() << "Function iteration of " << F << "\n";
+  std::vector<Instruction *> Worklist;
+  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+    Worklist.push_back(&*I);
+  }
+
+  for (std::vector<Instruction *>::iterator iter = Worklist.begin();
+       iter != Worklist.end(); ++iter) {
+    Instruction *instr = *iter;
+    errs() << "def instr: " << *instr << "\n";
+    errs() << "use: "
+           << "\n";
+    for (Value::use_iterator i = instr->use_begin(); i != instr->use_end();
+         ++i) {
+      Value *v = *i;
+      Instruction *vi = dyn_cast<Instruction>(*i);
+      errs() << *vi << "\n";
     }
-    
-    for(std::vector<Instruction *>::iterator iter = Worklist.begin(); iter != Worklist.end(); ++iter){
-         Instruction *instr = *iter;
-         errs()  << "def instr: " << *instr << "\n";
-	 errs() << "use: " << "\n";
-         for(Value::use_iterator i = instr->use_begin();  i != instr->use_end(); ++i){
-             Value *v = *i;
-	     Instruction *vi = dyn_cast<Instruction>(*i);
-	     errs() << *vi << "\n";
-         }
-    }
+  }
 }
 
 namespace {
-   class Slicer : public ModulePass {
-     public:
-        static char ID;
-        Slicer() : ModulePass(ID) {}
+class Slicer : public ModulePass {
+ public:
+  static char ID;
+  Slicer() : ModulePass(ID) {}
 
-        bool runOnModule(Module &M){
-           errs() << "beginning module slice\n";
+  bool runOnModule(Module &M) {
+    errs() << "beginning module slice\n";
 
-	   //TODO: find init functions + proper order to iterate
-	   for(Module::iterator F = M.begin(); F != M.end(); ++F){
-		defUsePrint(*F);
-	   }
-        }
-        /*void getAnalysisUsage(AnalysisUsage &AU) const {
-           AU.addRequired<PostDominatorTree>();
-           AU.addRequired<PostDominanceFrontier>();
-        }*/
-
-   };
+    // TODO: find init functions + proper order to iterate
+    for (Module::iterator F = M.begin(); F != M.end(); ++F) {
+      defUsePrint(*F);
+    }
+  }
+  /*void getAnalysisUsage(AnalysisUsage &AU) const {
+     AU.addRequired<PostDominatorTree>();
+     AU.addRequired<PostDominanceFrontier>();
+  }*/
+};
 }
 
 static RegisterPass<Slicer> Z("slice", "Slices the code");
