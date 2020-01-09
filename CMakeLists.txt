@@ -21,3 +21,29 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(analyzer)
 
+# Make clang-format into a make target to enforce coding style
+# http://mariobadr.com/using-clang-format-to-enforce-style.html
+find_program(
+  CLANG_FORMAT_EXE
+  NAMES "clang-format"
+  DOC "Path to clang-format executable"
+)
+if(NOT CLANG_FORMAT_EXE)
+  message(STATUS "clang-format not found.")
+else()
+  message(STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+  set(DO_CLANG_FORMAT "${CLANG_FORMAT_EXE}" "-i -style=file")
+endif()
+
+file(GLOB_RECURSE FILES_TO_FORMAT
+  ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.h
+)
+
+if(CLANG_FORMAT_EXE)
+  message(STATUS "running clang-format on all source files.")
+  add_custom_target(
+    format
+    COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${FILES_TO_FORMAT}
+  )
+endif()

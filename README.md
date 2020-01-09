@@ -80,6 +80,8 @@ The output is:
 TBA
 
 # Code Style
+
+### Command-Line
 We follow the [Google Cpp Style Guide](https://google.github.io/styleguide/cppguide.html#Formatting). 
 There is a [.clang-format](.clang-format) file in the root directory that is derived from this style.
 It can be used with the `clang-format` tool to reformat the source files, e.g.,
@@ -96,6 +98,18 @@ $ clang-format -i -style=file analyzer/lib/Slicing/Slicer.cpp
 $ clang-format -i -style=file analyzer/lib/*/*.cpp
 ```
 
+### IDE
 If you are using Clion, the IDE supports `.clang-format` style. Go to `Settings/Preferences | Editor | Code Style`, 
 check the box `Enable ClangFormat with clangd server`. `clang-format` can also be integrated with 
 vim, see the official [doc](http://clang.llvm.org/docs/ClangFormat.html#clion-integration).
+
+
+### Make target
+We defined a make target in the CMakeFiles to run `clang-format` on all source
+files when invoked. 
+
+```
+make format
+```
+
+(first time using it should do a `cd build; cmake ..`)
