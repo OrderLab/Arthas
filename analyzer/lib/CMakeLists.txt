@@ -1,13 +1,19 @@
+add_library(DefUse SHARED
+  DefUse/DefUse.cpp
+)
+
 add_library(LLVMSlicer MODULE 
   Slicing/Slicer.cpp
-  )
+)
 
 add_library(LLVMPMem MODULE 
   PMem/Extractor.cpp
-  )
+)
+
+target_link_libraries(LLVMPMem PUBLIC DefUse)
 
 add_library(Utils SHARED
   Utils/sample.cpp
   Utils/LLVM.cpp
-  )
+)
 

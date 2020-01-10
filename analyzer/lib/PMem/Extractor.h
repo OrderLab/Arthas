@@ -12,6 +12,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
@@ -30,29 +31,43 @@
 namespace llvm {
 namespace pmem {
 
-class PMemAPICallLocator {
+class PMemVariableLocator {
   // Use the small vector here, reference on picking what ADT to use:
   // http://llvm.org/docs/ProgrammersManual.html#picking-the-right-data-structure-for-a-task
   typedef llvm::SmallVector<const llvm::CallInst *, 5> ApiCallList;
+  typedef llvm::SmallVector<const llvm::Value *, 20> VariableList;
+  typedef std::multimap<const llvm::Value *, const llvm::Value *> RangeList;
+  typedef std::pair<const llvm::Value *, const llvm::Value *> RangePair;
 
   public:
-    PMemAPICallLocator(Function &F);
+   PMemVariableLocator(Function &F);
 
-    ApiCallList::const_iterator call_begin() const {
-      return callList.begin();
-    }
+   ApiCallList::const_iterator call_begin() const { return callList.begin(); }
+   ApiCallList::const_iterator call_end() const { return callList.end(); }
 
-    ApiCallList::const_iterator call_end() const {
-      return callList.end();
-    }
+   ApiCallList::iterator call_begin() { return callList.begin(); }
+   ApiCallList::iterator call_end() { return callList.end(); }
+
+   VariableList::iterator var_begin() { return varList.begin(); }
+   VariableList::iterator var_end() { return varList.end(); }
+
+   VariableList::const_iterator var_begin() const { return varList.begin(); }
+   VariableList::const_iterator var_end() const { return varList.end(); }
+
+   RangeList::iterator range_begin() { return rangeList.begin(); }
+   RangeList::iterator range_end() { return rangeList.end(); }
+
+   RangeList::const_iterator range_begin() const { return rangeList.begin(); }
+   RangeList::const_iterator range_end() const { return rangeList.end(); }
 
   private:
-    ApiCallList callList;
-    static const std::set<std::string> pmdkApiSet;
-    static const std::set<std::string> pmdkPMEMVariableReturnSet;
-    static const std::set<std::string> PMEMFileMappingSet;
-    llvm::SmallVector<const llvm::Value *, 20> candidateSet;
-    std::multimap<const llvm::Value *, const llvm::Value *>pmemRanges;
+   ApiCallList callList;
+   VariableList varList;
+   RangeList rangeList;
+
+   static const std::set<std::string> pmdkApiSet;
+   static const std::set<std::string> pmdkPMEMVariableReturnSet;
+   static const std::set<std::string> pmdkFileMappingSet;
 };
 
 } // namespace pmem
