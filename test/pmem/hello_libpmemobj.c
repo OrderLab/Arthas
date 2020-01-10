@@ -75,13 +75,14 @@ void write_hello_string (char *buf, char *path)
 	// Pointer for structure at the root
 	struct my_root *rootp = pmemobj_direct(root);
 
+  printf("my_root=%p\n", rootp);
 	// Write the string to persistent memory
 
+	rootp->len = strlen(buf);
 	// Copy string and persist it
 	pmemobj_memcpy_persist(pop, rootp->buf, buf, rootp->len);
 
 	// Assign the string length and persist it
-	rootp->len = strlen(buf);
 	pmemobj_persist(pop, &rootp->len, sizeof (rootp->len));	
 
 	// Write the string from persistent memory 	to console
