@@ -44,7 +44,7 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
           pmdkPMEMVariableReturnSet.end()) {
         // Step 2: if this API call returns something, we get a pmem variable.
         const Value *v = inst;
-        errs() << "- this instruction uses a pmem variable: " << *v << "\n";
+        errs() << "- this instruction creates a pmem variable: " << *v << "\n";
         varList.push_back(v);
         // Step 3: find the transitive closure of the users of the pmem variables.
         UserGraph g(v);

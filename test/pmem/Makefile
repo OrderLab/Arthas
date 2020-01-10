@@ -7,7 +7,7 @@ LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
 CC = gcc
 RM = rm
 
-EXES = hello_libpmem hello_libpmemobj pmem_variables
+EXES = hello_libpmem hello_libpmemobj pmem_variables pmem_vector
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
@@ -38,6 +38,9 @@ hello_libpmemobj: hello_libpmemobj.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 pmem_variables: pmem_variables.o
+	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
+
+pmem_vector: pmem_vector.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 %.bc: %.c

@@ -75,7 +75,6 @@ void write_hello_string (char *buf, char *path)
 	// Pointer for structure at the root
 	struct my_root *rootp = pmemobj_direct(root);
 
-  printf("my_root=%p\n", rootp);
 	// Write the string to persistent memory
 
 	rootp->len = strlen(buf);
