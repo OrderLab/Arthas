@@ -13,7 +13,7 @@ subdir:
 	done
 
 %.bc: %.c
-	clang -c -emit-llvm $< -o $@
+	clang -c -g -O0 -emit-llvm $< -o $@
 
 %.ll: %.bc
 	llvm-dis $<

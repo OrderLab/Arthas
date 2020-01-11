@@ -36,7 +36,7 @@ RM = rm
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.bc: %.cpp
-	clang++ -std=c++11 -c -emit-llvm $< -o $@
+	clang++ -std=c++11 -g -O0 -c -emit-llvm $< -o $@
 
 all: $(PROGS) $(BITCODES)
 

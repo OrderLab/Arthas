@@ -39,7 +39,7 @@ all: $(PROGS) $(BITCODES)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.bc: %.cpp common.hpp
-	clang++ -std=c++11 -c -emit-llvm $< -o $@
+	clang++ -std=c++11 -g -O0 -c -emit-llvm $< -o $@
 
 normal: normal.o
 	$(CXX) $< $(LDFLAGS) -o $@

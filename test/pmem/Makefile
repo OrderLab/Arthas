@@ -44,7 +44,7 @@ pmem_vector: pmem_vector.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 %.bc: %.c
-	clang -c -emit-llvm $< -o $@
+	clang -c -g -O0 -emit-llvm $< -o $@
 
 %.ll: %.bc
 	llvm-dis $<

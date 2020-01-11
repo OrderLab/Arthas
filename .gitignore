@@ -4,6 +4,7 @@
 *.swp
 *.bc
 *.ll
+*.sliced
 
 CMakeFiles/
 cmake_install.cmake
