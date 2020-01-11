@@ -8,16 +8,23 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include <set>
+
 #include "Extractor.h"
 #include "../DefUse/DefUse.h"
 
-#include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/CommandLine.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::defuse;
+
+// opt argument to extract persistent variables only in the target functions
+static cl::list<std::string> TargetFunctions("target-functions",
+                                      cl::desc("<Function>"), cl::ZeroOrMore);
 
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_map_file",         "pmem_persist", "pmem_msync",   "pmemobj_create",
@@ -26,8 +33,9 @@ const set<std::string> PMemVariableLocator::pmdkApiSet{
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
     "pmemobj_direct_inline", "pmem_map_file"};
 
-const set<std::string> PMemVariableLocator::pmdkFileMappingSet{
-    "pmemobj_create", "pmem_map_file"};
+// Map API name to i-th argument (starting from 0) that specifies region size
+const map<std::string, unsigned int> PMemVariableLocator::pmdkRegionSizeArgMapping{
+  {"pmem_map_file", 1}, {"pmemobj_create", 2}};
 
 PMemVariableLocator::PMemVariableLocator(Function &F) {
   errs() << "[" << F.getName() << "]\n";
@@ -53,29 +61,20 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
           varList.push_back(ui->first);
         }
       }
-      // TODO: Step 4: Use alias analysis to find persistent pointers that point
-      // to persistent variables
-      //
-      // Step 5: Use pmemobj_create calls to find persistent memory regions to
-      // check all pointers if they point to a PMEM region.
-      if (pmdkFileMappingSet.find(callee->getName()) !=
-          pmdkFileMappingSet.end()) {
-        int arg_count = 0;
-        for (auto arg = callee->arg_begin(); arg != callee->arg_end(); ++arg) {
-          if (arg_count == 2) {
-            const Value *v = inst;
-            const Value *v2 = &*arg;
-            rangeList.insert(RangePair(v, v2));
-          }
-          arg_count++;
-        }
+      // Step 4: Find persistent memory regions (e.g., mmapped through pmem_map_file 
+      // call) and their size argument to check all pointers if they point to a PMEM region.
+      auto rit = pmdkRegionSizeArgMapping.find(callee->getName());
+      if (rit != pmdkRegionSizeArgMapping.end() && 
+          callInst->getNumArgOperands() >= rit->second + 1) { 
+        // check if the call instruction has the right number of arguments
+        // +1 as the mapping stores the target argument from 0.
+
+        // find the argument that specifies the object store or mmap region size.
+        regionList.insert(RegionInfo(callInst, callInst->getArgOperand(rit->second)));
       }
     }
   }
 }
-
-#define DEBUG_TYPE "pmem"
-STATISTIC(PMVcounter, "Total number of variables backed by persistent memory");
 
 namespace {
   class PMemVariablePass: public ModulePass {
@@ -97,12 +96,23 @@ namespace {
 char PMemVariablePass::ID = 0;
 static RegisterPass<PMemVariablePass> X("pmem", "Pass that analyzes variables backed by persistent memory");
 
+static set<string> targetFunctionSet;
+static bool targetFunctionSetInit = false;
+
 bool PMemVariablePass::runOnModule(Module &M) {
+  if (!targetFunctionSetInit) {
+    for (auto funci = TargetFunctions.begin(); funci != TargetFunctions.end(); ++funci) {
+      targetFunctionSet.insert(*funci);
+    }
+    targetFunctionSetInit = true;
+  }
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration()) {
-      modified |= runOnFunction(F);
+      if (targetFunctionSet.empty() ||
+          targetFunctionSet.count(F.getName()) != 0)
+        modified |= runOnFunction(F);
     }
   }
   return modified;
@@ -123,7 +133,7 @@ bool PMemVariablePass::runOnFunction(Function &F) {
   }
 
   // Iterate through the identified PMem ranges in this function
-  for (auto ri = locator.range_begin(); ri != locator.range_end(); ++ri) {
+  for (auto ri = locator.region_begin(); ri != locator.region_end(); ++ri) {
     errs() << "* Identified pmem region [" << *ri->first << "," << *ri->second << "]\n";
   }
   return false;

@@ -36,38 +36,38 @@ class PMemVariableLocator {
   // http://llvm.org/docs/ProgrammersManual.html#picking-the-right-data-structure-for-a-task
   typedef llvm::SmallVector<const llvm::CallInst *, 5> ApiCallList;
   typedef llvm::SmallVector<const llvm::Value *, 20> VariableList;
-  typedef std::multimap<const llvm::Value *, const llvm::Value *> RangeList;
-  typedef std::pair<const llvm::Value *, const llvm::Value *> RangePair;
+  typedef std::multimap<const llvm::Value *, const llvm::Value *> RegionList;
+  typedef std::pair<const llvm::Value *, const llvm::Value *> RegionInfo;
 
-  public:
-   PMemVariableLocator(Function &F);
+ public:
+  PMemVariableLocator(Function &F);
 
-   ApiCallList::const_iterator call_begin() const { return callList.begin(); }
-   ApiCallList::const_iterator call_end() const { return callList.end(); }
+  ApiCallList::const_iterator call_begin() const { return callList.begin(); }
+  ApiCallList::const_iterator call_end() const { return callList.end(); }
 
-   ApiCallList::iterator call_begin() { return callList.begin(); }
-   ApiCallList::iterator call_end() { return callList.end(); }
+  ApiCallList::iterator call_begin() { return callList.begin(); }
+  ApiCallList::iterator call_end() { return callList.end(); }
 
-   VariableList::iterator var_begin() { return varList.begin(); }
-   VariableList::iterator var_end() { return varList.end(); }
+  VariableList::iterator var_begin() { return varList.begin(); }
+  VariableList::iterator var_end() { return varList.end(); }
 
-   VariableList::const_iterator var_begin() const { return varList.begin(); }
-   VariableList::const_iterator var_end() const { return varList.end(); }
+  VariableList::const_iterator var_begin() const { return varList.begin(); }
+  VariableList::const_iterator var_end() const { return varList.end(); }
 
-   RangeList::iterator range_begin() { return rangeList.begin(); }
-   RangeList::iterator range_end() { return rangeList.end(); }
+  RegionList::iterator region_begin() { return regionList.begin(); }
+  RegionList::iterator region_end() { return regionList.end(); }
 
-   RangeList::const_iterator range_begin() const { return rangeList.begin(); }
-   RangeList::const_iterator range_end() const { return rangeList.end(); }
+  RegionList::const_iterator region_begin() const { return regionList.begin(); }
+  RegionList::const_iterator region_end() const { return regionList.end(); }
 
-  private:
-   ApiCallList callList;
-   VariableList varList;
-   RangeList rangeList;
+ private:
+  ApiCallList callList;
+  VariableList varList;
+  RegionList regionList;
 
-   static const std::set<std::string> pmdkApiSet;
-   static const std::set<std::string> pmdkPMEMVariableReturnSet;
-   static const std::set<std::string> pmdkFileMappingSet;
+  static const std::set<std::string> pmdkApiSet;
+  static const std::set<std::string> pmdkPMEMVariableReturnSet;
+  static const std::map<std::string, unsigned int> pmdkRegionSizeArgMapping;
 };
 
 } // namespace pmem

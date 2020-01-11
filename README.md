@@ -52,30 +52,67 @@ opt -load build/analyzer/lib/libLLVMPMem.so -pmem < test/pmem/hello_libpmem.bc >
 
 The output is:
 ```
-[write_hello_string] calling function pmem_map_file
-[write_hello_string] calling function perror
-[write_hello_string] calling function exit
-[write_hello_string] calling function strcpy
-[write_hello_string] calling function pmem_persist
-[write_hello_string] calling function pmem_msync
-[write_hello_string] calling function printf
- Identified pmdk API calls:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
- Identified pmdk API calls:   call void @pmem_persist(i8* %19, i64 %20)
- Identified pmdk API calls:   %24 = call i32 @pmem_msync(i8* %22, i64 %23)
-[read_hello_string] calling function pmem_map_file
-[read_hello_string] calling function perror
-[read_hello_string] calling function exit
-[read_hello_string] calling function printf
- Identified pmdk API calls:   %7 = call i8* @pmem_map_file(i8* %6, i64 1024, i32 1, i32 438, i64* %4, i32* %5)
-[main] calling function llvm.memcpy.p0i8.p0i8.i64
-[main] calling function strcmp
-[main] calling function write_hello_string
-[main] calling function strcmp
-[main] calling function read_hello_string
-[main] calling function fprintf
-[main] calling function exit
+[write_hello_string]
+- this instruction creates a pmem variable:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
+- users of the pmem variable:   %13 = load i8*, i8** %5, align 8
+- users of the pmem variable:   %15 = call i8* @strcpy(i8* %13, i8* %14) #7
+- users of the pmem variable:   %19 = load i8*, i8** %5, align 8
+- users of the pmem variable:   call void @pmem_persist(i8* %19, i64 %20)
+- users of the pmem variable:   %22 = load i8*, i8** %5, align 8
+- users of the pmem variable:   %24 = call i32 @pmem_msync(i8* %22, i64 %23)
+- users of the pmem variable:   %26 = load i8*, i8** %5, align 8
+- users of the pmem variable:   %27 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([46 x i8], [46 x i8]* @.str.1, i32 0, i32 0), i8* %26)
+- users of the pmem variable:   %10 = icmp eq i8* %9, null
+- users of the pmem variable:   br i1 %10, label %11, label %12
+* Identified pmdk API calls:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
+* Identified pmdk API calls:   call void @pmem_persist(i8* %19, i64 %20)
+* Identified pmdk API calls:   %24 = call i32 @pmem_msync(i8* %22, i64 %23)
+* Identified pmem variable instruction:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
+* Identified pmem variable instruction:   %13 = load i8*, i8** %5, align 8
+* Identified pmem variable instruction:   %15 = call i8* @strcpy(i8* %13, i8* %14) #7
+* Identified pmem variable instruction:   %19 = load i8*, i8** %5, align 8
+* Identified pmem variable instruction:   call void @pmem_persist(i8* %19, i64 %20)
+* Identified pmem variable instruction:   %22 = load i8*, i8** %5, align 8
+* Identified pmem variable instruction:   %24 = call i32 @pmem_msync(i8* %22, i64 %23)
+* Identified pmem variable instruction:   %26 = load i8*, i8** %5, align 8
+...
 ```
 
+Specify a target function to extract the pmem variables from that function.
+```
+$ opt -load analyzer/lib/libLLVMPMem.so -pmem -target-functions write_vector < ../test/pmem/pmem_vector.bc > /dev/null
+```
+
+The output is:
+```
+[write_vector]
+- this instruction creates a pmem variable:   %33 = call i8* @pmemobj_direct_inline(i64 %30, i64 %32)
+- users of the pmem variable:   %34 = bitcast i8* %33 to %struct.vector*
+- users of the pmem variable:   %35 = load %struct.vector*, %struct.vector** %10, align 8
+- users of the pmem variable:   %36 = getelementptr inbounds %struct.vector, %struct.vector* %35, i32 0, i32 0
+- users of the pmem variable:   %60 = load i32*, i32** %12, align 8
+- users of the pmem variable:   %61 = bitcast i32* %60 to i8*
+- users of the pmem variable:   %62 = call i32 @pmemobj_tx_add_range_direct(i8* %61, i64 4)
+- users of the pmem variable:   %63 = load i32*, i32** %12, align 8
+- users of the pmem variable:   call void @pointer_set(i32* %63, i32 5)
+- users of the pmem variable:   %106 = load %struct.vector*, %struct.vector** %10, align 8
+- users of the pmem variable:   %107 = getelementptr inbounds %struct.vector, %struct.vector* %106, i32 0, i32 0
+- users of the pmem variable:   %109 = load %struct.vector*, %struct.vector** %10, align 8
+- users of the pmem variable:   %110 = getelementptr inbounds %struct.vector, %struct.vector* %109, i32 0, i32 1
+- users of the pmem variable:   %112 = load %struct.vector*, %struct.vector** %10, align 8
+- users of the pmem variable:   %113 = getelementptr inbounds %struct.vector, %struct.vector* %112, i32 0, i32 2
+* Identified pmdk API calls:   %33 = call i8* @pmemobj_direct_inline(i64 %30, i64 %32)
+* Identified pmem variable instruction:   %33 = call i8* @pmemobj_direct_inline(i64 %30, i64 %32)
+* Identified pmem variable instruction:   %34 = bitcast i8* %33 to %struct.vector*
+* Identified pmem variable instruction:   %35 = load %struct.vector*, %struct.vector** %10, align 8
+* Identified pmem variable instruction:   %36 = getelementptr inbounds %struct.vector, %struct.vector* %35, i32 0, i32 0
+* Identified pmem variable instruction:   %60 = load i32*, i32** %12, align 8
+* Identified pmem variable instruction:   %61 = bitcast i32* %60 to i8*
+* Identified pmem variable instruction:   %62 = call i32 @pmemobj_tx_add_range_direct(i8* %61, i64 4)
+* Identified pmem variable instruction:   %63 = load i32*, i32** %12, align 8
+* Identified pmem variable instruction:   call void @pointer_set(i32* %63, i32 5)
+...
+```
 
 TBA
 
