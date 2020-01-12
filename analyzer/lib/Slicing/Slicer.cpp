@@ -1,107 +1,28 @@
-//===- Slicer.cpp - Example code from "Writing an LLVM Pass" ---------------===//
+// The PMEM-Fault Project
 //
-//                     The LLVM Compiler Infrastructure
+// Copyright (c) 2019, Johns Hopkins University - Order Lab.
 //
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
+//    All rights reserved.
+//    Licensed under the Apache License, Version 2.0 (the "License");
 //
-//===----------------------------------------------------------------------===//
-//
-// This file implements two versions of the LLVM "Hello World" pass described
-// in docs/WritingAnLLVMPass.html
-//
-//===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/Statistic.h"
+#include <utility>
+#include <ctime>
+#include <chrono>
+
 #include "llvm/IR/Function.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Module.h"
-#include "llvm/Analysis/PostDominators.h"
-#include "llvm/Analysis/DominanceFrontier.h"
-#include "LLVM.h"
+#include "llvm/Pass.h"
+#include "llvm/Support/raw_ostream.h"
+
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/LLVMNode.h"
+#include "dg/llvm/LLVMSlicer.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 using namespace llvm;
-
-#define DEBUG_TYPE "hello"
-
-STATISTIC(HelloCounter, "Counts number of functions greeted");
-
-
-void writeCallLocator(Function &F){
-   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I){
-      const Instruction *inst = &*I;
-      if(inst->mayWriteToMemory()){
-         errs() << *I << "\n";
-      }
-   }
-}
-
-namespace {
-  // Hello - The first implementation, without getAnalysisUsage.
-  struct Hello : public FunctionPass {
-    static char ID; // Pass identification, replacement for typeid
-    Hello() : FunctionPass(ID) {}
-
-    bool runOnFunction(Function &F) override {
-      ++HelloCounter;
-      errs() << "Hello: ";
-      errs().write_escaped(F.getName()) << '\n';
-      return false;
-    }
-  };
-}
-
-char Hello::ID = 0;
-static RegisterPass<Hello> X("hello", "Hello World Pass");
-
-namespace {
-  // Hello2 - The second implementation with getAnalysisUsage implemented.
-  struct Hello2 : public FunctionPass {
-    static char ID; // Pass identification, replacement for typeid
-    Hello2() : FunctionPass(ID) {}
-
-    bool runOnFunction(Function &F) override {
-      ++HelloCounter;
-      errs() << "Hello: ";
-      errs().write_escaped(F.getName()) << '\n';
-      writeCallLocator(F);
-      return false;
-    }
-
-    // We don't modify the program, so we preserve all analyses.
-    void getAnalysisUsage(AnalysisUsage &AU) const override {
-      AU.setPreservesAll();
-    }
-  };
-}
-
-char Hello2::ID = 0;
-static RegisterPass<Hello2>
-Y("hello2", "Hello World Pass (with getAnalysisUsage implemented)");
-
-void defUsePrint(Function &F) {
-  // errs() << "Function iteration of " << F << "\n";
-  std::vector<Instruction *> Worklist;
-  for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
-    Worklist.push_back(&*I);
-  }
-
-  for (std::vector<Instruction *>::iterator iter = Worklist.begin();
-       iter != Worklist.end(); ++iter) {
-    Instruction *instr = *iter;
-    errs() << "def instr: " << *instr << "\n";
-    errs() << "use: "
-           << "\n";
-    for (Value::use_iterator i = instr->use_begin(); i != instr->use_end();
-         ++i) {
-      Value *v = *i;
-      Instruction *vi = dyn_cast<Instruction>(*i);
-      errs() << *vi << "\n";
-    }
-  }
-}
 
 namespace {
 class Slicer : public ModulePass {
@@ -110,20 +31,30 @@ class Slicer : public ModulePass {
   Slicer() : ModulePass(ID) {}
 
   bool runOnModule(Module &M) {
-    errs() << "beginning module slice\n";
+    dg::llvmdg::LLVMDependenceGraphBuilder builder(&M);
+    dg::LLVMSlicer slicer;
+    std::unique_ptr<dg::LLVMDependenceGraph> dg{};
 
-    // TODO: find init functions + proper order to iterate
-    for (Module::iterator F = M.begin(); F != M.end(); ++F) {
-      defUsePrint(*F);
+    dg = std::move(builder.constructCFGOnly());
+    if (!dg) {
+      llvm::errs() << "Building the dependence graph failed!\n";
     }
+    dg = builder.computeDependencies(std::move(dg));
+    const auto &stats = builder.getStatistics();
+    llvm::errs() << "[slicer] CPU time of pointer analysis: "
+                 << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
+    llvm::errs() << "[slicer] CPU time of reaching definitions analysis: "
+                 << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
+    llvm::errs() << "[slicer] CPU time of control dependence analysis: "
+                 << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
+    return false;
   }
-  /*void getAnalysisUsage(AnalysisUsage &AU) const {
-     AU.addRequired<PostDominatorTree>();
-     AU.addRequired<PostDominanceFrontier>();
-  }*/
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.setPreservesAll();
+  }
 };
 }
 
-static RegisterPass<Slicer> Z("slice", "Slices the code");
 char Slicer::ID = 0;
-
+static RegisterPass<Slicer> X("slicer", "Slices the code");

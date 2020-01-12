@@ -6,6 +6,8 @@ add_library(LLVMSlicer MODULE
   Slicing/Slicer.cpp
 )
 
+target_link_libraries(LLVMSlicer PUBLIC LLVMdg)
+
 add_library(LLVMPMem MODULE 
   PMem/Extractor.cpp
 )
