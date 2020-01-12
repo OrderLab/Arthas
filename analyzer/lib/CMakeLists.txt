@@ -12,7 +12,10 @@ add_library(LLVMPMem MODULE
   PMem/Extractor.cpp
 )
 
-target_link_libraries(LLVMPMem PUBLIC DefUse)
+target_link_libraries(LLVMPMem 
+  PUBLIC DefUse
+  PUBLIC LLVMdg
+)
 
 add_library(Utils SHARED
   Utils/sample.cpp
