@@ -46,6 +46,12 @@ const set<std::string> PMemVariableLocator::pmdkApiSet{
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
     "pmemobj_direct_inline", "pmem_map_file"};
 
+const set<std::string> PMemVariableLocator::memkindApiSet{
+    "memkind_create_pmem",   "memkind_malloc", "memkind_calloc"};
+
+const set<std::string> PMemVariableLocator::memkindVariableReturnSet{
+    "memkind_malloc",        "memkind_calloc"};
+
 // Map API name to i-th argument (starting from 0) that specifies region size
 const map<std::string, unsigned int> PMemVariableLocator::pmdkRegionSizeArgMapping{
   {"pmem_map_file", 1}, {"pmemobj_create", 2}};

@@ -68,6 +68,8 @@ class PMemVariableLocator {
 
   static const std::set<std::string> pmdkApiSet;
   static const std::set<std::string> pmdkPMEMVariableReturnSet;
+  static const std::set<std::string> memkindApiSet;
+  static const std::set<std::string> memkindVariableReturnSet;
   static const std::map<std::string, unsigned int> pmdkRegionSizeArgMapping;
 };
 

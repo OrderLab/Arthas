@@ -1,7 +1,7 @@
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
-SUBDIRS = pmem
+SUBDIRS = pmem memkind
 
 .PHONY: all clean subdir
 
