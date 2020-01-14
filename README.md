@@ -123,7 +123,7 @@ TBA
 ```
 cd build
 bin/llvm-dg-dump ../test/field-sensitive.bc > field-sensitive-dg.dot
-bin/llvm-pta-dump ../test/field-sensitive.bc > field-sensitive-pta.dot
+bin/llvm-pta-dump -graph-only ../test/field-sensitive.bc > field-sensitive-pta.dot
 
 # convert the .dot graph files to PDF
 
