@@ -4,6 +4,7 @@
 *.swp
 *.bc
 *.ll
+*.dot
 *.sliced
 
 CMakeFiles/

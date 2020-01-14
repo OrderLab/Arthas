@@ -11,22 +11,14 @@
 #include <set>
 #include <utility>
 
-#include "llvm/IR/Function.h"
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/LLVMDependenceGraphBuilder.h"
-#include "dg/llvm/LLVMNode.h"
-#include "dg/llvm/LLVMSlicer.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-
-#include "dg/util/TimeMeasure.h"
+#include "Slicing/Slicer.h"
 
 using namespace std;
 using namespace llvm;
+using namespace llvm::slicing;
 
 static cl::list<string> TargetFunctions("target-functions", 
     cl::desc("<Function>"), cl::ZeroOrMore);
@@ -65,27 +57,11 @@ static void dumpPSNode(dg::PSNode *n) {
   errs() << "\n";
 }
 
-namespace {
-class Slicer : public ModulePass {
- public:
-  static char ID;
-  Slicer() : ModulePass(ID) {}
-
-  virtual bool runOnModule(Module &M) override;
-
-  void getAnalysisUsage(AnalysisUsage &AU) const override {
-    AU.setPreservesAll();
-  }
-
-  bool runOnFunction(Function &F, dg::LLVMDependenceGraph *dg);
-};
-}
-
-bool Slicer::runOnModule(Module &M) {
+bool DgSlicer::compute() {
   dg::debug::TimeMeasure tm;
   tm.start();
   dg::analysis::pta::PointerAnalysis *pa;
-  dg::LLVMPointerAnalysis pta(&M);
+  dg::LLVMPointerAnalysis pta(module);
   // create a flow-sensitive pointer analysis
   pa = pta.createPTA<dg::analysis::pta::PointerAnalysisFS>();
   pa->run();
@@ -102,16 +78,15 @@ bool Slicer::runOnModule(Module &M) {
   }
   */
 
-  dg::llvmdg::LLVMDependenceGraphBuilder builder(&M);
-  dg::LLVMSlicer slicer;
-  std::unique_ptr<dg::LLVMDependenceGraph> dg{};
+  dg::llvmdg::LLVMDependenceGraphBuilder builder(module);
 
   dg = std::move(builder.constructCFGOnly());
   if (!dg) {
     llvm::errs() << "Building the dependence graph failed!\n";
   }
+  // compute both data dependencies (def-use) and control dependencies
   dg = builder.computeDependencies(std::move(dg));
-  dg.get()->addDefUseEdges();
+
   const auto &stats = builder.getStatistics();
   errs() << "[slicer] CPU time of pointer analysis: "
          << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
@@ -119,35 +94,63 @@ bool Slicer::runOnModule(Module &M) {
          << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
   errs() << "[slicer] CPU time of control dependence analysis: "
          << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
+  funcDgMap = &dg::getConstructedFunctions();
+  return true;
+}
+
+dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
+{
+  if (funcDgMap == nullptr)
+    return nullptr;
+  auto dgit = funcDgMap->find(func);
+  if (dgit == funcDgMap->end()) {
+    errs() << "Could not find dependency graph for function " << func->getName() << "\n";
+  }
+  return dgit->second;
+}
+
+namespace {
+class SlicingPass : public ModulePass {
+ public:
+  static char ID;
+  SlicingPass() : ModulePass(ID) {}
+
+  virtual bool runOnModule(Module &M) override;
+
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.setPreservesAll();
+  }
+
+ private:
+  bool runOnFunction(Function &F);
+  DgSlicer* dgSlicer;
+};
+}
+
+bool SlicingPass::runOnModule(Module &M) {
+  dgSlicer = new DgSlicer(&M);
+  dgSlicer->compute();  // compute the dependence graph for module M
 
   bool modified = false;
-
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration()) {
       if (targetFunctionSet.empty() ||
           targetFunctionSet.count(F.getName()) != 0)
-        modified |= runOnFunction(F, dg.get());
+        modified |= runOnFunction(F);
     }
   }
   return modified;
 }
 
-bool Slicer::runOnFunction(Function &F, dg::LLVMDependenceGraph *dg) {
+bool SlicingPass::runOnFunction(Function &F) {
   errs() << "[" << F.getName() << "]\n";
-  const std::map<llvm::Value *, dg::LLVMDependenceGraph *> &dgraphs =
-      dg::getConstructedFunctions();
-  auto dgit = dgraphs.find(&F);
-  if (dgit == dgraphs.end()) {
-    errs() << "could not find dependency subgraph for " << F.getName() << "\n";
-  }
-  dg::LLVMDependenceGraph *subdg = dgit->second;
+  dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
   if (subdg != nullptr) {
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-      Instruction *inst = &*ii;
-      inst->dump();
-      dg::LLVMNode *node = subdg->findNode(inst);
+      ii->dump();
+      dg::LLVMNode *node = subdg->findNode(&*ii);
       if (node != nullptr) {
         errs() << "--> " << node->getDataDependenciesNum() << " data dependency:\n";
         for (auto di = node->data_begin(); di != node->data_end(); ++di) {
@@ -162,5 +165,5 @@ bool Slicer::runOnFunction(Function &F, dg::LLVMDependenceGraph *dg) {
   return false;
 }
 
-char Slicer::ID = 0;
-static RegisterPass<Slicer> X("slicer", "Slices the code");
+char SlicingPass::ID = 0;
+static RegisterPass<SlicingPass> X("slicer", "Slices the code");
