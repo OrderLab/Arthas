@@ -40,6 +40,8 @@ TBA
 
 # Usage
 
+## Extract PM variables and their slices
+
 ```
 opt -load build/analyzer/lib/libLLVMSlicer.so -hello < test/loop1.bc > /dev/null
 ```
@@ -115,6 +117,25 @@ The output is:
 ```
 
 TBA
+
+## Dump program dependency graph
+
+```
+cd build
+bin/llvm-dg-dump ../test/field-sensitive.bc > field-sensitive-dg.dot
+bin/llvm-pta-dump ../test/field-sensitive.bc > field-sensitive-pta.dot
+
+# convert the .dot graph files to PDF
+
+dot -Tpdf field-sensitive-dg.dot -o field-sensitive-dg.pdf
+dot -Tpdf field-sensitive-pta.dot -o field-sensitive-pta.pdf
+```
+
+scp the PDF files to local laptop for viewing the graph. The dependence 
+or pointer graph could be very large that you need to zoom into the graph.
+On Mac, the Preview app may not be able to handle the zooming well. The Adobe 
+PDF Reader (free version) app is more robust to view these pdf files.
+
 
 # Code Style
 
