@@ -47,7 +47,7 @@ const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
     "pmemobj_direct_inline", "pmem_map_file"};
 
 const set<std::string> PMemVariableLocator::memkindApiSet{
-    "memkind_create_pmem",   "memkind_malloc", "memkind_calloc"};
+    "memkind_create_pmem",   "memkind_create_kind"};
 
 const set<std::string> PMemVariableLocator::memkindVariableReturnSet{
     "memkind_malloc",        "memkind_calloc"};
@@ -55,6 +55,13 @@ const set<std::string> PMemVariableLocator::memkindVariableReturnSet{
 // Map API name to i-th argument (starting from 0) that specifies region size
 const map<std::string, unsigned int> PMemVariableLocator::pmdkRegionSizeArgMapping{
   {"pmem_map_file", 1}, {"pmemobj_create", 2}};
+
+const map<std::string, unsigned int> PMemVariableLocator::memkindCreationPMEMMapping{
+  {"memkind_create_pmem", 3}};
+
+const map<std::string, unsigned int> PMemVariableLocator::memkindCreationGeneralMapping{
+  {"memkind_create_kind", 4}};
+
 
 PMemVariableLocator::PMemVariableLocator(Function &F) {
   errs() << "[" << F.getName() << "]\n";
@@ -64,7 +71,48 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
     const CallInst *callInst = cast<CallInst>(inst);
     Function *callee = callInst->getCalledFunction();
     if (!callee) continue;
-    // Step 1: Check for PMDK API call instructions
+
+    //Step 1: Check for Memkind API call instructions: Different behavior than PMDK
+    // because memkind_malloc can be used for non Persistent Memory behavior
+    // TODO: add checks for Memkind_malloc for PMEM vs volatile
+    if (memkindApiSet.find(callee->getName()) != memkindApiSet.end()) {
+      auto rit = memkindCreationPMEMMapping.find(callee->getName());
+      if (rit != memkindCreationPMEMMapping.end() &&
+          callInst->getNumArgOperands() >= rit->second + 1) {
+        // check if the call instruction has the right number of arguments
+        // +1 as the mapping stores the target argument from 0.
+
+        //find the argument that corresponds to memkind persistent variable
+        const Value *v = callInst->getArgOperand(rit->second);
+	varList.push_back(v);
+        // Transitive closure to see which memkind_malloc calls use this memkind pmem variable
+        UserGraph g(v);
+        for (auto ui = g.begin(); ui != g.end(); ++ui) {
+          errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+          varList.push_back(ui->first);
+        }
+      }
+      //Add check for memkind_create_kind and see if that uses pmem
+      // or non pmem type
+      auto rit2 = memkindCreationGeneralMapping.find(callee->getName());
+      if (rit2 != memkindCreationGeneralMapping.end() &&
+          callInst->getNumArgOperands() >= rit2->second + 1) {
+
+          //find the argument that corresponds to memkind persistent variable
+          const Value *v = callInst->getArgOperand(rit2->second);
+          //Check if argument is MEMKIND_DAX_PMEM 
+          if(v->getName().compare("MEMKIND_DAX_PMEM") == 0){
+            varList.push_back(v);
+            // Transitive closure to see which memkind_malloc calls use this memkind pmem var$
+            UserGraph g(v);
+            for (auto ui = g.begin(); ui != g.end(); ++ui) {
+              errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+              varList.push_back(ui->first);
+            }
+          }
+      }
+    }
+    // Step 1: Check for PMDK API call instructions 
     if (pmdkApiSet.find(callee->getName()) != pmdkApiSet.end()) {
       callList.push_back(callInst);
       if (pmdkPMEMVariableReturnSet.find(callee->getName()) !=
