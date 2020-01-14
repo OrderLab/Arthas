@@ -47,6 +47,12 @@ class DgSlicer {
   SlicingDirection direction;
   std::unique_ptr<dg::LLVMDependenceGraph> dg;
   FunctionDgMap *funcDgMap;
+
+  // We need to hold a reference to the dg builder before the slicer is destroyed.
+  // This is because the builder holds a unique_ptr to the LLVMPointerAnalysis.
+  // If we need to use the PTA from the dg later, the PTA data structure memory
+  // will become invalid and likely cause core dump when using it.
+  std::unique_ptr<dg::llvmdg::LLVMDependenceGraphBuilder> builder;
 };
 
 } // namespace slicing

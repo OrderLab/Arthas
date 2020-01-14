@@ -142,17 +142,6 @@ bool PMemVariablePass::runOnFunction(Function &F) {
   // Iterate through the identified PMem variables in this function
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     errs() << "* Identified pmem variable instruction: " << **vi << "\n";
-    // FIXME: try the pointer analysis from dg, the points-to set is somehow
-    // all invalid
-    /*
-    dg::LLVMPointsToSet pts = pta->getLLVMPointsTo(*vi);
-    errs() << "--> points-to-set (size " << pts.size() << "): {";
-    for (auto ptri = pts.begin(); ptri != pts.end(); ++ptri) {
-      dg::LLVMPointer ptr = *ptri;
-      errs() << *ptr.value << ", ";
-    }
-    errs() << "}\n";
-    */
   }
 
   // Iterate through the identified PMem ranges in this function

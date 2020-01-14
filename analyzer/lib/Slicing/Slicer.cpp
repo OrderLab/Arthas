@@ -71,23 +71,23 @@ bool DgSlicer::compute() {
 
   errs() << "Points-to graph size " << nodes.size() << "\n";
 
-  /*
-  for (const auto &node : nodes) {
-    if (!node) continue;
-    dumpPSNode(node.get());
-  }
-  */
+  dg::llvmdg::LLVMDependenceGraphOptions dg_options;
+  dg::llvmdg::LLVMPointerAnalysisOptions pta_options;
+  // flow-sensitive
+  pta_options.analysisType =
+      dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;
+  dg_options.PTAOptions = pta_options;
 
-  dg::llvmdg::LLVMDependenceGraphBuilder builder(module);
+  builder = make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(module, dg_options);
 
-  dg = std::move(builder.constructCFGOnly());
+  dg = std::move(builder->constructCFGOnly());
   if (!dg) {
     llvm::errs() << "Building the dependence graph failed!\n";
   }
   // compute both data dependencies (def-use) and control dependencies
-  dg = builder.computeDependencies(std::move(dg));
+  dg = builder->computeDependencies(std::move(dg));
 
-  const auto &stats = builder.getStatistics();
+  const auto &stats = builder->getStatistics();
   errs() << "[slicer] CPU time of pointer analysis: "
          << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
   errs() << "[slicer] CPU time of reaching definitions analysis: "
@@ -147,18 +147,28 @@ bool SlicingPass::runOnModule(Module &M) {
 bool SlicingPass::runOnFunction(Function &F) {
   errs() << "[" << F.getName() << "]\n";
   dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
+  dg::LLVMPointerAnalysis *pta = subdg->getPTA();
   if (subdg != nullptr) {
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-      ii->dump();
-      dg::LLVMNode *node = subdg->findNode(&*ii);
-      if (node != nullptr) {
-        errs() << "--> " << node->getDataDependenciesNum() << " data dependency:\n";
+      Instruction *inst = &*ii;
+      inst->dump();
+      if (pta != nullptr) {
+        dg::LLVMPointsToSet pts = pta->getLLVMPointsTo(inst);
+        errs() << "// points-to-set (size " << pts.size() << "):\n";
+        for (auto ptri = pts.begin(); ptri != pts.end(); ++ptri) {
+          dg::LLVMPointer ptr = *ptri;
+          errs() << "//   o->" << *ptr.value << "\n";
+        }
+      }
+      dg::LLVMNode *node = subdg->findNode(inst);
+      if (node != nullptr && node->getDataDependenciesNum() > 0) {
+        errs() << "// " << node->getDataDependenciesNum() << " data dependency:\n";
         for (auto di = node->data_begin(); di != node->data_end(); ++di) {
           Value *dep = (*di)->getValue();
-          errs() << "   =>" << *dep << "\n";
+          errs() << "//   =>" << *dep << "\n";
         }
       } else {
-        errs() << "--> no data dependency found\n";
+        errs() << "// no data dependency found\n";
       }
     }
   }
