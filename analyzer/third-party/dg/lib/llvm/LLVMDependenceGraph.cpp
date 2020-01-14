@@ -140,13 +140,13 @@ void LLVMDependenceGraph::setThreads(bool threads) {
     this->threads = threads;
 }
 
-LLVMNode *LLVMDependenceGraph::findNode(llvm::Value * value) const {
-    auto iterator = nodes.find(value);
-    if (iterator != nodes.end()) {
-        return iterator->second;
-    } else {
-        return nullptr;
-    }
+LLVMNode *LLVMDependenceGraph::findNode(llvm::Value *value) const {
+  auto iterator = nodes.find(value);
+  if (iterator != nodes.end()) {
+    return iterator->second;
+  } else {
+    return nullptr;
+  }
 }
 
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)

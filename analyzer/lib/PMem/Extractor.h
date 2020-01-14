@@ -34,6 +34,7 @@ namespace pmem {
 class PMemVariableLocator {
   // Use the small vector here, reference on picking what ADT to use:
   // http://llvm.org/docs/ProgrammersManual.html#picking-the-right-data-structure-for-a-task
+ public:
   typedef llvm::SmallVector<const llvm::CallInst *, 5> ApiCallList;
   typedef llvm::SmallVector<const llvm::Value *, 20> VariableList;
   typedef std::multimap<const llvm::Value *, const llvm::Value *> RegionList;

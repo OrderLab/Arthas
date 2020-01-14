@@ -6,9 +6,10 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-#include <utility>
-#include <ctime>
 #include <chrono>
+#include <ctime>
+#include <set>
+#include <utility>
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
@@ -22,7 +23,47 @@
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
+#include "dg/util/TimeMeasure.h"
+
+using namespace std;
 using namespace llvm;
+
+static cl::list<string> TargetFunctions("target-functions", 
+    cl::desc("<Function>"), cl::ZeroOrMore);
+
+static void printPSNodeName(dg::PSNode *node) {
+  string nm;
+  const char *name = nullptr;
+  if (node->isNull()) {
+    name = "null";
+  } else if (node->isUnknownMemory()) {
+    name = "unknown";
+  } else if (node->isInvalidated() && !node->getUserData<llvm::Value>()) {
+    name = "invalidated";
+  }
+  if (!name) {
+    const llvm::Value *val = node->getUserData<llvm::Value>();
+    if (val) errs() << *val;
+  } else {
+    errs() << name;
+  }
+}
+
+static void dumpPSNode(dg::PSNode *n) {
+  errs() << "NODE " << n->getID() << ": ";
+  printPSNodeName(n);
+  errs() << " (points-to size: " << n->pointsTo.size() << ")\n";
+
+  for (const dg::Pointer& ptr : n->pointsTo) {
+    errs() << "    -> ";
+    printPSNodeName(ptr.target);
+    if (ptr.offset.isUnknown())
+      errs() << " + Offset::UNKNOWN";
+    else
+      errs() << " + " << *ptr.offset;
+  }
+  errs() << "\n";
+}
 
 namespace {
 class Slicer : public ModulePass {
@@ -30,30 +71,95 @@ class Slicer : public ModulePass {
   static char ID;
   Slicer() : ModulePass(ID) {}
 
-  bool runOnModule(Module &M) {
-    dg::llvmdg::LLVMDependenceGraphBuilder builder(&M);
-    dg::LLVMSlicer slicer;
-    std::unique_ptr<dg::LLVMDependenceGraph> dg{};
-
-    dg = std::move(builder.constructCFGOnly());
-    if (!dg) {
-      llvm::errs() << "Building the dependence graph failed!\n";
-    }
-    dg = builder.computeDependencies(std::move(dg));
-    const auto &stats = builder.getStatistics();
-    llvm::errs() << "[slicer] CPU time of pointer analysis: "
-                 << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
-    llvm::errs() << "[slicer] CPU time of reaching definitions analysis: "
-                 << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
-    llvm::errs() << "[slicer] CPU time of control dependence analysis: "
-                 << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
-    return false;
-  }
+  virtual bool runOnModule(Module &M) override;
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
   }
+
+  bool runOnFunction(Function &F, dg::LLVMDependenceGraph *dg);
 };
+}
+
+bool Slicer::runOnModule(Module &M) {
+  dg::debug::TimeMeasure tm;
+  tm.start();
+  dg::analysis::pta::PointerAnalysis *pa;
+  dg::LLVMPointerAnalysis pta(&M);
+  // create a flow-sensitive pointer analysis
+  pa = pta.createPTA<dg::analysis::pta::PointerAnalysisFS>();
+  pa->run();
+  tm.stop();
+  tm.report("INFO: points-to analysis took");
+  const auto &nodes = pta.getNodes();
+
+  errs() << "Points-to graph size " << nodes.size() << "\n";
+
+  /*
+  for (const auto &node : nodes) {
+    if (!node) continue;
+    dumpPSNode(node.get());
+  }
+  */
+
+  dg::llvmdg::LLVMDependenceGraphBuilder builder(&M);
+  dg::LLVMSlicer slicer;
+  std::unique_ptr<dg::LLVMDependenceGraph> dg{};
+
+  dg = std::move(builder.constructCFGOnly());
+  if (!dg) {
+    llvm::errs() << "Building the dependence graph failed!\n";
+  }
+  dg = builder.computeDependencies(std::move(dg));
+  dg.get()->addDefUseEdges();
+  const auto &stats = builder.getStatistics();
+  errs() << "[slicer] CPU time of pointer analysis: "
+         << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
+  errs() << "[slicer] CPU time of reaching definitions analysis: "
+         << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
+  errs() << "[slicer] CPU time of control dependence analysis: "
+         << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
+
+  bool modified = false;
+
+  set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    if (!F.isDeclaration()) {
+      if (targetFunctionSet.empty() ||
+          targetFunctionSet.count(F.getName()) != 0)
+        modified |= runOnFunction(F, dg.get());
+    }
+  }
+  return modified;
+}
+
+bool Slicer::runOnFunction(Function &F, dg::LLVMDependenceGraph *dg) {
+  errs() << "[" << F.getName() << "]\n";
+  const std::map<llvm::Value *, dg::LLVMDependenceGraph *> &dgraphs =
+      dg::getConstructedFunctions();
+  auto dgit = dgraphs.find(&F);
+  if (dgit == dgraphs.end()) {
+    errs() << "could not find dependency subgraph for " << F.getName() << "\n";
+  }
+  dg::LLVMDependenceGraph *subdg = dgit->second;
+  if (subdg != nullptr) {
+    for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
+      Instruction *inst = &*ii;
+      inst->dump();
+      dg::LLVMNode *node = subdg->findNode(inst);
+      if (node != nullptr) {
+        errs() << "--> " << node->getDataDependenciesNum() << " data dependency:\n";
+        for (auto di = node->data_begin(); di != node->data_end(); ++di) {
+          Value *dep = (*di)->getValue();
+          errs() << "   =>" << *dep << "\n";
+        }
+      } else {
+        errs() << "--> no data dependency found\n";
+      }
+    }
+  }
+  return false;
 }
 
 char Slicer::ID = 0;

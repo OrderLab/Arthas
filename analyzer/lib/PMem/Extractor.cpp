@@ -17,7 +17,11 @@
 #include "llvm/IR/Type.h"
 #include "llvm/Support/CommandLine.h"
 
+#include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/LLVMNode.h"
+#include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
@@ -98,90 +102,28 @@ namespace {
         AU.setPreservesAll();
       }
     private:
-      bool runOnFunction(Function &F, dg::LLVMPointerAnalysis *pta);
+      bool runOnFunction(Function &F);
   };
-}
-
-static void printPSNodeName(dg::PSNode *node) {
-  string nm;
-  const char *name = nullptr;
-  if (node->isNull()) {
-    name = "null";
-  } else if (node->isUnknownMemory()) {
-    name = "unknown";
-  } else if (node->isInvalidated() && !node->getUserData<llvm::Value>()) {
-    name = "invalidated";
-  }
-  if (!name) {
-    const llvm::Value *val = node->getUserData<llvm::Value>();
-    if (val) errs() << *val;
-  } else {
-    errs() << name;
-  }
-}
-
-static void dumpPSNode(dg::PSNode *n) {
-  errs() << "NODE " << n->getID() << ": ";
-  printPSNodeName(n);
-  errs() << " (points-to size: " << n->pointsTo.size() << ")\n";
-
-  for (const dg::Pointer& ptr : n->pointsTo) {
-    errs() << "    -> ";
-    printPSNodeName(ptr.target);
-    if (ptr.offset.isUnknown())
-      errs() << " + Offset::UNKNOWN";
-    else
-      errs() << " + " << *ptr.offset;
-  }
-  errs() << "\n";
 }
 
 char PMemVariablePass::ID = 0;
 static RegisterPass<PMemVariablePass> X("pmem", "Pass that analyzes variables backed by persistent memory");
 
-static set<string> targetFunctionSet;
-static bool targetFunctionSetInit = false;
-
 bool PMemVariablePass::runOnModule(Module &M) {
-  if (!targetFunctionSetInit) {
-    for (auto funci = TargetFunctions.begin(); funci != TargetFunctions.end(); ++funci) {
-      targetFunctionSet.insert(*funci);
-    }
-    targetFunctionSetInit = true;
-  }
-
-  dg::debug::TimeMeasure tm;
-  tm.start();
-  dg::analysis::pta::PointerAnalysis *pa;
-  dg::LLVMPointerAnalysis pta(&M);
-  // create a flow-sensitive pointer analysis
-  pa = pta.createPTA<dg::analysis::pta::PointerAnalysisFS>();
-  pa->run();
-  tm.stop();
-  tm.report("INFO: points-to analysis took");
-  const auto &nodes = pta.getNodes();
-
-  errs() << "Points-to graph size " << nodes.size() << "\n";
-
-  for (const auto &node : nodes) {
-    if (!node)
-      continue;
-    dumpPSNode(node.get());
-  }
-
+  set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration()) {
       if (targetFunctionSet.empty() ||
           targetFunctionSet.count(F.getName()) != 0)
-        modified |= runOnFunction(F, &pta);
+        modified |= runOnFunction(F);
     }
   }
   return modified;
 }
 
-bool PMemVariablePass::runOnFunction(Function &F, dg::LLVMPointerAnalysis *pta) {
+bool PMemVariablePass::runOnFunction(Function &F) {
   PMemVariableLocator locator(F);
 
   // Iterate through the identified PMDK API calls in this function
@@ -194,9 +136,9 @@ bool PMemVariablePass::runOnFunction(Function &F, dg::LLVMPointerAnalysis *pta) 
   // Iterate through the identified PMem variables in this function
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     errs() << "* Identified pmem variable instruction: " << **vi << "\n";
-
     // FIXME: try the pointer analysis from dg, the points-to set is somehow
     // all invalid
+    /*
     dg::LLVMPointsToSet pts = pta->getLLVMPointsTo(*vi);
     errs() << "--> points-to-set (size " << pts.size() << "): {";
     for (auto ptri = pts.begin(); ptri != pts.end(); ++ptri) {
@@ -204,6 +146,7 @@ bool PMemVariablePass::runOnFunction(Function &F, dg::LLVMPointerAnalysis *pta) 
       errs() << *ptr.value << ", ";
     }
     errs() << "}\n";
+    */
   }
 
   // Iterate through the identified PMem ranges in this function
