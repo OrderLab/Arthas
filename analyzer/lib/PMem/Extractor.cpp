@@ -125,6 +125,8 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
           errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+          if(isa<LoadInst>(*(ui->first)))
+             errs() << "this is a load instruction\n";
           varList.push_back(ui->first);
         }
       }
