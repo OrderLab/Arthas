@@ -19,6 +19,7 @@ void write_hello_string(char *buf, char *path){
 	PMEMoid root = pmemobj_root(pop, sizeof(struct my_root));
 	struct my_root *rootp = pmemobj_direct(root);
 	int *pmem_int_ptr;
+	char * pmem_region_variable = (uint64_t)pop + 10;
 	TX_BEGIN(pop){
 		PMEMoid oid;
 		oid = pmemobj_tx_zalloc(sizeof(int), 1);

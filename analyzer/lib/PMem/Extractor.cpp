@@ -44,7 +44,7 @@ const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
 
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
-    "pmemobj_direct_inline", "pmem_map_file"};
+    "pmemobj_direct_inline", "pmem_map_file", "pmemobj_create"};
 
 const set<std::string> PMemVariableLocator::memkindApiSet{
     "memkind_create_pmem",   "memkind_create_kind"};
