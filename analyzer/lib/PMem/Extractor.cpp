@@ -44,7 +44,7 @@ const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
 
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
-    "pmemobj_direct_inline", "pmem_map_file", "pmemobj_create"};
+    "pmemobj_direct_inline", "pmem_map_file"};
 
 const set<std::string> PMemVariableLocator::memkindApiSet{
     "memkind_create_pmem",   "memkind_create_kind"};
@@ -125,8 +125,6 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
           errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
-          if(isa<LoadInst>(*(ui->first)) || isa<BitCastInst>(*(ui->first)))
-             errs() << "this is a load/bitcast instruction\n";
           varList.push_back(ui->first);
         }
       }
