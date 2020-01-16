@@ -116,6 +116,8 @@ class SlicingPass : public ModulePass {
   SlicingPass() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
+  bool instructionSlice(Instruction *fault_instruction, dg::LLVMDependenceGraph *subdg,
+  dg::LLVMPointerAnalysis *pta);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -124,7 +126,19 @@ class SlicingPass : public ModulePass {
  private:
   bool runOnFunction(Function &F);
   DgSlicer* dgSlicer;
+  //Map with Sliced Dependnence Graph as key and persistent variables as values
+  static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
+  //Map with persistent variables as key and definition point (metadata) as values
+  static const std::map<Value *, Instruction *> pmemMetadata;
 };
+}
+
+bool SlicingPass::instructionSlice(Instruction *fault_instruction, dg::LLVMDependenceGraph *subdg,
+dg::LLVMPointerAnalysis *pta){
+  //TODO: Implement after finishing workflow
+  //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
+  //of persistent variables
+  return false;
 }
 
 bool SlicingPass::runOnModule(Module &M) {
