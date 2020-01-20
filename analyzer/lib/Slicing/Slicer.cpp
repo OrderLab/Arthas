@@ -116,8 +116,7 @@ class SlicingPass : public ModulePass {
   SlicingPass() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
-  bool instructionSlice(Instruction *fault_instruction, dg::LLVMDependenceGraph *subdg,
-  dg::LLVMPointerAnalysis *pta);
+  bool instructionSlice(Instruction *fault_instruction, Function &F);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -133,11 +132,22 @@ class SlicingPass : public ModulePass {
 };
 }
 
-bool SlicingPass::instructionSlice(Instruction *fault_instruction, dg::LLVMDependenceGraph *subdg,
-dg::LLVMPointerAnalysis *pta){
+bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   //TODO: Implement after finishing workflow
   //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
   //of persistent variables
+  dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
+  dg::LLVMPointerAnalysis *pta = subdg->getPTA();
+
+  //Testing purposes: Using existing slicer first..
+  dg::LLVMSlicer slicer;
+  dg::LLVMNode *node = subdg->findNode(fault_instruction);
+  if(node != nullptr)
+    slicer.slice(subdg, node, 0);
+
+  dg::analysis::SlicerStatistics& st = slicer.getStatistics();
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
+
   return false;
 }
 
@@ -145,7 +155,7 @@ bool SlicingPass::runOnModule(Module &M) {
   dgSlicer = new DgSlicer(&M);
   dgSlicer->compute();  // compute the dependence graph for module M
 
-  bool modified = false;
+  /*bool modified = false;
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
@@ -155,7 +165,23 @@ bool SlicingPass::runOnModule(Module &M) {
         modified |= runOnFunction(F);
     }
   }
-  return modified;
+  return modified;*/
+
+  //Hard coding input
+  int a = 0;
+  Instruction * fault_inst;
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
+      if(a == 4){
+        fault_inst = &*ii;
+        instructionSlice(fault_inst, F);
+        return true;
+      }
+      a++;
+    }
+  }
+  return false;
 }
 
 bool SlicingPass::runOnFunction(Function &F) {
