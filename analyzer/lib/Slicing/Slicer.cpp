@@ -117,6 +117,7 @@ class SlicingPass : public ModulePass {
 
   virtual bool runOnModule(Module &M) override;
   bool instructionSlice(Instruction *fault_instruction, Function &F);
+  bool definitionPoint(Function &F);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -166,8 +167,14 @@ bool SlicingPass::runOnModule(Module &M) {
     }
   }
   return modified;*/
+  //Step 2: PMEM Variable Output Mapping
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    definitionPoint(F);
+  }
 
-  //Hard coding input
+  //Step 1: Getting Slice of Fault Instruction
+  // Hard coded in-input for Fault Instruction
   int a = 0;
   Instruction * fault_inst;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
@@ -176,12 +183,38 @@ bool SlicingPass::runOnModule(Module &M) {
       if(a == 4){
         fault_inst = &*ii;
         instructionSlice(fault_inst, F);
-        return true;
+        goto stop;
       }
       a++;
     }
   }
+  stop:
   return false;
+}
+
+bool SlicingPass::definitionPoint(Function &F){
+  for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
+    for (BasicBlock::iterator BBI = BB->begin(), BBE = BB->end(); BBI != BBE;
+         ++BBI) {
+      if (CallInst *CI = dyn_cast<CallInst>(BBI)) {
+        errs() << "Call: ";
+        CI->dump();
+        errs() << "\n";
+        ImmutableCallSite CS(CI);
+        for (ImmutableCallSite::arg_iterator I = CS.arg_begin(),
+        E = CS.arg_end();  I != E; ++I) {
+          if (Instruction *Inst = dyn_cast<Instruction>(*I)) {
+            //Do stuff in here
+            errs() << "\tInst: ";
+            Inst->dump();
+            errs() << "\n";
+
+          }
+        }
+      }
+    }
+  }
+  return true;
 }
 
 bool SlicingPass::runOnFunction(Function &F) {
