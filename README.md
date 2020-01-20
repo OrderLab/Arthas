@@ -1,4 +1,4 @@
-# Source code repository for PMEM-Fault project
+# Source code repository for Arthas
 
 # Build
 
