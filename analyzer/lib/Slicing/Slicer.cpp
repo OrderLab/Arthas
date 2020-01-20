@@ -162,6 +162,10 @@ bool SlicingPass::runOnFunction(Function &F) {
   errs() << "[" << F.getName() << "]\n";
   dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
   dg::LLVMPointerAnalysis *pta = subdg->getPTA();
+
+  //Testing purposes: Using existing slicer first..
+  dg::LLVMSlicer slicer;
+
   if (subdg != nullptr) {
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
       Instruction *inst = &*ii;
@@ -175,6 +179,8 @@ bool SlicingPass::runOnFunction(Function &F) {
         }
       }
       dg::LLVMNode *node = subdg->findNode(inst);
+      if(node != nullptr)
+        slicer.slice(subdg, node, 0);
       if (node != nullptr && node->getDataDependenciesNum() > 0) {
         errs() << "// " << node->getDataDependenciesNum() << " data dependency:\n";
         for (auto di = node->data_begin(); di != node->data_end(); ++di) {
@@ -186,6 +192,8 @@ bool SlicingPass::runOnFunction(Function &F) {
       }
     }
   }
+  dg::analysis::SlicerStatistics& st = slicer.getStatistics();
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
   return false;
 }
 
