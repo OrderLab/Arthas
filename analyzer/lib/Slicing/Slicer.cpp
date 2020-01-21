@@ -11,6 +11,7 @@
 #include <set>
 #include <utility>
 
+
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -20,8 +21,8 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
-static cl::list<string> TargetFunctions("target-functions", 
-    cl::desc("<Function>"), cl::ZeroOrMore);
+//static cl::list<string> TargetFunctions("target-functions", 
+//    cl::desc("<Function>"), cl::ZeroOrMore);
 
 static void printPSNodeName(dg::PSNode *node) {
   string nm;
@@ -112,12 +113,14 @@ dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
 namespace {
 class SlicingPass : public ModulePass {
  public:
+  //Map with persistent variables as key and definition point (metadata) as values
+  std::map<Value *, Instruction *> pmemMetadata;
   static char ID;
   SlicingPass() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
   bool instructionSlice(Instruction *fault_instruction, Function &F);
-  bool definitionPoint(Function &F);
+  bool definitionPoint(Function &F, pmem::PMemVariableLocator locator);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -128,8 +131,6 @@ class SlicingPass : public ModulePass {
   DgSlicer* dgSlicer;
   //Map with Sliced Dependnence Graph as key and persistent variables as values
   static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
-  //Map with persistent variables as key and definition point (metadata) as values
-  static const std::map<Value *, Instruction *> pmemMetadata;
 };
 }
 
@@ -167,13 +168,17 @@ bool SlicingPass::runOnModule(Module &M) {
     }
   }
   return modified;*/
-  //Step 2: PMEM Variable Output Mapping
+  //Step 1: PMEM Variable Output Mapping
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
-    definitionPoint(F);
+    pmem::PMemVariableLocator locator(F);
+    //for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
+    //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
+    //}
+    definitionPoint(F, locator);
   }
 
-  //Step 1: Getting Slice of Fault Instruction
+  //Step 2: Getting Slice of Fault Instruction
   // Hard coded in-input for Fault Instruction
   int a = 0;
   Instruction * fault_inst;
@@ -192,11 +197,21 @@ bool SlicingPass::runOnModule(Module &M) {
   return false;
 }
 
-bool SlicingPass::definitionPoint(Function &F){
-  for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
-    for (BasicBlock::iterator BBI = BB->begin(), BBE = BB->end(); BBI != BBE;
-         ++BBI) {
-      if (CallInst *CI = dyn_cast<CallInst>(BBI)) {
+bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator locator){
+
+
+    for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
+    //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
+    //}
+    //for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
+  //for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
+    //for (BasicBlock::iterator BBI = BB->begin(), BBE = BB->end(); BBI != BBE;
+    //     ++BBI) {
+    //  if (CallInst *CI = dyn_cast<CallInst>(BBI)) {
+      //if(isa<CallInst>(**vi)){
+      Value& b = const_cast<Value&>(**vi); 
+      //}
+      if (CallInst *CI = dyn_cast<CallInst>(&b)) {
         errs() << "Call: ";
         CI->dump();
         errs() << "\n";
@@ -205,14 +220,21 @@ bool SlicingPass::definitionPoint(Function &F){
         E = CS.arg_end();  I != E; ++I) {
           if (Instruction *Inst = dyn_cast<Instruction>(*I)) {
             //Do stuff in here
+	    pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
             errs() << "\tInst: ";
             Inst->dump();
             errs() << "\n";
-
           }
-        }
+       // }
       }
     }
+  }
+  errs() << "size is " << pmemMetadata.size() << "\n";
+  errs() << "Finished with definition points for this function \n";
+
+  for(auto it = pmemMetadata.begin(); it != pmemMetadata.end(); ++it)
+  {
+    errs() << *it->first  << " " << *it->second << "\n";
   }
   return true;
 }

@@ -4,6 +4,7 @@ add_library(DefUse SHARED
 
 add_library(LLVMSlicer MODULE 
   Slicing/Slicer.cpp
+  PMem/Extractor.cpp
 )
 
 target_link_libraries(LLVMSlicer PUBLIC LLVMdg)

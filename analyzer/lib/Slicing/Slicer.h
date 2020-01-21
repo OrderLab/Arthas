@@ -9,6 +9,7 @@
 #ifndef __SLICER_H_
 #define __SLICER_H_
 
+#include "Extractor.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Module.h"
