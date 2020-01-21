@@ -34,6 +34,12 @@
 namespace llvm {
 namespace slicing {
 
+enum class SliceState {
+  Persistent,
+  Volatile,
+  Mixed
+};
+
 enum class SlicingDirection {
   Backward,
   Forward,
@@ -43,6 +49,7 @@ enum class SlicingDirection {
 // Slicer based on dependency graph
 class DgSlicer {
   typedef const std::map<llvm::Value *, dg::LLVMDependenceGraph *> FunctionDgMap;
+  typedef llvm::SmallVector<const llvm::Instruction *, 20> DependentInstructions;
 
  public:
   DgSlicer(llvm::Module *m, SlicingDirection d=SlicingDirection::Full): 
@@ -57,7 +64,8 @@ class DgSlicer {
   SlicingDirection direction;
   std::unique_ptr<dg::LLVMDependenceGraph> dg;
   FunctionDgMap *funcDgMap;
-
+  SliceState persistent_state;
+  uint64_t slice_id;
   // We need to hold a reference to the dg builder before the slicer is destroyed.
   // This is because the builder holds a unique_ptr to the LLVMPointerAnalysis.
   // If we need to use the PTA from the dg later, the PTA data structure memory
