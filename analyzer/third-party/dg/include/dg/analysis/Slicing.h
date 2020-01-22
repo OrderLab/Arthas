@@ -40,11 +40,13 @@ public:
 
     void mark(const std::set<NodeT *>& start, uint32_t slice_id) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
+        llvm::errs() << "forward_slice is " << forward_slice << "\n";
         this->walk(start, markSlice, &data);
     }
 
     void mark(NodeT *start, uint32_t slice_id) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
+        llvm::errs() << "forward_slice is " << forward_slice << "\n";
         this->walk(start, markSlice, &data);
     }
 
@@ -125,6 +127,7 @@ class Slicer : legacy::Analysis<NodeT>
 {
     uint32_t options;
     uint32_t slice_id;
+    int direction;
 
     std::set<DependenceGraph<NodeT> *> sliced_graphs;
 
@@ -173,7 +176,7 @@ protected:
 
 public:
     Slicer<NodeT>(uint32_t opt = 0)
-        :options(opt), slice_id(0) {}
+        :options(opt), slice_id(0), direction(0) {}
 
     SlicerStatistics& getStatistics() { return statistics; }
     const SlicerStatistics& getStatistics() const { return statistics; }
@@ -186,6 +189,14 @@ public:
         if (sl_id == 0)
             sl_id = ++slice_id;
 
+        if(direction == 1){
+          forward_slice = 1;
+          direction = 0;
+        }
+        else{
+          direction++;
+        }
+        llvm::errs() << "FORWARD SLICE IN HERE ********\n";
         WalkAndMark<NodeT> wm(forward_slice);
         wm.mark(start, sl_id);
 

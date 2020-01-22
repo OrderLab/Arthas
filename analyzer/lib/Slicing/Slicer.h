@@ -46,6 +46,16 @@ enum class SlicingDirection {
   Full
 };
 
+class DgSlice {
+  public:
+    typedef llvm::SmallVector<const llvm::Instruction *, 20> DependentInstructions;
+    Instruction * fault_instruction;
+    SlicingDirection direction;
+    std::unique_ptr<dg::LLVMDependenceGraph> dg;
+    SliceState persistent_state;
+    uint64_t slice_id;
+};
+
 // Slicer based on dependency graph
 class DgSlicer {
   typedef const std::map<llvm::Value *, dg::LLVMDependenceGraph *> FunctionDgMap;
@@ -54,6 +64,7 @@ class DgSlicer {
  public:
   DgSlicer(llvm::Module *m, SlicingDirection d=SlicingDirection::Full): 
     module(m), direction(d), dg(nullptr), funcDgMap(nullptr) {}
+  std::set<DgSlice *> slices;
 
   bool compute();
 
@@ -72,6 +83,8 @@ class DgSlicer {
   // will become invalid and likely cause core dump when using it.
   std::unique_ptr<dg::llvmdg::LLVMDependenceGraphBuilder> builder;
 };
+
+
 
 } // namespace slicing
 } // namespace llvm

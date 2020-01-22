@@ -135,7 +135,6 @@ class SlicingPass : public ModulePass {
 }
 
 bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
-  //TODO: Implement after finishing workflow
   //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
   //of persistent variables
   dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
@@ -149,6 +148,24 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
 
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
+  //errs() << "sliced graphs is " << dg::LLVMSlicer::sliced_graphs.size() << "\n";
+
+  DgSlice *dgSlice;
+  dgSlice->direction = SlicingDirection::Backward;
+  dgSlice->fault_instruction = fault_instruction;
+  //TODO: persistent state
+  dgSlice->slice_id = 0;
+
+  dgSlicer->slices.insert(dgSlice);
+  //Forward Slice
+  dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
+  dg::LLVMSlicer slicer2;
+  dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
+  if(node2 != nullptr)
+    slicer2.slice(subdg2, node2, 1);
+
+  dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
+  errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " << st2.nodesTotal << " nodes\n";
 
   return false;
 }
