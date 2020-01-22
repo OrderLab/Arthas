@@ -5,7 +5,7 @@ using namespace std;
 
 int main(){
   string temp_command;
-  string gdb = "gdb ";
+  string gdb = "gdb -x file ";
   string line_command;
 
   cout << "Start System you wish to run \n";
