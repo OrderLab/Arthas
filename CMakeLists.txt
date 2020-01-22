@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -g -std=c++11 -Wall -Wextra -W
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(analyzer)
+add_subdirectory(detector)
 
 # Make clang-format into a make target to enforce coding style
 # http://mariobadr.com/using-clang-format-to-enforce-style.html
@@ -38,6 +39,8 @@ endif()
 file(GLOB_RECURSE FILES_TO_FORMAT
   ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/detector/*.cpp
+
 )
 
 if(CLANG_FORMAT_EXE)
