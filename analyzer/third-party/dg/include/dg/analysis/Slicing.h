@@ -9,6 +9,7 @@
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
 
+#include "Extractor.h"
 #ifdef ENABLE_CFG
 #include "dg/BBlock.h"
 #endif
@@ -78,6 +79,14 @@ private:
 
     static void markSlice(NodeT *n, WalkData *data)
     {
+        //Only mark slices of PMEM Variables
+        llvm::Value *v = n->getValue();
+        /*std::set<llvm::Value *>::iterator it = Slicer::pmem_values.begin();
+        while(it != pmem_values.end()){
+          if(*it == v){
+            llvm::errs() << "Persistent Variables\n";
+          }
+        }*/
         uint32_t slice_id = data->slice_id;
         n->setSlice(slice_id);
 
@@ -128,9 +137,12 @@ class Slicer : legacy::Analysis<NodeT>
     uint32_t options;
     uint32_t slice_id;
     int direction;
-
+    std::set<llvm::Value *>pmem_values;
     std::set<DependenceGraph<NodeT> *> sliced_graphs;
 
+    void passPmemValues(std::set<llvm::Value *> values){
+      pmem_values = values;
+    }
     // slice nodes from the graph; do it recursively for call-nodes
     void sliceNodes(DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
@@ -323,6 +335,7 @@ public:
         assert(CB.size() + blocks.size() == blocksNum &&
                 "Inconsistency in sliced blocks");
     }
+
 
 #endif
 };

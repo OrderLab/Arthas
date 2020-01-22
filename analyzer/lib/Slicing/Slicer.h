@@ -51,7 +51,8 @@ class DgSlice {
     typedef llvm::SmallVector<const llvm::Instruction *, 20> DependentInstructions;
     Instruction * fault_instruction;
     SlicingDirection direction;
-    std::unique_ptr<dg::LLVMDependenceGraph> dg;
+    //std::unique_ptr<dg::LLVMDependenceGraph> dg;
+    dg::LLVMDependenceGraph dg;
     SliceState persistent_state;
     uint64_t slice_id;
 };

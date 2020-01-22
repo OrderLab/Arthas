@@ -148,7 +148,6 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
 
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
-  //errs() << "sliced graphs is " << dg::LLVMSlicer::sliced_graphs.size() << "\n";
 
   DgSlice *dgSlice;
   dgSlice->direction = SlicingDirection::Backward;
@@ -157,6 +156,7 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   dgSlice->slice_id = 0;
 
   dgSlicer->slices.insert(dgSlice);
+
   //Forward Slice
   dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
   dg::LLVMSlicer slicer2;
