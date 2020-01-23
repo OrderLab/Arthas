@@ -11,15 +11,17 @@
 #include <set>
 #include <utility>
 
-
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "Slicing/Slicer.h"
+#include "DefUse/DefUse.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
+using namespace llvm::pmem;
+using namespace llvm::defuse;
 
 //static cl::list<string> TargetFunctions("target-functions", 
 //    cl::desc("<Function>"), cl::ZeroOrMore);
@@ -216,19 +218,16 @@ bool SlicingPass::runOnModule(Module &M) {
 
 bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator locator){
 
-
     for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-    //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
-    //}
-    //for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-  //for (Function::iterator BB = F.begin(), E = F.end(); BB != E; ++BB) {
-    //for (BasicBlock::iterator BBI = BB->begin(), BBE = BB->end(); BBI != BBE;
-    //     ++BBI) {
-    //  if (CallInst *CI = dyn_cast<CallInst>(BBI)) {
-      //if(isa<CallInst>(**vi)){
       Value& b = const_cast<Value&>(**vi); 
-      //}
-      if (CallInst *CI = dyn_cast<CallInst>(&b)) {
+      UserGraph g(&b);
+      for (auto ui = g.begin(); ui != g.end(); ++ui) {
+        Value& c = const_cast<Value&>(*ui->first);
+        if(Instruction *Inst = dyn_cast<Instruction>(&c))
+          pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
+          //pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, &*(ui->first)));
+      }
+      /*if (CallInst *CI = dyn_cast<CallInst>(&b)) {
         errs() << "Call: ";
         CI->dump();
         errs() << "\n";
@@ -242,9 +241,8 @@ bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator locator
             Inst->dump();
             errs() << "\n";
           }
-       // }
       }
-    }
+    }*/
   }
   errs() << "size is " << pmemMetadata.size() << "\n";
   errs() << "Finished with definition points for this function \n";
