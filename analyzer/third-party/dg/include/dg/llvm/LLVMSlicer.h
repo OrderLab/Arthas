@@ -134,13 +134,14 @@ public:
     }
 
     uint32_t slice(LLVMDependenceGraph *,
-                   LLVMNode *start, uint32_t sl_id = 0)
+                   LLVMNode *start, uint32_t sl_id = 0, bool forward_direc=false)
     {
         // mark nodes for slicing
         assert(start || sl_id != 0);
-        if (start)
-            sl_id = mark(start, sl_id);
-
+        if (start){
+            //include argument for forward_slice here
+            sl_id = mark(start, sl_id, forward_direc);
+        }
         // take every subgraph and slice it intraprocedurally
         // this includes the main graph
         extern std::map<const llvm::Value *,

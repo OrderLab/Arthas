@@ -143,10 +143,11 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   dg::LLVMPointerAnalysis *pta = subdg->getPTA();
 
   //Testing purposes: Using existing slicer first..
+  list<list<const Instruction *>> slice_list;
   dg::LLVMSlicer slicer;
   dg::LLVMNode *node = subdg->findNode(fault_instruction);
   if(node != nullptr)
-    slicer.slice(subdg, node, 0);
+    slicer.slice(subdg,  node, 0, 0);
 
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
@@ -160,11 +161,12 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   dgSlicer->slices.insert(dgSlice);
 
   //Forward Slice
+  list<list<const Instruction *>>  slice_list2;
   dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
   dg::LLVMSlicer slicer2;
   dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
   if(node2 != nullptr)
-    slicer2.slice(subdg2, node2, 1);
+    slicer2.slice(subdg2, node2, 1, 1);
 
   dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
   errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " << st2.nodesTotal << " nodes\n";
@@ -227,30 +229,14 @@ bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator locator
           pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
           //pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, &*(ui->first)));
       }
-      /*if (CallInst *CI = dyn_cast<CallInst>(&b)) {
-        errs() << "Call: ";
-        CI->dump();
-        errs() << "\n";
-        ImmutableCallSite CS(CI);
-        for (ImmutableCallSite::arg_iterator I = CS.arg_begin(),
-        E = CS.arg_end();  I != E; ++I) {
-          if (Instruction *Inst = dyn_cast<Instruction>(*I)) {
-            //Do stuff in here
-	    pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
-            errs() << "\tInst: ";
-            Inst->dump();
-            errs() << "\n";
-          }
-      }
-    }*/
   }
   errs() << "size is " << pmemMetadata.size() << "\n";
   errs() << "Finished with definition points for this function \n";
 
-  for(auto it = pmemMetadata.begin(); it != pmemMetadata.end(); ++it)
+  /*for(auto it = pmemMetadata.begin(); it != pmemMetadata.end(); ++it)
   {
     errs() << *it->first  << " " << *it->second << "\n";
-  }
+  }*/
   return true;
 }
 
@@ -275,8 +261,8 @@ bool SlicingPass::runOnFunction(Function &F) {
         }
       }
       dg::LLVMNode *node = subdg->findNode(inst);
-      if(node != nullptr)
-        slicer.slice(subdg, node, 0);
+      //if(node != nullptr)
+      //  slicer.slice(subdg, node, 0, 0);
       if (node != nullptr && node->getDataDependenciesNum() > 0) {
         errs() << "// " << node->getDataDependenciesNum() << " data dependency:\n";
         for (auto di = node->data_begin(); di != node->data_end(); ++di) {

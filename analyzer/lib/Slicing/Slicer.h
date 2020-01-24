@@ -49,12 +49,15 @@ enum class SlicingDirection {
 class DgSlice {
   public:
     typedef llvm::SmallVector<const llvm::Instruction *, 20> DependentInstructions;
+    typedef llvm::SmallVector<llvm::Value *, 20> DependentValues;
     Instruction * fault_instruction;
     SlicingDirection direction;
     //std::unique_ptr<dg::LLVMDependenceGraph> dg;
     dg::LLVMDependenceGraph dg;
     SliceState persistent_state;
     uint64_t slice_id;
+    int depth;
+    dg::LLVMNode *latest_node;
 };
 
 // Slicer based on dependency graph

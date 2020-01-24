@@ -41,13 +41,11 @@ public:
 
     void mark(const std::set<NodeT *>& start, uint32_t slice_id) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        llvm::errs() << "forward_slice is " << forward_slice << "\n";
         this->walk(start, markSlice, &data);
     }
 
     void mark(NodeT *start, uint32_t slice_id) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        llvm::errs() << "forward_slice is " << forward_slice << "\n";
         this->walk(start, markSlice, &data);
     }
 
@@ -79,14 +77,6 @@ private:
 
     static void markSlice(NodeT *n, WalkData *data)
     {
-        //Only mark slices of PMEM Variables
-        llvm::Value *v = n->getValue();
-        /*std::set<llvm::Value *>::iterator it = Slicer::pmem_values.begin();
-        while(it != pmem_values.end()){
-          if(*it == v){
-            llvm::errs() << "Persistent Variables\n";
-          }
-        }*/
         uint32_t slice_id = data->slice_id;
         n->setSlice(slice_id);
 
@@ -201,14 +191,14 @@ public:
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        if(direction == 1){
+       /* if(direction == 1){
           forward_slice = 1;
           direction = 0;
         }
         else{
           direction++;
-        }
-        llvm::errs() << "FORWARD SLICE IN HERE ********\n";
+        }*/
+        //llvm::errs() << "FORWARD SLICE IN HERE ********\n";
         WalkAndMark<NodeT> wm(forward_slice);
         wm.mark(start, sl_id);
 

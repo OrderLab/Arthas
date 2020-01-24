@@ -58,6 +58,7 @@ public:
     int id() const;
 
     NodeType getType() const;
+    int depth;
 
     std::string dotName() const;
 

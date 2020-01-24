@@ -71,7 +71,7 @@ public:
         : LLVMNode(val) {
         setDG(dg);
     }
-
+    int depth;
     llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given
