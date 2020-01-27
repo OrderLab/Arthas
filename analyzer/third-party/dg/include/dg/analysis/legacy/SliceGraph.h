@@ -68,6 +68,15 @@ class SliceNode{
           return out;
       }
       return nullptr;
+    } 
+
+    int total_size(SliceNode *sn){
+      int num = 0;
+      num += sn->child_nodes.size();
+      for(child_iterator i = sn->child_nodes.begin(); i != sn->child_nodes.end(); ++i){
+        num += total_size(*i);
+      }
+      return num;
     }
 };
 
