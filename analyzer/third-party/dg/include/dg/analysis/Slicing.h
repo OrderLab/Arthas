@@ -6,6 +6,7 @@
 #include "dg/analysis/legacy/Analysis.h"
 #include "dg/analysis/legacy/NodesWalk.h"
 #include "dg/analysis/legacy/BFS.h"
+#include "dg/analysis/legacy/SliceGraph.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
 
@@ -39,14 +40,14 @@ public:
           ),
           forward_slice(forward_slc) {}
 
-    void mark(const std::set<NodeT *>& start, uint32_t slice_id) {
+    void mark(const std::set<NodeT *>& start, uint32_t slice_id, llvm::slicegraph::SliceGraph *sg) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        this->walk(start, markSlice, &data);
+        this->walk(start, markSlice, &data, sg);
     }
 
-    void mark(NodeT *start, uint32_t slice_id) {
+    void mark(NodeT *start, uint32_t slice_id, llvm::slicegraph::SliceGraph *sg) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        this->walk(start, markSlice, &data);
+        this->walk(start, markSlice, &data, sg);
     }
 
     bool isForward() const { return forward_slice; }
@@ -186,7 +187,7 @@ public:
     ///
     // Mark nodes dependent on 'start' with 'sl_id'.
     // If 'forward_slice' is true, mark the nodes depending on 'start' instead.
-    uint32_t mark(NodeT *start, uint32_t sl_id = 0, bool forward_slice = false)
+    uint32_t mark(NodeT *start, llvm::slicegraph::SliceGraph *sg, uint32_t sl_id = 0, bool forward_slice = false)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
@@ -200,7 +201,7 @@ public:
         }*/
         //llvm::errs() << "FORWARD SLICE IN HERE ********\n";
         WalkAndMark<NodeT> wm(forward_slice);
-        wm.mark(start, sl_id);
+        wm.mark(start, sl_id, sg);
 
         ///
         // If we are performing forward slicing,
@@ -221,7 +222,7 @@ public:
 
             if (!branchings.empty()) {
                 WalkAndMark<NodeT> wm2;
-                wm2.mark(branchings, sl_id);
+                wm2.mark(branchings, sl_id, sg);
             }
         }
 

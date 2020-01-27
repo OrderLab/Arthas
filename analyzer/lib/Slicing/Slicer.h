@@ -28,6 +28,7 @@
 #include "dg/analysis/legacy/BFS.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
+//#include "dg/analysis/legacy/SliceGraph.h"
 
 #include "dg/util/TimeMeasure.h"
 

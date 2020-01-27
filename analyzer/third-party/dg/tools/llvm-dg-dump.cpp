@@ -49,6 +49,7 @@
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/analysis/legacy/SliceGraph.h"
 
 #include "dg/util/TimeMeasure.h"
 
@@ -193,12 +194,12 @@ int main(int argc, char *argv[])
         dg->getCallSites(sc, &callsites);
 
         LLVMSlicer slicer;
-
+        llvm::slicegraph::SliceGraph sg;
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
-                slicer.mark(dg->getExit());
+                slicer.mark(dg->getExit(), &sg);
             else
-                slicer.slice(dg.get(), dg->getExit());
+                slicer.slice(dg.get(), &sg, dg->getExit());
         } else {
             if (callsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
@@ -208,10 +209,9 @@ int main(int argc, char *argv[])
 
             uint32_t slid = 0;
             for (LLVMNode *start : callsites)
-                slid = slicer.mark(start, slid);
-
+                slid = slicer.mark(start, &sg, slid);
             if (!mark_only)
-               slicer.slice(dg.get(), nullptr, slid);
+               slicer.slice(dg.get(), &sg, nullptr, slid);
         }
 
         if (!mark_only) {
@@ -242,3 +242,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+

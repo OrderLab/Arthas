@@ -30,6 +30,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "dg/analysis/legacy/SliceGraph.h"
 #include "dg/analysis/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
@@ -133,14 +134,14 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *,
+    uint32_t slice(LLVMDependenceGraph *, llvm::slicegraph::SliceGraph * sg,
                    LLVMNode *start, uint32_t sl_id = 0, bool forward_direc=false)
     {
         // mark nodes for slicing
         assert(start || sl_id != 0);
         if (start){
             //include argument for forward_slice here
-            sl_id = mark(start, sl_id, forward_direc);
+            sl_id = mark(start, sg, sl_id, forward_direc);
         }
         // take every subgraph and slice it intraprocedurally
         // this includes the main graph

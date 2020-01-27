@@ -146,8 +146,10 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   list<list<const Instruction *>> slice_list;
   dg::LLVMSlicer slicer;
   dg::LLVMNode *node = subdg->findNode(fault_instruction);
+  slicegraph::SliceGraph sg;
+
   if(node != nullptr)
-    slicer.slice(subdg,  node, 0, 0);
+    slicer.slice(subdg, &sg, node, 0, 0);
 
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
@@ -165,8 +167,9 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
   dg::LLVMSlicer slicer2;
   dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
+  slicegraph::SliceGraph sg2;
   if(node2 != nullptr)
-    slicer2.slice(subdg2, node2, 1, 1);
+    slicer2.slice(subdg2, &sg2, node2, 1, 1);
 
   dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
   errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " << st2.nodesTotal << " nodes\n";

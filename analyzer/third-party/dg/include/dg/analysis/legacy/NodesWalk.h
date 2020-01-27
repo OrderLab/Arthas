@@ -3,6 +3,7 @@
 
 #include "dg/DGParameters.h"
 #include "dg/analysis/legacy/Analysis.h"
+#include "dg/analysis/legacy/SliceGraph.h"
 
 namespace dg {
 namespace analysis {
@@ -60,23 +61,27 @@ public:
 
     int iteration;
     NodeT *prev_node;
+    llvm::slicegraph::SliceNode *prev_slice_node;
+
     template <typename FuncT, typename DataT>
-    void walk(NodeT *entry, FuncT func, DataT data) {
-        walk<FuncT, DataT>(std::set<NodeT *>{entry}, func, data);
+    void walk(NodeT *entry, FuncT func, DataT data, llvm::slicegraph::SliceGraph *sg) {
+        walk<FuncT, DataT>(std::set<NodeT *>{entry}, func, data, sg);
     }
 
     //TODO: pass in slices (list of DgSlices)
     template <typename FuncT, typename DataT>
-    void walk(const std::set<NodeT *>& entry, FuncT func, DataT data )
+    void walk(const std::set<NodeT *>& entry, FuncT func, DataT data, llvm::slicegraph::SliceGraph *sg )
     {
         run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
-
         llvm::errs() << "options are " << options << "\n";
         assert(!entry.empty() && "Need entry node for traversing nodes");
+
         for (auto ent : entry){
             ent->depth = 0;
             iteration = 0;
+            sg->root->n = ent;
+            sg->root->depth = 0;
             enqueue(ent);
         }
         while (!queue.empty()) {
@@ -93,10 +98,13 @@ public:
                 }
               }
             }*/
-            if(n->depth == 0){
+            /*if(n->depth == 0){
               add_slice(n);
-            }
+            }*/
             prev_node = n;
+            prev_slice_node = sg->root->search_children(n);
+            //Search for node in graph
+            //Add in process_edges
             prepare(n);
             func(n, data);
 
@@ -156,8 +164,7 @@ public:
         }
     }
 
-    //TODO: move to DgSlice
-    void add_slice(NodeT *n, DgSlice *slice = nullptr){
+   /* void add_slice(NodeT *n, DgSlice *slice = nullptr){
       //need to add new slice with only one node
       if(slice == nullptr){
         llvm::Value *v = n->getValue();
@@ -182,7 +189,7 @@ public:
         d->latest_node = n;
         
       }
-    }
+    }*/
     // push a node into queue
     // This method is public so that analysis can
     // push some extra nodes into queue as they want.
@@ -219,7 +226,9 @@ private:
     {
         for (IT I = begin; I != end; ++I) {
             enqueue(*I);
-            NodeT *n = *I;
+            dg::LLVMNode *n = *I;
+            prev_slice_node->add_child(n, iteration);
+            /*NodeT *n = *I;
             DgSlice *d;
             for(std::set<DgSlice *> iterator it = slices.begin(); it != slices.end(); ++it){
               d = &*it;
@@ -229,7 +238,7 @@ private:
                 return;
               }
             }
-            slices.erase(it);
+            slices.erase(it);*/
         }
     }
 
