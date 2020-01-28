@@ -151,6 +151,7 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   if(node != nullptr)
     slicer.slice(subdg, &sg, node, 0, 0);
 
+  //errs() << "total size of graph is " << sg.root->total_size(sg.root) << "\n";
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
 

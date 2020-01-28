@@ -472,6 +472,7 @@ private:
                 removeNode(n);
                 graph->deleteNode(n);
                 ++statistics.nodesRemoved;
+                llvm::errs() << "nodes removed in slice " << statistics.nodesRemoved << "node " <<   n << "\n";
             }
         }
 

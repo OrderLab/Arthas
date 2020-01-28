@@ -61,7 +61,8 @@ public:
 
     int iteration;
     NodeT *prev_node;
-    llvm::slicegraph::SliceNode *prev_slice_node;
+    llvm::slicegraph::SliceNode * prev_slice_node;
+    int enqueue_num = 0;
 
     template <typename FuncT, typename DataT>
     void walk(NodeT *entry, FuncT func, DataT data, llvm::slicegraph::SliceGraph *sg) {
@@ -80,8 +81,12 @@ public:
         for (auto ent : entry){
             ent->depth = 0;
             iteration = 0;
-            sg->root->n = ent;
-            sg->root->depth = 0;
+            sg->root = new llvm::slicegraph::SliceNode(ent, 0);
+            //sg->root->n = ent;
+            //sg->root->depth = 0;
+            prev_slice_node = sg->root;
+            llvm::errs() << "1 size is  " << prev_slice_node->child_nodes.size() << "\n";
+            llvm::errs() << "blah " << sg->root->n << "\n";
             enqueue(ent);
         }
         while (!queue.empty()) {
@@ -102,7 +107,10 @@ public:
               add_slice(n);
             }*/
             prev_node = n;
+            //llvm::errs() << "prev node is " << prev_node << "\n";
             prev_slice_node = sg->root->search_children(n);
+            //llvm::errs() << "prev slice node is " << prev_slice_node << "\n";
+            //llvm::errs() << "2 size is  " << prev_slice_node->child_nodes.size() << "\n";
             //Search for node in graph
             //Add in process_edges
             prepare(n);
@@ -198,16 +206,19 @@ public:
     // on their own
     void enqueue(NodeT *n)
     {
+           llvm::errs() << "enter enqueue\n";
             AnalysesAuxiliaryData& aad = this->getAnalysisData(n);
 
             if (aad.lastwalkid == run_id)
                 return;
 
+            llvm::errs() << "enqueue " << n << " with " << enqueue_num << "\n";
             // mark node as visited
             aad.lastwalkid = run_id;
             n->depth = iteration;
+            prev_slice_node->add_child(n, iteration);
             queue.push(n);
-
+            enqueue_num++;
     }
 
 protected:
@@ -226,8 +237,15 @@ private:
     {
         for (IT I = begin; I != end; ++I) {
             enqueue(*I);
-            dg::LLVMNode *n = *I;
-            prev_slice_node->add_child(n, iteration);
+            llvm::errs() << "process edges \n";
+            //dg::LLVMNode *n = *I;
+            //slice_root->search_and_add_child(n, iteration);
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
+            //prev_slice_node->child_nodes;
+            //llvm::errs() << "sn size is  " << sn->child_nodes.size() << "\n";
+            llvm::errs() << "size is  " << prev_slice_node->child_nodes.size() << "\n";
+            //prev_slice_node->child_nodes.push_back(sn);
             /*NodeT *n = *I;
             DgSlice *d;
             for(std::set<DgSlice *> iterator it = slices.begin(); it != slices.end(); ++it){
@@ -252,8 +270,12 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *CD : BB->revControlDependence())
+        for (BBlock<NodeT> *CD : BB->revControlDependence()){
+            //dg::LLVMNode *n = CD->getLastNode();
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
             enqueue(CD->getLastNode());
+        }
     }
 
     void processBBlockCDs(NodeT *n)
@@ -262,8 +284,12 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *CD : BB->controlDependence())
+        for (BBlock<NodeT> *CD : BB->controlDependence()){
+            //dg::LLVMNode *n = CD->getFirstNode();
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
             enqueue(CD->getFirstNode());
+        }
     }
 
 
@@ -273,8 +299,12 @@ private:
         if (!BB)
             return;
 
-        for (auto& E : BB->successors())
+        for (auto& E : BB->successors()){
+            //dg::LLVMNode *n = E.target->getFirstNode();
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
             enqueue(E.target->getFirstNode());
+        }
     }
 
     void processBBlockRevCFG(NodeT *n)
@@ -283,8 +313,12 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->predecessors())
+        for (BBlock<NodeT> *S : BB->predecessors()){
+            //dg::LLVMNode *n = S->getLastNode();
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
             enqueue(S->getLastNode());
+        }
     }
 
     void processBBlockPostDomFrontieres(NodeT *n)
@@ -293,8 +327,12 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
+        for (BBlock<NodeT> *S : BB->getPostDomFrontiers()){
+            //dg::LLVMNode *n = S->getLastNode();
+            //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
+            //prev_slice_node->add_child(n, iteration);
             enqueue(S->getLastNode());
+        }
     }
 #endif // ENABLE_CFG
 

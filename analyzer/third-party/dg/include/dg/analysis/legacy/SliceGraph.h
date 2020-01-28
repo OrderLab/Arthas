@@ -42,33 +42,59 @@ class SliceNode{
     typedef children::iterator child_iterator;
     children child_nodes;
 
-    SliceNode (dg::LLVMNode *n, int depth){
-      n = n;
-      depth = depth;
+    SliceNode (dg::LLVMNode *node, int node_depth){
+      n = node;
+      depth = node_depth;
     }
 
     void add_child(dg::LLVMNode *n, int depth){
-      SliceNode *sn;
-      sn->n = n;
-      sn->depth = depth;
+      SliceNode *sn = new SliceNode(n, depth);
+      //SliceNode sn = SliceNode(n, depth);
+      //llvm::errs() << "added value of " << n << "\n";
       child_nodes.push_back(sn);
+      //llvm::errs() << "added value of " << sn << "\n";
     }
 
+    /*void search_and_add_child(dg::LLVMNode *n, int depth){
+      llvm::errs() << "before ref myself\n";
+      if(this->n == n){
+        this->add_child(n, depth);
+        llvm::errs() << "FOUND NODE ROOT\n";
+        return;
+      }
+      llvm::errs() << "after ref myself\n";
+      llvm::errs() << "size of children is " << this->child_nodes.size() << "empty" << this->child_nodes.empty() << "\n";
+      for(child_iterator i = this->child_nodes.begin(); i != this->child_nodes.end(); ++i){
+        SliceNode child_sn = *i;
+        if(child_sn.n == n){
+          llvm::errs() << "FOUND NODE\n";
+          child_sn.add_child(n, depth);
+          return;
+        }
+        child_sn.search_and_add_child(n, depth);
+      }
+    }*/
     SliceNode * search_children(dg::LLVMNode *n){
+      //llvm::errs() << "before ref myself\n";
       if(this->n == n)
         return this;
-      for(child_iterator i = child_nodes.begin(); i != child_nodes.end(); ++i){
+      //llvm::errs() << "after ref myself\n";
+      //llvm::errs() << "size of children is " << this->child_nodes.size() << "empty" << this->child_nodes.empty() << "\n";
+      for(child_iterator i = this->child_nodes.begin(); i != this->child_nodes.end(); ++i){
         SliceNode *sn = *i;
         if(sn->n == n){
-          llvm::errs() << "FOUND NODE\n";
+          //llvm::errs() << "FOUND NODE\n";
           return sn;
         }
+        //llvm::errs() << "here1\n";
         SliceNode * out = sn->search_children(n);
+       // llvm::errs() << "here2\n";
         if(out != nullptr)
           return out;
       }
+      //llvm::errs() << "out\n";
       return nullptr;
-    } 
+    }
 
     int total_size(SliceNode *sn){
       int num = 0;
@@ -78,6 +104,10 @@ class SliceNode{
       }
       return num;
     }
+    
+   void print_graph(){
+     llvm::errs() << "\n";
+   }
 };
 
 class DGSlice{

@@ -58,7 +58,6 @@ private:
     bool forward_slice{false};
     std::set<BBlock<NodeT> *> markedBlocks;
 
-
     struct WalkData
     {
         WalkData(uint32_t si, WalkAndMark *wm,
@@ -80,6 +79,7 @@ private:
     {
         uint32_t slice_id = data->slice_id;
         n->setSlice(slice_id);
+        llvm::errs() << "mark slice of node " << n << "\n";
 
 #ifdef ENABLE_CFG
         // when we marked a node, we need to mark even
@@ -102,6 +102,7 @@ private:
                 // Now I need the correctness...
                 NodeT *entry = dg->getEntry();
                 assert(entry && "No entry node in dg");
+                llvm::errs() << "this is the problem\n";
                 data->analysis->enqueue(entry);
             }
         }
@@ -284,7 +285,7 @@ public:
             statistics.nodesRemoved += blk->size();
             statistics.nodesTotal += blk->size();
             ++statistics.blocksRemoved;
-
+            llvm::errs() << "YO BOYS" << statistics.nodesRemoved << "\n";
             // call specific handlers (overriden by child class)
             removeBlock(blk);
 
@@ -315,6 +316,7 @@ public:
             statistics.nodesRemoved += blk->size();
             statistics.nodesTotal += blk->size();
             ++statistics.blocksRemoved;
+            llvm::errs() << "YO BOYS" << statistics.nodesRemoved << "\n";
 
             // call specific handlers (overriden by child class)
             if (removeBlock(blk)) {
