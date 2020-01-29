@@ -84,10 +84,10 @@ public:
             sg->root = new llvm::slicegraph::SliceNode(ent, 0);
             //sg->root->n = ent;
             //sg->root->depth = 0;
+            enqueue(ent);
             prev_slice_node = sg->root;
             llvm::errs() << "1 size is  " << prev_slice_node->child_nodes.size() << "\n";
             llvm::errs() << "blah " << sg->root->n << "\n";
-            enqueue(ent);
         }
         while (!queue.empty()) {
             NodeT *n = queue.pop();
@@ -216,7 +216,8 @@ public:
             // mark node as visited
             aad.lastwalkid = run_id;
             n->depth = iteration;
-            prev_slice_node->add_child(n, iteration);
+            if(prev_slice_node != nullptr)
+              prev_slice_node->add_child(n, iteration, prev_node);
             queue.push(n);
             enqueue_num++;
     }

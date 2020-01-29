@@ -151,6 +151,17 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F){
   if(node != nullptr)
     slicer.slice(subdg, &sg, node, 0, 0);
 
+  sg.root->print(0);
+  errs() << sg.root->total_size(sg.root);
+  list<slicegraph::DGSlice> slices;
+  sg.root->compute_slices(slices, fault_instruction, slicegraph::SliceDirection::Backward
+  , slicegraph::SlicePersistence::Mixed, 0);
+  int count = 0;
+  for(list<slicegraph::DGSlice>::iterator i = slices.begin(); i != slices.end(); ++i){
+    errs() << "slice " << count << " is \n";
+    i->print_dgslice();
+    count++;
+  }
   //errs() << "total size of graph is " << sg.root->total_size(sg.root) << "\n";
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
