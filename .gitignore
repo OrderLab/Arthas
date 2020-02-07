@@ -16,4 +16,7 @@ CMakeCache.txt
 .idea/
 cmake-build-debug/
 sliceScript
+redisScript
+varScript
+memcachedScript
 Detector
