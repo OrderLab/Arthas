@@ -133,6 +133,7 @@ class SlicingPass : public ModulePass {
  private:
   bool runOnFunction(Function &F);
   DgSlicer* dgSlicer;
+  //DgSlicer* dgSlicer2;
   //Map with Sliced Dependnence Graph as key and persistent variables as values
   static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
 };
@@ -144,6 +145,7 @@ std::list<Instruction *>pmem_list){
   //of persistent variables
   dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
   dg::LLVMPointerAnalysis *pta = subdg->getPTA();
+
 
   //Testing purposes: Using existing slicer first..
   list<list<const Instruction *>> slice_list;
@@ -170,6 +172,8 @@ std::list<Instruction *>pmem_list){
   //errs() << "total size of graph is " << sg.root->total_size(sg.root) << "\n";
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
+  errs() << *fault_instruction << "\n";
+  errs() << "Function is " << F << "\n";
 
   DgSlice *dgSlice;
   dgSlice->direction = SlicingDirection::Backward;
@@ -184,10 +188,12 @@ std::list<Instruction *>pmem_list){
   dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
   dg::LLVMSlicer slicer2;
   dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
+  errs() << "forward slice about\n";
   slicegraph::SliceGraph sg2;
   if(node2 != nullptr)
     slicer2.slice(subdg2, &sg2, node2, 1, 1);
 
+  errs() << "forward sliced\n";
   dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
   errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " << st2.nodesTotal << " nodes\n";
 
@@ -195,9 +201,12 @@ std::list<Instruction *>pmem_list){
 }
 
 bool SlicingPass::runOnModule(Module &M) {
+  //errs() << "beginning\n";
   dgSlicer = new DgSlicer(&M);
   dgSlicer->compute();  // compute the dependence graph for module M
 
+  //dgSlicer2 = new DgSlicer(&M);
+  //dgSlicer2->compute();
   /*bool modified = false;
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
@@ -209,6 +218,7 @@ bool SlicingPass::runOnModule(Module &M) {
     }
   }
   return modified;*/
+
   list<Instruction *>pmem_list;
   //Step 1: PMEM Variable Output Mapping
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
@@ -228,9 +238,10 @@ bool SlicingPass::runOnModule(Module &M) {
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-      if(a == 4){
+      if(a == 10){
         fault_inst = &*ii;
         instructionSlice(fault_inst, F, pmem_list);
+        llvm::errs() << "function is " << F << "\n";
         goto stop;
       }
       a++;

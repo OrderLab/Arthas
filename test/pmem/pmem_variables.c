@@ -18,14 +18,17 @@ void write_hello_string(char *buf, char *path){
 	pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
 	PMEMoid root = pmemobj_root(pop, sizeof(struct my_root));
 	struct my_root *rootp = pmemobj_direct(root);
-	int *pmem_int_ptr;
+	double *pmem_int_ptr;
 	char * pmem_region_variable = (uint64_t)pop + 10;
+
 	TX_BEGIN(pop){
 		PMEMoid oid;
-		oid = pmemobj_tx_zalloc(sizeof(int), 1);
+		oid = pmemobj_tx_zalloc(sizeof(double), 1);
 		pmem_int_ptr = pmemobj_direct(oid);
-		*pmem_int_ptr = 3;
+		*pmem_int_ptr = 0;
 	}TX_END
+        int a;
+        a = 30/(*pmem_int_ptr);
 }
 
 void read_hello_string(char *buf){

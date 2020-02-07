@@ -60,6 +60,7 @@ class DGSlice{
      for(std::list<dg::LLVMNode *>::iterator i = nodes.begin(); i != nodes.end(); ++i){
        llvm::errs() << *i << "\n";
      }
+     //llvm::errs() << "slice persistence is " << static_cast<int>(persistent_state) << "\n";
    }
 
    void get_values(list<llvm::Instruction *> pmem_list){
@@ -81,12 +82,15 @@ class DGSlice{
        }
      }
      if(vol && persistent){
+       llvm::errs() << "Slice " << slice_id << " is mixed\n";
        persistent_state = SlicePersistence::Mixed;
      }
      else if(vol){
+       llvm::errs() << "Slice " << slice_id << " is volatile\n";
        persistent_state = SlicePersistence::Volatile; 
      }
      else if(persistent){
+       llvm::errs() << "Slice " << slice_id << " is persistent\n";
        persistent_state = SlicePersistence::Persistent;
      }
    }
@@ -109,7 +113,7 @@ class SliceNode{
 
     void add_child(dg::LLVMNode *n, int depth, dg::LLVMNode *prev_node){
       SliceNode *sn = new SliceNode(n, depth);
-      llvm::errs() << "added value of " << n << "\n";
+      //llvm::errs() << "added value of " << n << "\n";
       sn->prev_node = prev_node;
       child_nodes.push_back(sn);
       //llvm::errs() << "added value of " << sn << "\n";
@@ -143,11 +147,11 @@ class SliceNode{
      llvm::Value *v = this->n->getValue();
      //llvm::errs() << *v << "\n";
      llvm::errs() << this->n << "\n";
-     if(!(this->child_nodes.empty()))
+     /*if(!(this->child_nodes.empty()))
        llvm::errs() << "children: \n";
      else{
        llvm::errs() << "branch end \n";
-     }
+     }*/
      for(child_iterator i = this->child_nodes.begin(); i != this->child_nodes.end(); ++i){
        SliceNode *sn = *i;
        sn->print_graph();
@@ -176,12 +180,12 @@ class SliceNode{
         s = &*i;
         //if(this->prev_node == s->highest_node || slices.size() == 1){
         if(this->n == s->highest_node || slices.size() == 1){
-          llvm::errs() << "prev node is " << this->prev_node << "current node is " << this->n << "\n";
-          llvm::errs() << "s highest nodes is " << s->highest_node << "\n";
+          //llvm::errs() << "prev node is " << this->prev_node << "current node is " << this->n << "\n";
+          //llvm::errs() << "s highest nodes is " << s->highest_node << "\n";
           //llvm::errs() << "before copy "<< s->nodes.size()  << "\n";
           base.nodes = s->nodes;
           //llvm::errs() << "after copy "<< s->nodes.size()  << "\n";
-          llvm::errs() << "Found slice\n";
+          //llvm::errs() << "Found slice\n";
           break;
         }
       }
@@ -206,12 +210,12 @@ class SliceNode{
         s = &*i;
         //if(this->prev_node == s->highest_node || slices.size() == 1){
         if(this->n == s->highest_node || slices.size() == 1){
-          llvm::errs() << "prev node is " << this->prev_node << "current node is " << this->n << "\n";
-          llvm::errs() << "s highest nodes is " << s->highest_node << "\n";
+          //llvm::errs() << "prev node is " << this->prev_node << "current node is " << this->n << "\n";
+          //llvm::errs() << "s highest nodes is " << s->highest_node << "\n";
           //llvm::errs() << "before copy "<< s->nodes.size()  << "\n";
           //base.nodes = s->nodes;
           //llvm::errs() << "after copy "<< s->nodes.size()  << "\n";
-          llvm::errs() << "Found slice\n";
+          //llvm::errs() << "Found slice\n";
           break;
         }
       }
@@ -226,25 +230,25 @@ class SliceNode{
      for(child_iterator i = this->child_nodes.begin(); i != this->child_nodes.end(); ++i){
        SliceNode *sn = *i;
        child_count++;
-       llvm::errs() << "child of " << this->n << " is " << sn->n << "\n";
-       llvm::errs() << "child_count is " << child_count << " children count is " << children_num << "\n";
+       //llvm::errs() << "child of " << this->n << " is " << sn->n << "\n";
+       //llvm::errs() << "child_count is " << child_count << " children count is " << children_num << "\n";
        if(child_count == children_num){
-         llvm::errs() << "pushing to existing branch\n";
+         //llvm::errs() << "pushing to existing branch\n";
          s->nodes.push_back(sn->n);
          s->highest_node = sn->n;
-         llvm::errs() << "number of slices is " << slices.size() << "\n";
+         //llvm::errs() << "number of slices is " << slices.size() << "\n";
        }
        else{
          DGSlice base = DGSlice(fi, sd, sp, slice_num, this->n);
          this->slice_node_copy(base, slices);
-         llvm::errs() << "new slice old highest is " << base.highest_node << "\n";
-         llvm::errs() << "base nodes size is " << base.nodes.size() << "\n";
+         //llvm::errs() << "new slice old highest is " << base.highest_node << "\n";
+         //llvm::errs() << "base nodes size is " << base.nodes.size() << "\n";
          base.slice_id = slice_num;
          base.highest_node = sn->n;
          base.nodes.push_back(sn->n);
          slice_num++;
          slices.push_back(base);
-         llvm::errs() << "number of slices is " << slices.size() << "\n";
+         //llvm::errs() << "number of slices is " << slices.size() << "\n";
        }
        slice_num = sn->compute_slices(slices, fi, sd, sp, slice_num);
      }

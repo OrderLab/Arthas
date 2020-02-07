@@ -75,7 +75,7 @@ public:
     {
         run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
-        llvm::errs() << "options are " << options << "\n";
+        //llvm::errs() << "options are " << options << "\n";
         assert(!entry.empty() && "Need entry node for traversing nodes");
 
         for (auto ent : entry){
@@ -86,8 +86,8 @@ public:
             //sg->root->depth = 0;
             enqueue(ent);
             prev_slice_node = sg->root;
-            llvm::errs() << "1 size is  " << prev_slice_node->child_nodes.size() << "\n";
-            llvm::errs() << "blah " << sg->root->n << "\n";
+            //llvm::errs() << "1 size is  " << prev_slice_node->child_nodes.size() << "\n";
+            //llvm::errs() << "blah " << sg->root->n << "\n";
         }
         while (!queue.empty()) {
             NodeT *n = queue.pop();
@@ -206,13 +206,13 @@ public:
     // on their own
     void enqueue(NodeT *n)
     {
-           llvm::errs() << "enter enqueue\n";
+           //llvm::errs() << "enter enqueue\n";
             AnalysesAuxiliaryData& aad = this->getAnalysisData(n);
 
             if (aad.lastwalkid == run_id)
                 return;
 
-            llvm::errs() << "enqueue " << n << " with " << enqueue_num << "\n";
+            //llvm::errs() << "enqueue " << n << " with " << enqueue_num << "\n";
             // mark node as visited
             aad.lastwalkid = run_id;
             n->depth = iteration;
@@ -238,14 +238,14 @@ private:
     {
         for (IT I = begin; I != end; ++I) {
             enqueue(*I);
-            llvm::errs() << "process edges \n";
+            //llvm::errs() << "process edges \n";
             //dg::LLVMNode *n = *I;
             //slice_root->search_and_add_child(n, iteration);
             //llvm::slicegraph::SliceNode *sn = new llvm::slicegraph::SliceNode(n, iteration);
             //prev_slice_node->add_child(n, iteration);
             //prev_slice_node->child_nodes;
             //llvm::errs() << "sn size is  " << sn->child_nodes.size() << "\n";
-            llvm::errs() << "size is  " << prev_slice_node->child_nodes.size() << "\n";
+            //llvm::errs() << "size is  " << prev_slice_node->child_nodes.size() << "\n";
             //prev_slice_node->child_nodes.push_back(sn);
             /*NodeT *n = *I;
             DgSlice *d;

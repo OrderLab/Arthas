@@ -1,0 +1,3 @@
+#!/bin/bash
+opt -load build/analyzer/lib/libLLVMSlicer.so -slicer < ~/a_bug_project/llvm_playground/redis/src/redis-server.bc > /dev/null
+

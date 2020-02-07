@@ -48,9 +48,12 @@ LLVMPointerGraphBuilder::PSNodesBlock
 LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
                                                 PointerSubgraph *parent)
 {
+    using namespace llvm;
+
     PSNodesBlock blk;
 
     for (const llvm::Instruction& Inst : block) {
+
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
             // if so, set the corresponding memory to zeroed
@@ -62,7 +65,107 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 
         assert(nodes_map.count(&Inst) == 0
                 && "Already built this instruction");
+    /*int problem = 0;
+    switch(Inst.getOpcode()) {
+        case Instruction::Alloca:
+          break;
+        case Instruction::Store:
+          break;
+        case Instruction::Load:
+          break;
+        case Instruction::GetElementPtr:
+          break;
+        case Instruction::ExtractValue:
+          break;
+        case Instruction::Select:
+          break;
+        case Instruction::PHI:
+          break;
+        case Instruction::BitCast:
+          break;
+        case Instruction::SExt:
+          break;
+        case Instruction::ZExt:
+          break;
+        case Instruction::PtrToInt:
+          break;
+        case Instruction::IntToPtr:
+          break;
+        case Instruction::Ret:
+          break;
+        case Instruction::Call:
+          break;
+        case Instruction::And:
+          break;
+        case Instruction::Or:
+          break;
+        case Instruction::Trunc:
+          break;
+        case Instruction::Shl:
+          break;
+        case Instruction::LShr:
+          break;
+        case Instruction::AShr:
+          break;
+        case Instruction::Xor:
+          break;
+        case Instruction::FSub:
+          break;
+        case Instruction::FAdd:
+          break;
+        case Instruction::FDiv:
+          break;
+        case Instruction::FMul:
+          break;
+        case Instruction::UDiv:
+          break;
+        case Instruction::SDiv:
+          break;
+        case Instruction::URem:
+          break;
+        case Instruction::SRem:
+          break;
+        case Instruction::FRem:
+          break;
+        case Instruction::FPTrunc:
+          break;
+        case Instruction::FPExt:
+          break;
+        case Instruction::Add:
+          break;
+        case Instruction::Sub:
+          break;
+        case Instruction::Mul:
+          break;
+        case Instruction::UIToFP:
+          break;
+        case Instruction::SIToFP:
+          break;
+        case Instruction::FPToUI:
+          break;
+        case Instruction::FPToSI:
+          break;
+        case Instruction::InsertElement:
+          break;
+        case Instruction::ExtractElement:
+          break;
+        case Instruction::ShuffleVector:
+          break;
+        default:
+          llvm::errs() << "ONLY HERE \n";
+          problem = 1;
+          break;
+    }
+
+        if(problem)
+          continue;*/
+
         auto& seq = buildInstruction(Inst);
+        if(seq.invalid == 0){
+          llvm::errs() << "ESCAPED\n";
+          continue;
+        }
+
 
         // set parent to the new nodes
         for (auto nd : seq) {

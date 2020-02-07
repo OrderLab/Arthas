@@ -67,6 +67,7 @@ class LLVMPointerGraphBuilder
 
     public:
         PSNodesSeq() = default;
+        int invalid = 1;
         PSNodesSeq(PSNode *n) { _nodes.push_back(n); }
         PSNodesSeq(const std::initializer_list<PSNode *>& l) {
             for (auto n : l)
