@@ -62,13 +62,14 @@ void write_hello_string (char *buf, char *path)
 	}
 	/* store a string to the persistent memory */
 	strcpy(pmemaddr, buf);
-        int a = 30/0;
 	/* flush above strcpy to persistence */
 	if (is_pmem)
 		pmem_persist(pmemaddr, mapped_len);
 	else
 		pmem_msync(pmemaddr, mapped_len);
 
+        char new_buf[MAX_BUF_LEN] = "Second String NEW VALUE HER!!\n";
+        pmem_memcpy_persist(pmemaddr, new_buf, sizeof(new_buf));
 	/* output a string from the persistent memory to console */
 	printf("\nWrite the (%s) string to persistent memory.\n",pmemaddr);	
 			

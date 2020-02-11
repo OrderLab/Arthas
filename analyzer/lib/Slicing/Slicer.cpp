@@ -11,6 +11,9 @@
 #include <set>
 #include <utility>
 
+#include <iostream>
+#include <fstream>
+
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -91,6 +94,16 @@ bool DgSlicer::compute() {
   dg = builder->computeDependencies(std::move(dg));
 
   const auto &stats = builder->getStatistics();
+
+  ofstream outputFile("program2data.txt");
+  outputFile << "CPU time of pointer analysis: " 
+   << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n" << flush;;
+  outputFile << "[slicer] CPU time of reaching definitions analysis: "
+         << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n" << flush;
+  outputFile << "[slicer] CPU time of control dependence analysis: "
+         << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n" << flush;
+
+
   errs() << "[slicer] CPU time of pointer analysis: "
          << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
   errs() << "[slicer] CPU time of reaching definitions analysis: "
@@ -98,6 +111,12 @@ bool DgSlicer::compute() {
   errs() << "[slicer] CPU time of control dependence analysis: "
          << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
   funcDgMap = &dg::getConstructedFunctions();
+
+  /*const char *dump_func_only = nullptr;
+  uint32_t opts = (1 << 0) | (1 << 2) | (1 << 6) | (1 << 4) | (1 << 8);
+  dg::debug::LLVMDG2Dot dumper(dg.get(), opts);
+  dumper.dump(nullptr, dump_func_only);*/
+  
   return true;
 }
 
@@ -141,10 +160,15 @@ class SlicingPass : public ModulePass {
 
 bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
 std::list<Instruction *>pmem_list){
+
+  ofstream outputFile("program3data.txt");
+  outputFile << "starting instructionSlice\n" << flush;;
+
   //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
   //of persistent variables
   dg::LLVMDependenceGraph *subdg = dgSlicer->getDependenceGraph(&F);
-  dg::LLVMPointerAnalysis *pta = subdg->getPTA();
+  //dg::LLVMPointerAnalysis *pta = subdg->getPTA();
+  outputFile << "got dependence graph for function\n" << flush;;
 
 
   //Testing purposes: Using existing slicer first..
@@ -155,6 +179,7 @@ std::list<Instruction *>pmem_list){
 
   if(node != nullptr)
     slicer.slice(subdg, &sg, node, 0, 0);
+  outputFile << "slicer.slice!!!\n" << flush;;
 
   errs() << sg.root->total_size(sg.root);
   list<slicegraph::DGSlice> slices;
@@ -168,6 +193,7 @@ std::list<Instruction *>pmem_list){
     count++;
   }
   sg.root->print(0);
+  outputFile << "Finished slicing\n" << flush;;
 
   //errs() << "total size of graph is " << sg.root->total_size(sg.root) << "\n";
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
@@ -231,14 +257,16 @@ bool SlicingPass::runOnModule(Module &M) {
     pmemInstructionSet(F, locator, pmem_list);
   }
 
+  errs() << "begin instruction slice \n";;
   //Step 2: Getting Slice of Fault Instruction
   // Hard coded in-input for Fault Instruction
   int a = 0;
+  int b = 0;
   Instruction * fault_inst;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-      if(a == 10){
+      if(a == 10 && b == 12){
         fault_inst = &*ii;
         instructionSlice(fault_inst, F, pmem_list);
         llvm::errs() << "function is " << F << "\n";
@@ -246,6 +274,7 @@ bool SlicingPass::runOnModule(Module &M) {
       }
       a++;
     }
+    b++;
   }
   stop:
   return false;

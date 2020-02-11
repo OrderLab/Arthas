@@ -344,6 +344,12 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
         lastNode = tempAlloc;
     } else {
         auto fromTempAlloc = PSNodeAlloc::get(getOperand(Inst->getOperand(0)));
+        if(!fromTempAlloc){
+          tempAlloc = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+          tempAlloc->setIsTemporary();
+          seq.append(tempAlloc);
+          lastNode = tempAlloc;
+        }else{
         assert(fromTempAlloc);
         assert(fromTempAlloc->isTemporary());
 
@@ -358,6 +364,7 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
                              tempAlloc, Offset::UNKNOWN);
         seq.append(cpy);
         lastNode = cpy;
+        }
     }
 
     assert(tempAlloc && "Do not have the operand 0");

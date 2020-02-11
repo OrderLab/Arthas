@@ -257,7 +257,7 @@ bool PointerGraphValidator::validate() {
     bool invalid = false;
 
     invalid |= checkOperands();
-    invalid |= checkEdges();
+    //invalid |= checkEdges();
 
     return invalid;
 }
