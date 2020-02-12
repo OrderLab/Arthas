@@ -36,13 +36,13 @@ void write_hello_string(char *buf, char *path){
 		oid = pmemobj_tx_zalloc(sizeof(double), 1);
 		pmem_int_ptr = pmemobj_direct(oid);
 		printf("address of pmemint is %p\n", pmem_int_ptr);
-		*pmem_int_ptr = 11;
+		*pmem_int_ptr = 0;
 		oid2 = pmemobj_tx_zalloc(sizeof(int), 1);
 		*pmem_int_ptr2 = 12;
 		printf("address of pmemint2 is %p\n", pmem_int_ptr2);
 	}TX_END
 
-        TX_BEGIN(pop){
+        /*TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
                 *pmem_int_ptr = 5;
                 pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
@@ -52,10 +52,10 @@ void write_hello_string(char *buf, char *path){
                 pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
 		*pmem_int_ptr2 = 3;
 		pmemobj_tx_abort(-1);
-        }TX_END
+        }TX_END*/
 	printf("ints are %f and %d\n", *pmem_int_ptr, *pmem_int_ptr2);
-        //int a;
-        //a = 30/(*pmem_int_ptr);
+        int a;
+        a = 30/(*pmem_int_ptr);
 }
 
 void read_hello_string(char *buf){
