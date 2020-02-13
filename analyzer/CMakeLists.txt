@@ -35,6 +35,11 @@ include_directories(third-party/dg/include)
 # add dg's lib to link path
 link_directories(third-party/dg/lib)
 
+# add Weisesr slicer's include to include path 
+include_directories(third-party/LLVMSlicer/include)
+# add Weiser slicer's lib to link path
+link_directories(third-party/LLVMSlicer/lib)
+
 add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(third-party)

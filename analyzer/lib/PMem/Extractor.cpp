@@ -11,7 +11,7 @@
 #include <set>
 
 #include "DefUse/DefUse.h"
-#include "Extractor.h"
+#include "PMem/Extractor.h"
 
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Type.h"

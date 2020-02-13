@@ -34,6 +34,8 @@
 
 #include "dg/util/TimeMeasure.h"
 
+#include "ws/Languages/LLVM.h"
+
 namespace llvm {
 namespace slicing {
 

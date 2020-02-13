@@ -20,6 +20,5 @@ target_link_libraries(LLVMPMem
 
 add_library(Utils SHARED
   Utils/sample.cpp
-  Utils/LLVM.cpp
 )
 
