@@ -23,42 +23,11 @@ using namespace llvm::slicing;
 using namespace llvm::pmem;
 using namespace llvm::defuse;
 
-//static cl::list<string> TargetFunctions("target-functions", 
-//    cl::desc("<Function>"), cl::ZeroOrMore);
+static cl::list<string> TargetFunctions("target-functions", 
+    cl::desc("<Function>"), cl::ZeroOrMore);
 
-static void printPSNodeName(dg::PSNode *node) {
-  string nm;
-  const char *name = nullptr;
-  if (node->isNull()) {
-    name = "null";
-  } else if (node->isUnknownMemory()) {
-    name = "unknown";
-  } else if (node->isInvalidated() && !node->getUserData<llvm::Value>()) {
-    name = "invalidated";
-  }
-  if (!name) {
-    const llvm::Value *val = node->getUserData<llvm::Value>();
-    if (val) errs() << *val;
-  } else {
-    errs() << name;
-  }
-}
-
-static void dumpPSNode(dg::PSNode *n) {
-  errs() << "NODE " << n->getID() << ": ";
-  printPSNodeName(n);
-  errs() << " (points-to size: " << n->pointsTo.size() << ")\n";
-
-  for (const dg::Pointer& ptr : n->pointsTo) {
-    errs() << "    -> ";
-    printPSNodeName(ptr.target);
-    if (ptr.offset.isUnknown())
-      errs() << " + Offset::UNKNOWN";
-    else
-      errs() << " + " << *ptr.offset;
-  }
-  errs() << "\n";
-}
+static cl::list<string> TargetInstruction("target-instruction", 
+    cl::desc("<Function>"), cl::ZeroOrMore);
 
 bool DgSlicer::compute() {
   dg::debug::TimeMeasure tm;
@@ -122,8 +91,8 @@ class SlicingPass : public ModulePass {
 
   virtual bool runOnModule(Module &M) override;
   bool instructionSlice(Instruction *fault_instruction, Function &F, std::list<Instruction *>pmem_list);
-  bool definitionPoint(Function &F, pmem::PMemVariableLocator locator);
-  void pmemInstructionSet(Function &F, pmem::PMemVariableLocator locator,
+  bool definitionPoint(Function &F, pmem::PMemVariableLocator &locator);
+  void pmemInstructionSet(Function &F, pmem::PMemVariableLocator &locator,
                                       std::list<Instruction *>& pmem_list);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
@@ -132,9 +101,8 @@ class SlicingPass : public ModulePass {
 
  private:
   bool runOnFunction(Function &F);
-  DgSlicer* dgSlicer;
-  //DgSlicer* dgSlicer2;
-  //Map with Sliced Dependnence Graph as key and persistent variables as values
+  unique_ptr<DgSlicer> dgSlicer;
+  // Map with Sliced Dependnence Graph as key and persistent variables as values
   static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
 };
 }
@@ -202,27 +170,18 @@ std::list<Instruction *>pmem_list){
 
 bool SlicingPass::runOnModule(Module &M) {
   //errs() << "beginning\n";
-  dgSlicer = new DgSlicer(&M);
+  dgSlicer = make_unique<DgSlicer>(&M);
   dgSlicer->compute();  // compute the dependence graph for module M
 
-  //dgSlicer2 = new DgSlicer(&M);
-  //dgSlicer2->compute();
-  /*bool modified = false;
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
-    Function &F = *I;
-    if (!F.isDeclaration()) {
-      if (targetFunctionSet.empty() ||
-          targetFunctionSet.count(F.getName()) != 0)
-        modified |= runOnFunction(F);
-    }
-  }
-  return modified;*/
 
   list<Instruction *>pmem_list;
   //Step 1: PMEM Variable Output Mapping
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
+    if (F.isDeclaration() || targetFunctionSet.empty() || 
+        targetFunctionSet.count(F.getName()) != 0)
+      continue;
     pmem::PMemVariableLocator locator(F);
     //for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
@@ -251,36 +210,34 @@ bool SlicingPass::runOnModule(Module &M) {
   return false;
 }
 
-void SlicingPass::pmemInstructionSet(Function &F, pmem::PMemVariableLocator locator,
-                                      std::list<Instruction *>& pmem_list){
-    for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-      Value& b = const_cast<Value&>(**vi); 
-        if(Instruction *Inst = dyn_cast<Instruction>(&b))
-          pmem_list.push_back(Inst);
-    }
-
-
+void SlicingPass::pmemInstructionSet(Function &F,
+                                     pmem::PMemVariableLocator &locator,
+                                     std::list<Instruction *> &pmem_list) {
+  for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
+    Value& b = const_cast<Value&>(**vi); 
+    if(Instruction *Inst = dyn_cast<Instruction>(&b))
+      pmem_list.push_back(Inst);
+  }
 }
 
-bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator locator){
-
-    for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-      Value& b = const_cast<Value&>(**vi); 
-      UserGraph g(&b);
-      for (auto ui = g.begin(); ui != g.end(); ++ui) {
-        Value& c = const_cast<Value&>(*ui->first);
-        if(Instruction *Inst = dyn_cast<Instruction>(&c))
-          pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
-          //pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, &*(ui->first)));
-      }
+bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator &locator) {
+  for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
+    Value& b = const_cast<Value&>(**vi); 
+    UserGraph g(&b);
+    for (auto ui = g.begin(); ui != g.end(); ++ui) {
+      Value& c = const_cast<Value&>(*ui->first);
+      if(Instruction *Inst = dyn_cast<Instruction>(&c))
+        pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
+      //pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, &*(ui->first)));
+    }
   }
   errs() << "size is " << pmemMetadata.size() << "\n";
   errs() << "Finished with definition points for this function \n";
 
   /*for(auto it = pmemMetadata.begin(); it != pmemMetadata.end(); ++it)
-  {
+    {
     errs() << *it->first  << " " << *it->second << "\n";
-  }*/
+    }*/
   return true;
 }
 

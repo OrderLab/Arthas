@@ -10,7 +10,6 @@
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
 
-#include "Extractor.h"
 #ifdef ENABLE_CFG
 #include "dg/BBlock.h"
 #endif
@@ -132,9 +131,6 @@ class Slicer : legacy::Analysis<NodeT>
     std::set<llvm::Value *>pmem_values;
     std::set<DependenceGraph<NodeT> *> sliced_graphs;
 
-    void passPmemValues(std::set<llvm::Value *> values){
-      pmem_values = values;
-    }
     // slice nodes from the graph; do it recursively for call-nodes
     void sliceNodes(DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
