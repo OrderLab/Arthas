@@ -165,7 +165,7 @@ public:
     }
 
     void removeSingleSuccessor() {
-        assert(successors.size() == 1);
+        //assert(successors.size() == 1);
 
         // we need to remove this node from
         // successor's predecessors
@@ -178,7 +178,7 @@ public:
 
     // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
-        assert(successors.size() == 1);
+        //assert(successors.size() == 1);
         return successors.front();
     }
 

@@ -1,8 +1,13 @@
-LIBPMEM_CFLAGS = $(shell pkg-config --cflags libpmem) -g -O0
-LIBPMEM_LDFLAGS = $(shell pkg-config --libs libpmem) -g -O0
+#LIBPMEM_CFLAGS = $(shell pkg-config --cflags libpmem) -g -O0
+#LIBPMEM_LDFLAGS = $(shell pkg-config --libs libpmem) -g -O0
+LIBPMEM_CFLAGS = -DUSE_PMEM -I pmdk/src/include -g -O0
+LIBPMEM_LDFLAGS = pmdk/src/nondebug/libpmemobj.a pmdk/src/nondebug/libpmem.a -g -O0 -ldl -pthread
 
-LIBPMEMOBJ_CFLAGS = $(shell pkg-config --cflags libpmemobj) -g -O0
-LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
+
+#LIBPMEMOBJ_CFLAGS = $(shell pkg-config --cflags libpmemobj) -g -O0
+#LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
+LIBPMEMOBJ_CFLAGS = -DUSE_PMEM -I pmdk/src/include -g -O0
+LIBPMEMOBJ_LDFLAGS = pmdk/src/nondebug/libpmemobj.a pmdk/src/nondebug/libpmem.a -g -O0 -ldl -pthread
 
 CC = gcc
 RM = rm

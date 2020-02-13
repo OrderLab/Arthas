@@ -20,3 +20,10 @@ redisScript
 varScript
 memcachedScript
 Detector
+program2data.txt
+program3data.txt
+test/pmem/1.5.1_pmdk/
+test/pmem/1.6_pmdk/
+test/pmem/1.7_pmdk/
+test/pmem/ndctl/
+test/pmem/refreshScript
