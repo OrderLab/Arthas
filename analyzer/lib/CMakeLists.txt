@@ -5,21 +5,34 @@ add_library(DefUse SHARED
 add_library(Utils SHARED
   Utils/String.cpp
   Utils/Path.cpp
+  Utils/LLVM.cpp
 )
 
-add_library(LLVMSlicer MODULE 
-  Slicing/Slicer.cpp
+target_link_libraries(Utils
+  PUBLIC ${llvm_libs}
+)
+
+add_library(Matcher SHARED
   Matcher/Scope.cpp
   Matcher/Matcher.cpp
+)
+
+target_link_libraries(Matcher
+  PUBLIC Utils
+)
+
+add_library(LLVMSlicer SHARED
+  Slicing/Slicer.cpp
 )
 
 target_link_libraries(LLVMSlicer
   PUBLIC DefUse
   PUBLIC Utils
+  PUBLIC Matcher
   PUBLIC LLVMdg
 )
 
-add_library(LLVMPMem MODULE 
+add_library(LLVMPMem SHARED
   PMem/Extractor.cpp
 )
 

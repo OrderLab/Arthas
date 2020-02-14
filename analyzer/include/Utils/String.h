@@ -6,11 +6,11 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-#ifndef __STRING_H_
-#define __STRING_H_
+#ifndef _UTILS_STRING_H_
+#define _UTILS_STRING_H_
 
 #include <stddef.h>
 
 void *xmalloc(size_t size);
 
-#endif /* __STRING_H_ */
+#endif /* _UTILS_STRING_H_ */

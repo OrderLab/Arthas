@@ -17,16 +17,16 @@
 
 static bool DEBUG_MATCHER = false;
 
-bool cmpDICU(const DICompileUnit *CU1, const DICompileUnit *CU2) 
-{ 
+using namespace llvm;
+
+bool cmpDICU(DICompileUnit *CU1, DICompileUnit *CU2) {
   int cmp = CU1->getDirectory().compare(CU2->getDirectory());
   if (cmp == 0)
     cmp = CU1->getFilename().compare(CU2->getFilename());
   return cmp >= 0 ? false : true;
 }
 
-bool cmpDISP(const DISubprogram * SP1, const DISubprogram * SP2) 
-{ 
+bool cmpDISP(DISubprogram *SP1, DISubprogram *SP2) {
   int cmp = SP1->getDirectory().compare(SP2->getDirectory());
   if (cmp == 0) {
     cmp = SP1->getFilename().compare(SP2->getFilename());
@@ -55,6 +55,17 @@ unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {
     }
     return 0;
   }
+  return Loc.getLine();
+}
+
+unsigned ScopeInfoFinder::getFirstLine(Function *F)
+{
+  if (F == NULL || F->begin() == F->end()) //empty block
+    return 0;
+  const BasicBlock & BB = F->front();
+  const Instruction & I = BB.front();
+  auto Loc = I.getDebugLoc();
+  if (!Loc) return 0;
   return Loc.getLine();
 }
 
@@ -163,7 +174,6 @@ void Matcher::processSubprograms(Module &M)
   for (auto *CU : M.debug_compile_units()) {
     if (DEBUG_MATCHER)
       errs() << "CU: " << CU->getDirectory() << "/" << CU->getFilename() << "\n";
-    processSubprograms(CU);
     for (auto *RT : CU->getRetainedTypes())
       if (auto *SP = dyn_cast<DISubprogram>(RT)) {
         MySPs.push_back(SP);
@@ -258,7 +268,7 @@ Matcher::sp_iterator Matcher::slideToFile(StringRef fname)
   return I;
 }
 
-Instruction *Matcher::matchInstruction(inst_iterator &ii, Function *f,
+Instruction *Matcher::matchInstruction(llvm::inst_iterator &ii, Function *f,
                                        Scope &scope) {
   if (scope.begin > scope.end)
     return NULL;

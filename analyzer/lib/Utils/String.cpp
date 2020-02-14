@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "Utils/String.h"
+
 void *xmalloc(size_t size) {
   if (size <= 0) {
     fprintf(stderr, "Invalid malloc size %lu", size);

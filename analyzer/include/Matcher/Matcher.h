@@ -28,12 +28,8 @@
 
 #include "Scope.h"
 
-using namespace llvm;
-
-typedef DomTreeNodeBase<BasicBlock> BBNode;
-
-template <class T1, class T2> struct Pair
-{
+template <class T1, class T2>
+struct Pair {
   typedef T1 first_type;
   typedef T2 second_type;
 
@@ -45,34 +41,35 @@ template <class T1, class T2> struct Pair
   template <class U, class V> Pair (const Pair<U,V> &p) : first(p.first), second(p.second) { }
 };
 
-typedef Pair<DISubprogram, int> DISPExt;
+typedef Pair<llvm::DISubprogram, int> DISPExt;
 
-bool cmpDISP(const DISubprogram *, const DISubprogram *);
-bool cmpDICU(const DICompileUnit *, const DICompileUnit *);
-bool skipFunction(Function *);
+bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
+bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
+bool skipFunction(llvm::Function *);
 
 class ScopeInfoFinder {
   public:
-    static unsigned getInstLine(const Instruction *);
-    static unsigned getLastLine(Function *);
-    static bool getBlockScope(Scope & , BasicBlock *);
+   static unsigned getInstLine(const llvm::Instruction *);
+   static unsigned getFirstLine(llvm::Function *);
+   static unsigned getLastLine(llvm::Function *);
+   static bool getBlockScope(Scope &, llvm::BasicBlock *);
 };
 
 class Matcher {
  public:
-  typedef SmallVectorImpl<DISubprogram *>::const_iterator sp_iterator;
-  typedef SmallVectorImpl<DICompileUnit *>::const_iterator cu_iterator;
+  typedef llvm::SmallVectorImpl<llvm::DISubprogram *>::const_iterator sp_iterator;
+  typedef llvm::SmallVectorImpl<llvm::DICompileUnit *>::const_iterator cu_iterator;
 
  protected:
   bool initialized;
   bool processed;
   std::string filename;
   const char *patchname;
-  DebugInfoFinder Finder;
+  llvm::DebugInfoFinder Finder;
 
  public:
-  SmallVector<DISubprogram *, 8> MySPs;
-  SmallVector<DICompileUnit *, 8> MyCUs;
+  llvm::SmallVector<llvm::DISubprogram *, 8> MySPs;
+  llvm::SmallVector<llvm::DICompileUnit *, 8> MyCUs;
 
   int patchstrips;
   int debugstrips;
@@ -85,9 +82,9 @@ class Matcher {
     processed = false;
   }
 
-  Instruction *matchInstruction(inst_iterator &, Function *, Scope &);
+  llvm::Instruction *matchInstruction(llvm::inst_iterator &, llvm::Function *, Scope &);
 
-  void process(Module &M) 
+  void process(llvm::Module &M) 
   {
     processCompileUnits(M);
     processSubprograms(M); 
@@ -107,17 +104,15 @@ class Matcher {
   inline cu_iterator cu_end() { return MyCUs.end(); }
 
  protected:
-  cu_iterator matchCompileUnit(StringRef);
-  sp_iterator slideToFile(StringRef);
-  void processCompileUnits(Module &);
-  void processSubprograms(Module &);
-  void processSubprograms(DICompileUnit *);
-  void processInst(Function *);
-  void processBasicBlock(Function *);
+  cu_iterator matchCompileUnit(llvm::StringRef);
+  sp_iterator slideToFile(llvm::StringRef);
+  void processCompileUnits(llvm::Module &);
+  void processSubprograms(llvm::Module &);
+  void processInst(llvm::Function *);
+  void processBasicBlock(llvm::Function *);
 
-  bool initName(StringRef);
+  bool initName(llvm::StringRef);
   void dumpSPs();
-
 };
 
 #endif
