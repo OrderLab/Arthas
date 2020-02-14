@@ -10,6 +10,7 @@ add_library(Utils SHARED
 add_library(LLVMSlicer MODULE 
   Slicing/Slicer.cpp
   Matcher/Scope.cpp
+  Matcher/Matcher.cpp
 )
 
 target_link_libraries(LLVMSlicer

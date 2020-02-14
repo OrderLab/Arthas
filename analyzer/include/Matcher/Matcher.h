@@ -45,142 +45,78 @@ template <class T1, class T2> struct Pair
   template <class U, class V> Pair (const Pair<U,V> &p) : first(p.first), second(p.second) { }
 };
 
-typedef struct MetadataElement {
-  unsigned key;
-  DIDescriptor value;
-} MetadataElement;
-
-typedef struct MetadataNode {
-  MetadataNode *parent;
-  MetadataNode *left;
-  MetadataNode *right;
-  MetadataElement Element;
-} MetadataNode;
-
-class MetadataTree {
-  public:
-    MetadataNode *root;
-    void insert(MetadataNode *);
-    MetadataNode *search(unsigned key);
-};
-
 typedef Pair<DISubprogram, int> DISPExt;
 
-class DISPCopy {
-  public:
-    std::string directory;
-    std::string filename;
-    std::string name;
-
-    unsigned linenumber;
-    unsigned lastline;
-    Function *function;
-
-  public:
-    DISPCopy(DISubprogram & DISP)
-    {
-      filename = DISP.getFilename();
-      //TODO
-      // Only copy directory if filename doesn't contain
-      // path information.
-      // If source code is compiled in another directory,
-      // filename in DU will look like:
-      // /path/to/src/file
-      // if (!(filename.size() > 0 && filename.at(0) == '/'))
-      directory = DISP.getDirectory();
-      name = DISP.getName();
-      linenumber = DISP.getLine();
-      lastline = 0;
-      function = DISP.getFunction();
-    }
-};
-
-bool cmpDISP(const DISubprogram &, const DISubprogram &);
-bool cmpDISPCopy(const DISPCopy &, const DISPCopy &);
-
+bool cmpDISP(const DISubprogram *, const DISubprogram *);
+bool cmpDICU(const DICompileUnit *, const DICompileUnit *);
 bool skipFunction(Function *);
-
 
 class ScopeInfoFinder {
   public:
     static unsigned getInstLine(const Instruction *);
     static unsigned getLastLine(Function *);
     static bool getBlockScope(Scope & , BasicBlock *);
-
-
 };
 
 class Matcher {
-  public:
-    typedef std::vector<DISPCopy>::iterator sp_iterator;
-    typedef std::vector<DICompileUnit>::iterator cu_iterator;
+ public:
+  typedef SmallVectorImpl<DISubprogram *>::const_iterator sp_iterator;
+  typedef SmallVectorImpl<DICompileUnit *>::const_iterator cu_iterator;
 
-  protected:
-    bool initialized;
-    bool processed;
-    std::string filename;
-    const char *patchname;
-    Module & module;
-    DebugInfoFinder Finder;
+ protected:
+  bool initialized;
+  bool processed;
+  std::string filename;
+  const char *patchname;
+  DebugInfoFinder Finder;
 
-  public:
-    std::vector<DISPCopy> MySPs;
-    std::vector<DICompileUnit> MyCUs;
+ public:
+  SmallVector<DISubprogram *, 8> MySPs;
+  SmallVector<DICompileUnit *, 8> MyCUs;
 
-    int patchstrips;
-    int debugstrips;
+  int patchstrips;
+  int debugstrips;
 
-  public:
-    Matcher(Module &M, int d_strips = 0, int p_strips = 0) : module(M)
-    {
-      patchstrips = p_strips; 
-      debugstrips = d_strips; 
-      initialized = false;
-      processCompileUnits(M); 
-      processed = true;
-      Finder.processModule(M); // dummy
-    }
-    //Matcher() {initialized = false; processed = false; patchstrips = 0; debugstrips = 0; }
+ public:
+  Matcher(int d_strips = 0, int p_strips = 0) {
+    patchstrips = p_strips;
+    debugstrips = d_strips;
+    initialized = false;
+    processed = false;
+  }
 
-    sp_iterator setSourceFile(StringRef);
-    Function * matchFunction(sp_iterator &, Scope &, bool &);
-    Instruction * matchInstruction(inst_iterator &, Function *, Scope &);
+  Instruction *matchInstruction(inst_iterator &, Function *, Scope &);
 
-    // use off-the-shelf DebugInfoFinder to find the MDNode of a function
-    MDNode *getFunctionMD(const Function *F); 
+  void process(Module &M) 
+  {
+    processCompileUnits(M);
+    processSubprograms(M); 
+    processed = true;
+  }
 
+  void setstrips(int p_strips, int d_strips) 
+  {
+    patchstrips = p_strips; 
+    debugstrips = d_strips; 
+  }
 
-    void process(Module &M) 
-    { 
-      processCompileUnits(M); 
-      processSubprograms(M); 
-      processed = true; 
-    } 
+  inline sp_iterator sp_begin() { return MySPs.begin(); }
+  inline sp_iterator sp_end() { return MySPs.end(); }
 
-    void setstrips(int p_strips, int d_strips) 
-    {
-      patchstrips = p_strips; 
-      debugstrips = d_strips; 
-    }
+  inline cu_iterator cu_begin() { return MyCUs.begin(); }
+  inline cu_iterator cu_end() { return MyCUs.end(); }
 
+ protected:
+  cu_iterator matchCompileUnit(StringRef);
+  sp_iterator slideToFile(StringRef);
+  void processCompileUnits(Module &);
+  void processSubprograms(Module &);
+  void processSubprograms(DICompileUnit *);
+  void processInst(Function *);
+  void processBasicBlock(Function *);
 
-    inline sp_iterator sp_begin() { return MySPs.begin(); }
-    inline sp_iterator sp_end() { return MySPs.end(); }
-
-    inline cu_iterator cu_begin() { return MyCUs.begin(); }
-    inline cu_iterator cu_end() { return MyCUs.end(); }
-
-  protected:
-    cu_iterator matchCompileUnit(StringRef);
-    sp_iterator slideToFile(StringRef);
-    void processCompileUnits(Module &);
-    void processSubprograms(Module &);
-    void processSubprograms(DICompileUnit &);
-    void processInst(Function *);
-    void processBasicBlock(Function *);
-
-    bool initName(StringRef);
-    void dumpSPs();
+  bool initName(StringRef);
+  void dumpSPs();
 
 };
 

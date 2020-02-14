@@ -13,36 +13,25 @@
 #include <string.h>
 
 #include "Matcher/Matcher.h"
+#include "Utils/Path.h"
 
 static bool DEBUG_MATCHER = false;
 
-bool cmpDICU(const DICompileUnit & CU1, const DICompileUnit & CU2) 
+bool cmpDICU(const DICompileUnit *CU1, const DICompileUnit *CU2) 
 { 
-  int cmp = CU1.getDirectory().compare(CU2.getDirectory());
+  int cmp = CU1->getDirectory().compare(CU2->getDirectory());
   if (cmp == 0)
-    cmp = CU1.getFilename().compare(CU2.getFilename());
+    cmp = CU1->getFilename().compare(CU2->getFilename());
   return cmp >= 0 ? false : true;
 }
 
-bool cmpDISP(const DISubprogram & SP1, const DISubprogram & SP2) 
+bool cmpDISP(const DISubprogram * SP1, const DISubprogram * SP2) 
 { 
-  int cmp = SP1.getDirectory().compare(SP2.getDirectory());
+  int cmp = SP1->getDirectory().compare(SP2->getDirectory());
   if (cmp == 0) {
-    cmp = SP1.getFilename().compare(SP2.getFilename());
+    cmp = SP1->getFilename().compare(SP2->getFilename());
     if (cmp == 0) {
-      cmp = SP1.getLineNumber() - SP2.getLineNumber();
-    }
-  }
-  return cmp >= 0 ? false : true;
-}
-
-bool cmpDISPCopy(const DISPCopy & SP1, const DISPCopy & SP2) 
-{ 
-  int cmp = SP1.directory.compare(SP2.directory);
-  if (cmp == 0) {
-    cmp = SP1.filename.compare(SP2.filename);
-    if (cmp == 0) {
-      cmp = SP1.linenumber - SP2.linenumber;
+      cmp = SP1->getLine() - SP2->getLine();
     }
   }
   return cmp >= 0 ? false : true;
@@ -58,10 +47,9 @@ bool skipFunction(Function *F)
   return false;
 }
 
-unsigned ScopeInfoFinder::getInstLine(const Instruction *I)
-{
-  DebugLoc Loc = I->getDebugLoc();
-  if (Loc.isUnknown()) {
+unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {
+  auto Loc = I->getDebugLoc();
+  if (!Loc) {
     if (DEBUG_MATCHER) {
       errs() << "Unknown LOC" << "\n";
     }
@@ -76,9 +64,8 @@ unsigned ScopeInfoFinder::getLastLine(Function *F)
     return 0;
   const BasicBlock & BB = F->back();
   const Instruction & I = BB.back();
-  DebugLoc Loc = I.getDebugLoc();
-  if (Loc.isUnknown()) 
-    return 0;
+  auto Loc = I.getDebugLoc();
+  if (!Loc) return 0;
   return Loc.getLine();
 }
 
@@ -109,16 +96,9 @@ void Matcher::processInst(Function *F)
   for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; FI++) {
     /** Get each instruction's scope information **/
     for (BasicBlock::iterator BI = FI->begin(), BE = FI->end(); BI != BE; BI++) {
-      DebugLoc Loc = BI->getDebugLoc();
-      if (Loc.isUnknown())
-        continue;
-      LLVMContext & Ctx = BI->getContext();
-
-      DIDescriptor Scope(Loc.getScope(Ctx));
-      if (Scope.isLexicalBlock()) {
-        DILexicalBlock DILB(Scope);
-        errs() << "Block :" << DILB.getLineNumber() << ", " << DILB.getColumnNumber() << "\n";
-      }
+      auto Loc = BI->getDebugLoc();
+      if (!Loc) continue;
+      errs() << "Block :" << Loc->getLine() << ", " << Loc->getColumn() << "\n";
     }
   }
 }
@@ -133,14 +113,14 @@ void Matcher::processBasicBlock(Function *F)
       errs() << "NULL scope instructions " << "\n";
       continue;
     }
-    DebugLoc Loc = first->getDebugLoc();
-    if (Loc.isUnknown()) {
+    auto Loc = first->getDebugLoc();
+    if (!Loc) {
       errs() << "Unknown LOC information" << "\n";
       continue;
     }
     errs() << "Block :" << Loc.getLine();
     Loc = last->getDebugLoc();
-    if (Loc.isUnknown()) {
+    if (!Loc) {
       errs() << "Unknown LOC information" << "\n";
       continue;
     }
@@ -151,102 +131,63 @@ void Matcher::processBasicBlock(Function *F)
 void Matcher::processCompileUnits(Module &M)
 {
   MyCUs.clear();
-  if (NamedMDNode *CU_Nodes = M.getNamedMetadata("llvm.dbg.cu"))
-    for (unsigned i = 0, e = CU_Nodes->getNumOperands(); i != e; ++i) {
-      DICompileUnit DICU(CU_Nodes->getOperand(i));
-      if (DICU.getVersion() > LLVMDebugVersion10)
-        MyCUs.push_back(DICU);
-    }
+
+  for (auto *CU : M.debug_compile_units()) {
+    MyCUs.push_back(CU);
+  }
 
   /** Sort based on file name, directory and line number **/
   std::sort(MyCUs.begin(), MyCUs.end(), cmpDICU);
   if (DEBUG_MATCHER) {
     cu_iterator I, E;
     for (I = MyCUs.begin(), E = MyCUs.end(); I != E; I++) {
-      errs() << "CU: " << I->getDirectory() << "/" << I->getFilename() << "\n";
+      errs() << "CU: " << (*I)->getDirectory() << "/" << (*I)->getFilename() << "\n";
     }
   }
 }
 
-void Matcher::processSubprograms(DICompileUnit &DICU)
-{
-  if (DICU.getVersion() > LLVMDebugVersion10) {
-    DIArray SPs = DICU.getSubprograms();
-    for (unsigned i = 0, e = SPs.getNumElements(); i != e; i++) {
-      DISubprogram DISP(SPs.getElement(i));
-      DISPCopy Copy(DISP);
-      if (Copy.name.empty() || Copy.filename.empty() || Copy.linenumber == 0)
-        continue;
-      Copy.lastline = ScopeInfoFinder::getLastLine(Copy.function);
-      MySPs.push_back(Copy);
-    }
-  }
-}
-
-MDNode *Matcher::getFunctionMD(const Function *F) {
-  // inefficient, only for infrequent query
-  // simply look all subprograms
-  if (!processed) // must process the module to build up the debug information
-    return NULL;
-  for (DebugInfoFinder::iterator i = Finder.subprogram_begin(), e = Finder.subprogram_end();
-      i != e; ++i) {
-    DISubprogram S(*i);
-    if (S.getFunction() == F)
-      return *i;
-  }
-  return NULL;
-}
-
-void Matcher::dumpSPs()
-{
+void Matcher::dumpSPs() {
   sp_iterator I, E;
   for (I = MySPs.begin(), E = MySPs.end(); I != E; I++) {
-    errs() << "@" << I->directory << "/" << I->filename;
-    errs() << ":" << I->name;
-    errs() << "([" << I->linenumber << "," << I->lastline << "]) \n";
+    DISubprogram *SP = *I;
+    errs() << "@" << SP->getDirectory() << "/" << SP->getFile();
+    errs() << ":" << SP->getName();
+    errs() << "([" << SP->getLine() << "," << SP->getScopeLine() << "]) \n";
   }
 }
 
 void Matcher::processSubprograms(Module &M)
 {
-  //////////////Off-the-shelf SP finder Begin//////////////////////
-  ////////////////////////////////////////////////////////////////
-
-  //place the following call before invoking this method
-  //processModule(M);
-
-  ////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////
-
-
   /** DIY SP finder **/
   MySPs.clear();
-  if (NamedMDNode *CU_Nodes = M.getNamedMetadata("llvm.dbg.cu"))
-    for (unsigned i = 0, e = CU_Nodes->getNumOperands(); i != e; ++i) {
-      DICompileUnit DICU(CU_Nodes->getOperand(i));
-      if (DEBUG_MATCHER)
-        errs() << "CU: " << DICU.getDirectory() << "/" << DICU.getFilename() << "\n";
-      processSubprograms(DICU);
+  for (auto *CU : M.debug_compile_units()) {
+    if (DEBUG_MATCHER)
+      errs() << "CU: " << CU->getDirectory() << "/" << CU->getFilename() << "\n";
+    processSubprograms(CU);
+    for (auto *RT : CU->getRetainedTypes())
+      if (auto *SP = dyn_cast<DISubprogram>(RT)) {
+        MySPs.push_back(SP);
+        if (DEBUG_MATCHER)
+          errs() << "DIS: " << SP->getName() << ", " << SP->getDisplayName() << "\n";
+      }
+    for (auto *Import : CU->getImportedEntities()) {
+      auto *Entity = Import->getEntity().resolve();
+      if (auto *SP = dyn_cast<DISubprogram>(Entity)) {
+        MySPs.push_back(SP);
+        if (DEBUG_MATCHER)
+          errs() << "DIS: " << SP->getName() << ", " << SP->getDisplayName() << "\n";
+      }
     }
-
-  if (NamedMDNode *NMD = M.getNamedMetadata("llvm.dbg.sp"))
-    for (unsigned i = 0, e = NMD->getNumOperands(); i != e; ++i) {
-      DISubprogram DIS(NMD->getOperand(i));
-      errs() << "From SP!! \n";
-      if (DEBUG_MATCHER)
-        errs() << "DIS: " << DIS.getName() << ", " << DIS.getDisplayName() << "\n";
-    }
+  }
 
   /** Sort based on file name, directory and line number **/
-  std::sort(MySPs.begin(), MySPs.end(), cmpDISPCopy);
-  if (DEBUG_MATCHER)
-    dumpSPs();
+  std::sort(MySPs.begin(), MySPs.end(), cmpDISP);
+  if (DEBUG_MATCHER) dumpSPs();
 }
 
 Matcher::cu_iterator Matcher::matchCompileUnit(StringRef fullname)
 {
-  if (!initName(fullname))
-    return MyCUs.end();
+  if (!initName(fullname)) return MyCUs.end();
 
   initialized = true;
 
@@ -256,12 +197,13 @@ Matcher::cu_iterator Matcher::matchCompileUnit(StringRef fullname)
 
   while(I != E) {
     std::string debugname;
+    DICompileUnit *CU = *I;
     // Filename may already contains the path information
-    if (I->getFilename().size() > 0 && I->getFilename()[0] == '/')
-      debugname = I->getFilename();
+    if (CU->getFilename().size() > 0 && CU->getFilename()[0] == '/')
+      debugname = CU->getFilename();
     else
-      debugname = I->getDirectory().str() + "/" + I->getFilename().str();
-    if (endswith(debugname.c_str(), patchname)) break;
+      debugname = CU->getDirectory().str() + "/" + CU->getFilename().str();
+    if (pathendswith(debugname.c_str(), patchname)) break;
     I++;
   }
   if (I == E)
@@ -269,8 +211,7 @@ Matcher::cu_iterator Matcher::matchCompileUnit(StringRef fullname)
   return I;
 }
 
-bool Matcher::initName(StringRef fname)
-{
+bool Matcher::initName(StringRef fname) {
   char *canon = canonpath(fname.data(), NULL);  
   if (canon == NULL) {
     errs() << "Warning: patchname is NULL\n";
@@ -284,39 +225,6 @@ bool Matcher::initName(StringRef fname)
     return false;
   }
   return true;
-}
-
-Matcher::sp_iterator Matcher::setSourceFile(StringRef target)
-{
-  // If target is empty, we assume it's a self-testing:
-  // i.e., the beginning of the compilation unit will be
-  // used.
-  if (target.empty()) {
-    processSubprograms(module); 
-    patchname="";
-    initialized = true;
-    return sp_begin();
-  }
-  std::string oldfile = filename;
-  if (!initName(target))
-    return sp_end();
-  if (oldfile == filename) {
-    if (DEBUG_MATCHER) 
-      errs() << "Target source didn't change since last time, reuse old processing.\n";
-  }
-  else {
-    cu_iterator ci = matchCompileUnit(target);
-    if (ci == cu_end())
-      return sp_end();
-    MySPs.clear();
-    processSubprograms(*ci);
-    std::sort(MySPs.begin(), MySPs.end(), cmpDISPCopy);
-    if (DEBUG_MATCHER) 
-      dumpSPs();
-  }
-  initialized = true;
-  // shouldn't just return MySPs.begin(). because a CU may contain SPs from other CUs.
-  return slideToFile(filename); 
 }
 
 /* *
@@ -335,11 +243,12 @@ Matcher::sp_iterator Matcher::slideToFile(StringRef fname)
 
   while(I != E) {
     std::string debugname;
-    if (I->filename.size() > 0 && I->filename[0] == '/')
-      debugname = I->filename;
+    DISubprogram * SP = *I;
+    if (SP->getFilename().size() > 0 && SP->getFilename()[0] == '/')
+      debugname = SP->getFilename();
     else
-      debugname = I->directory + "/" + I->filename;
-    if (endswith(debugname.c_str(), patchname)) {
+      debugname = SP->getDirectory().str() + "/" + SP->getFilename().str();
+    if (pathendswith(debugname.c_str(), patchname)) {
       break;
     }
     I++;
@@ -349,8 +258,8 @@ Matcher::sp_iterator Matcher::slideToFile(StringRef fname)
   return I;
 }
 
-Instruction * Matcher::matchInstruction(inst_iterator &ii, Function * f, Scope & scope)
-{
+Instruction *Matcher::matchInstruction(inst_iterator &ii, Function *f,
+                                       Scope &scope) {
   if (scope.begin > scope.end)
     return NULL;
   Instruction * inst = NULL;
@@ -385,93 +294,4 @@ Instruction * Matcher::matchInstruction(inst_iterator &ii, Function * f, Scope &
   // begin will be adjusted to the next line by place (*)
   scope.begin = l; 
   return inst;
-}
-
-
-/** A progressive method to match the function(s) in a given scope.
- *  When there are more than one function in the scope, the first function
- *  will be returned and scope's beginning is *modified* to the end of this 
- *  returned function so that the caller could perform a loop of call until
- *  matchFunction return NULL;
- *
- *
- *  Note: finder.processModule(M) should be called before the first call of matchFunction.
- *
- * **/
-Function * Matcher::matchFunction(sp_iterator & I, Scope &scope, bool & multiple)
-{
-  if (!initialized) {
-    errs() << "Matcher is not initialized\n";
-    return NULL;
-  }
-  // hit the boundary
-  if (scope.end < scope.begin) {
-    return NULL;
-  }
-  /** Off-the-shelf SP finder **/
-  sp_iterator E = sp_end();
-  while (I != E) {
-    if (strlen(patchname) != 0) {
-      std::string debugname = I->directory + "/" + I->filename;
-      if (I->filename.size() > 0 && I->filename[0] == '/')
-        debugname = I->filename;
-      else
-        debugname = I->directory + "/" + I->filename;
-      if (!endswith(debugname.c_str(), patchname)) {
-        errs() << "Warning: Reaching the end of " << patchname << " in current CU\n";
-        return NULL;
-      }
-    }
-    if (I->lastline == 0) {
-      if (I + 1 == E)
-        return I->function; // It's tricky to return I here. Maybe NULL is better
-      // Line number is guaranteed to be positive, no need to check overflow here.
-      if (I->linenumber == (I + 1)->linenumber) {
-        errs() << "Warning two functions overlap: ";
-        if (I->function && (I + 1)->function) {
-          errs() << I->function->getName() << ", ";
-          errs() << (I + 1)->function->getName();
-        }
-        errs() << "\n";
-        I->lastline = (I + 1)->linenumber;
-      }
-      else
-        I->lastline = (I + 1)->linenumber - 1;             
-      if (I->lastline < I->linenumber) {
-        errs() << "Bad things happened in " << patchname << ":" << scope << ", " <<
-           I->lastline << "," << I->linenumber << "\n";
-        assert(false); // Unless the two are modifying the same line.
-      }
-    }
-    // For boundary case, we only break if that function is one line function.
-    if (I->lastline > scope.begin || (I->lastline == scope.begin && I->lastline == I->linenumber))
-      break;
-    I++;
-  }
-  if (I == E)
-    return NULL;
-
-  //
-  //                 |  f1   |        Cases of scope: 
-  //  f1.lastline -> |_______|      (1)  (2)  (3)  (4)  (5)
-  //                 +       +       ^    ^              ^
-  //                 +  GAP  +       |    |              |
-  //                 +       +       v    |              |
-  // f2.linenumber-> ---------            |              |
-  //                 |       |            v    ^    ^    |
-  //                 |  f2   |                 |    |    |
-  //  f2.lastline -> |_______|                 v    |    |
-  //                 +       +                      |    |
-  //                    ...                         v    v
-  //
-
-  // Case (1)
-  if (I->linenumber > scope.end || (I->linenumber == scope.end && I->lastline > I->linenumber))
-    return NULL;
-  if (I->lastline < scope.end) { // Case (4), (5)
-    scope.begin = I->lastline + 1;  // adjust beginning to next
-    multiple = true;
-  }
-  multiple = false;
-  return I->function; 
 }
