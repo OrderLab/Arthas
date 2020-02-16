@@ -56,6 +56,15 @@ class ScopeInfoFinder {
    static bool getBlockScope(Scope &, llvm::BasicBlock *);
 };
 
+struct FileLine {
+  std::string file;
+  unsigned int line;
+
+  FileLine(std::string f, unsigned int l): file(f), line(l) {}
+};
+
+typedef llvm::SmallVector<llvm::Instruction *, 8> MatchInstrs;
+
 class MatchResult {
   public:
     MatchResult()
@@ -64,10 +73,13 @@ class MatchResult {
     }
 
   public:
+   void print();
    bool matched;
-   llvm::SmallVector<llvm::Instruction *, 8> instrs;
+   MatchInstrs instrs;
    llvm::Function *func;
 };
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &, const MatchResult &);
 
 class Matcher {
  protected:
@@ -85,16 +97,19 @@ class Matcher {
     processed = false;
   }
 
-  bool matchInstructions(std::string criteria, MatchResult *result);
+  bool matchInstrsCriterion(FileLine criterion, MatchResult *result);
+  bool matchInstrsCriteria(std::vector<FileLine> &criteria, std::vector<MatchResult> &results);
 
   void process(llvm::Module &M);
 
   void setStrip(int path_strips) { strips = path_strips; }
 
   void dumpSP(llvm::DISubprogram *SP);
-  void dumpSPs();
-
   std::string normalizePath(llvm::StringRef fname);
+
+ protected:
+  bool spMatchFilename(llvm::DISubprogram *sp, const char *filename);
+  bool matchInstrsInFunction(unsigned int line, llvm::Function *func, MatchInstrs &result);
 };
 
 #endif

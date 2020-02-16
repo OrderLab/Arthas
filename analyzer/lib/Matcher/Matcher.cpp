@@ -39,14 +39,29 @@ bool cmpDISP(DISubprogram *SP1, DISubprogram *SP2) {
   return cmp >= 0 ? false : true;
 }
 
-bool skipFunction(Function *F)
+inline bool skipFunction(Function *F)
 {
   // Skip intrinsic functions and function declaration because DT only 
   // works with function definition.
-  if (F == NULL || F->getName().startswith("llvm.dbg") || 
-      F->isDeclaration()) 
-    return true;
-  return false;
+  return F->isDeclaration() || F->getName().startswith("llvm.dbg");
+}
+
+llvm::raw_ostream & operator<<(llvm::raw_ostream& os, const MatchResult& result)
+{
+  if (result.matched) {
+    DISubprogram *SP = result.func->getSubprogram();
+    unsigned start_line = ScopeInfoFinder::getFirstLine(result.func);
+    unsigned end_line = ScopeInfoFinder::getLastLine(result.func);
+    os << "Matched function <" << getFunctionName(SP) << ">()";
+    os << "@" << SP->getDirectory() << "/" << SP->getFilename();
+    os << ":" << start_line << "," << end_line << "\n";
+    for (Instruction *inst : result.instrs) {
+      os << "- matched instruction: " << *inst << "\n";
+    }
+  } else {
+    os << "No match found";
+  }
+  return os;
 }
 
 unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {
@@ -104,7 +119,10 @@ bool ScopeInfoFinder::getBlockScope(Scope & scope, BasicBlock *B)
 
 void Matcher::process(Module &M)
 {
-  finder.processModule(M);
+  // With the new LLVM version, it seems we can no longer retrieve the
+  // corresponding Function * from a DISubprogram. Therefore, it is no
+  // longer useful to use the DebugInfoFinder...
+  // finder.processModule(M);
   module = &M;
   processed = true;
 }
@@ -140,51 +158,90 @@ string Matcher::normalizePath(StringRef fname) {
   }
 }
 
-bool Matcher::matchInstructions(std::string criteria, MatchResult *result) {
-  vector<string> parts;
-  splitList(criteria, ':', parts);
-  if (parts.size() < 2)
-    return false;
-  string file = parts[0];
-  unsigned int line = atoi(parts[1].c_str());
-  Function *func = nullptr;
-  // for (DISubprogram *SP : finder.subprograms()) {
-  for (auto &F : module->functions()) {
-    if (F.isDeclaration()) continue;
-    DISubprogram *SP = F.getSubprogram();
+bool Matcher::spMatchFilename(DISubprogram *sp, const char *filename)
+{
     std::string debugname;
     // Filename may already contains the path information
-    if (SP->getFilename().size() > 0 && SP->getFilename()[0] == '/')
-      debugname = SP->getFilename();
+    if (sp->getFilename().size() > 0 && sp->getFilename()[0] == '/')
+      debugname = sp->getFilename();
     else
-      debugname = SP->getDirectory().str() + "/" + SP->getFilename().str();
-    if (pathendswith(debugname.c_str(), file.c_str())) {
+      debugname = sp->getDirectory().str() + "/" + sp->getFilename().str();
+    return pathendswith(debugname.c_str(), filename);
+}
+
+bool Matcher::matchInstrsInFunction(unsigned int line, Function *func, MatchInstrs &result)
+{
+  unsigned l = 0;
+  Instruction * inst = NULL;
+  bool matched = false;
+  for (inst_iterator ii = inst_begin(func), ie = inst_end(func); 
+      ii != ie; ++ii) {
+    inst = &*ii;
+    l = ScopeInfoFinder::getInstLine(inst);
+    if (l == line) {
+      matched = true;
+      result.push_back(inst);
+    } else if (l > line) {
+      break;
+    }
+  }
+  return matched;
+}
+
+bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria, 
+    vector<MatchResult> &results) {
+  if (criteria.size() != results.size()) {
+    errs() << "Criteria list size is unequal to the match result list size\n";
+    return false;
+  }
+  size_t sz = criteria.size();
+  for (auto &F : module->functions()) {
+    if (skipFunction(&F))
+      continue;
+    DISubprogram *SP = F.getSubprogram();
+    for (size_t i = 0; i < sz; ++i) {
+      // if a criterion has been matched before, try the next one
+      if (results[i].matched) continue;
+      if (spMatchFilename(SP, criteria[i].file.c_str())) {
+        unsigned start_line = SP->getLine();
+        unsigned end_line = ScopeInfoFinder::getLastLine(&F);
+        unsigned line = criteria[i].line;
+        if (line >= start_line && line <= end_line) {
+          results[i].matched =
+              matchInstrsInFunction(line, &F, results[i].instrs);
+          results[i].func = &F;
+        }
+      }
+    }
+    bool allMatched = true;
+    for (size_t i = 0; i < sz; ++i)
+      if (!results[i].matched)
+        allMatched = false;
+    // if all criteria has been matched, there is no point continuing
+    // iterating the remaining functions.
+    if (allMatched)
+      return true;
+  }
+  return true;
+}
+
+bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
+  for (auto &F : module->functions()) {
+    if (skipFunction(&F))
+      continue;
+    DISubprogram *SP = F.getSubprogram();
+    if (spMatchFilename(SP, criterion.file.c_str())) {
       if (DEBUG_MATCHER) {
         dumpSP(SP);
       }
-      if (SP->getLine() > line) {
-        // if the beginning line of this function is larger than the target line
-        // we have iterated past the target function
-        break;
-      } else {
-        func = &F;
+      unsigned start_line = SP->getLine();
+      unsigned end_line = ScopeInfoFinder::getLastLine(&F);
+      if (criterion.line >= start_line && criterion.line <= end_line) {
+        result->matched = matchInstrsInFunction(criterion.line, &F, result->instrs);
+        result->func = &F;
+        return true;
       }
     }
   }
-  if (func != nullptr) {
-    unsigned l = 0;
-    Instruction * inst = NULL;
-    for (inst_iterator ii = inst_begin(func), ie = inst_end(func); ii != ie; ++ii) {
-      inst = &*ii;
-      l = ScopeInfoFinder::getInstLine(inst);
-      if (l == line) {
-        result->instrs.push_back(inst);
-      } else if (l > line) {
-        break;
-      }
-    }
-    result->func = func;
-    result->matched = true;
-  }
-  return true;
+  return false;
 }

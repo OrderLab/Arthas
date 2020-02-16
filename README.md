@@ -136,6 +136,31 @@ or pointer graph could be very large that you need to zoom into the graph.
 On Mac, the Preview app may not be able to handle the zooming well. The Adobe 
 PDF Reader (free version) app is more robust to view these pdf files.
 
+## Locate LLVM instruction given file & line number
+
+```
+$ cd build
+$ bin/locator ../test/loop1.bc loop1.c:9,loop1.c:24
+Successfully parsed ../test/loop1.bc
+Matched function <foo>()@test/loop1.c:3,17
+- matched instruction:   %22 = load i32, i32* %5, align 4, !dbg !45
+- matched instruction:   %23 = load i32, i32* %3, align 4, !dbg !46
+- matched instruction:   %24 = mul nsw i32 %23, %22, !dbg !46
+- matched instruction:   store i32 %24, i32* %3, align 4, !dbg !46
+
+Matched function <add>()@test/loop1.c:19,29
+- matched instruction:   %10 = load i32, i32* %2, align 4, !dbg !25
+- matched instruction:   %11 = load i32, i32* %3, align 4, !dbg !27
+- matched instruction:   %12 = add nsw i32 %11, %10, !dbg !27
+- matched instruction:   store i32 %12, i32* %3, align 4, !dbg !27
+
+$ bin/locator ../test/pmem/hello_libpmem.bc hello_libpmem.c:64
+Successfully parsed ../test/pmem/hello_libpmem.bc
+Matched function <write_hello_string>()@test/pmem/hello_libpmem.c:51,75
+- matched instruction:   %13 = load i8*, i8** %5, align 8, !dbg !37
+- matched instruction:   %14 = load i8*, i8** %3, align 8, !dbg !38
+- matched instruction:   %15 = call i8* @strcpy(i8* %13, i8* %14) #8, !dbg !39
+```
 
 # Code Style
 

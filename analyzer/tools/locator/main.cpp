@@ -4,11 +4,13 @@
 
 #include "Matcher/Matcher.h"
 #include "Utils/LLVM.h"
+#include "Utils/String.h"
 
 using namespace std;
 using namespace llvm;
 
 cl::opt<string> inputFilename(cl::Positional, cl::desc("<input file>"), cl::Required);
+cl::opt<string> criteria(cl::Positional, cl::desc("<criteria>"), cl::Required);
 
 int main(int argc, char *argv[]) {
   cl::ParseCommandLineOptions(argc, argv);
@@ -20,29 +22,37 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   errs() << "Successfully parsed " << inputFilename << "\n";
-
-  for (Module::iterator I = M->begin(), E = M->end(); I != E; ++I) {
-    Function &F = *I;
-    if (F.isDeclaration()) continue;
-    DISubprogram *SP = F.getSubprogram();
-    errs() << "Function " << F.getName() << " starts at " << SP->getFilename()
-           << ":" << SP->getLine() << " ends at " << SP->getFilename() << ":"
-           << ScopeInfoFinder::getLastLine(&F) << "\n";
-  }
-
+  vector<string> criteriaList;
+  splitList(criteria, ',', criteriaList);
   Matcher matcher;
   matcher.process(*M);
-  MatchResult result;
-  matcher.matchInstructions("test/loop1.c:24", &result);
-  if (result.matched) {
-    DISubprogram *SP = result.func->getSubprogram();
-    unsigned start_line = ScopeInfoFinder::getFirstLine(result.func);
-    unsigned end_line = ScopeInfoFinder::getLastLine(result.func);
-    errs() << "Matched function <" << getFunctionName(SP) << ">()";
-    errs() << "@" << SP->getDirectory() << "/" << SP->getFilename();
-    errs() << ":" << start_line << "," << end_line << "\n";
-    for (Instruction *inst : result.instrs) {
-      errs() << "- matched instruction: " << *inst << "\n";
+  if (criteriaList.size() == 1) {
+    vector<string> parts;
+    splitList(criteria, ':', parts);
+    if (parts.size() < 2) {
+      errs() << "Invalid criterion '" << criteria << "', must be file:line_number format\n";
+      return 1;
+    }
+    FileLine fl(parts[0], atoi(parts[1].c_str()));
+    MatchResult result;
+    matcher.matchInstrsCriterion(fl, &result);
+    errs() << result << "\n";
+  } else {
+    vector<FileLine> fileLines;
+    for (string criterion : criteriaList) {
+      vector<string> parts;
+      splitList(criterion, ':', parts);
+      if (parts.size() < 2) {
+        errs() << "Invalid criterion '" << criterion << "', must be file:line_number format\n";
+        return 1;
+      }
+      FileLine fl(parts[0], atoi(parts[1].c_str()));
+      fileLines.push_back(fl);
+    }
+    vector<MatchResult> results(fileLines.size());
+    matcher.matchInstrsCriteria(fileLines, results);
+    for (MatchResult& result : results) {
+      errs() << result << "\n";
     }
   }
 }
