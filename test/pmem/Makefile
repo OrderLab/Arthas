@@ -1,13 +1,17 @@
-#LIBPMEM_CFLAGS = $(shell pkg-config --cflags libpmem) -g -O0
-#LIBPMEM_LDFLAGS = $(shell pkg-config --libs libpmem) -g -O0
-LIBPMEM_CFLAGS = -DUSE_PMEM -I pmdk/src/include -g -O0
-LIBPMEM_LDFLAGS = pmdk/src/nondebug/libpmemobj.a pmdk/src/nondebug/libpmem.a -g -O0 -ldl -pthread
-
-
-#LIBPMEMOBJ_CFLAGS = $(shell pkg-config --cflags libpmemobj) -g -O0
-#LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
-LIBPMEMOBJ_CFLAGS = -DUSE_PMEM -I pmdk/src/include -g -O0
-LIBPMEMOBJ_LDFLAGS = pmdk/src/nondebug/libpmemobj.a pmdk/src/nondebug/libpmem.a -g -O0 -ldl -pthread
+# if the PMDK_HOME is set, we will use the custom PMDK library to compile 
+# and build the test programs: PMDK_HOME=/path/to/custom/pmdk make
+# Otherwise, we will use system-wide PMDK library.
+ifndef PMDK_HOME
+LIBPMEM_CFLAGS = $(shell pkg-config --cflags libpmem) -g -O0
+LIBPMEM_LDFLAGS = $(shell pkg-config --libs libpmem) -g -O0
+LIBPMEMOBJ_CFLAGS = $(shell pkg-config --cflags libpmemobj) -g -O0
+LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
+else
+LIBPMEM_CFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -g -O0
+LIBPMEM_LDFLAGS = $(PMDK_HOME)/src/nondebug/libpmemobj.a $(PMDK_HOME)/src/nondebug/libpmem.a -g -O0 -ldl -pthread
+LIBPMEMOBJ_CFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -g -O0
+LIBPMEMOBJ_LDFLAGS = $(PMDK_HOME)/src/nondebug/libpmemobj.a $(PMDK_HOME)/src/nondebug/libpmem.a -g -O0 -ldl -pthread
+endif
 
 CC = gcc
 RM = rm
