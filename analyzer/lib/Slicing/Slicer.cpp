@@ -109,10 +109,10 @@ class SlicingPass : public ModulePass {
   SlicingPass() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
-  bool instructionSlice(Instruction *fault_instruction, Function &F, std::list<Instruction *>pmem_list);
+  bool instructionSlice(Instruction *fault_instruction, Function &F, vector<Instruction *> &pmem_instrs);
   bool definitionPoint(Function &F, pmem::PMemVariableLocator &locator);
   void pmemInstructionSet(Function &F, pmem::PMemVariableLocator &locator,
-                                      std::list<Instruction *>& pmem_list);
+                          vector<Instruction *> &pmem_instrs);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -127,8 +127,8 @@ class SlicingPass : public ModulePass {
 }
 
 bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
-std::list<Instruction *>pmem_list){
-
+                                   vector<Instruction *> &pmem_instrs)
+{
   ofstream outputFile("program3data.txt");
   outputFile << "starting instructionSlice\n" << flush;;
 
@@ -138,41 +138,40 @@ std::list<Instruction *>pmem_list){
   //dg::LLVMPointerAnalysis *pta = subdg->getPTA();
   outputFile << "got dependence graph for function\n" << flush;;
 
-
   //Testing purposes: Using existing slicer first..
   list<list<const Instruction *>> slice_list;
   dg::LLVMSlicer slicer;
   dg::LLVMNode *node = subdg->findNode(fault_instruction);
-  slicegraph::SliceGraph sg;
+  SliceGraph sg;
 
   if(node != nullptr)
     slicer.slice(subdg, &sg, node, 0, 0);
   outputFile << "slicer.slice!!!\n" << flush;;
 
   errs() << sg.root->total_size(sg.root);
-  list<slicegraph::DGSlice> slices;
-  sg.root->compute_slices(slices, fault_instruction, slicegraph::SliceDirection::Backward
-  , slicegraph::SlicePersistence::Mixed, 0);
+  DgSlices slices;
+  sg.root->compute_slices(slices, fault_instruction, SliceDirection::Backward, SlicePersistence::Mixed, 0);
   int count = 0;
-  for(list<slicegraph::DGSlice>::iterator i = slices.begin(); i != slices.end(); ++i){
+  for(auto i = slices.begin(); i != slices.end(); ++i){
     errs() << "slice " << count << " is \n";
-    i->print_dgslice();
-    i->get_values(pmem_list);
+    i->dump();
+    i->set_persistence(pmem_instrs);
     count++;
   }
-  sg.root->print(0);
+  sg.root->dump(0);
   outputFile << "Finished slicing\n" << flush;;
 
-  //errs() << "total size of graph is " << sg.root->total_size(sg.root) << "\n";
+  // errs() << "total size of graph is " << sg.root->total_size(sg.root) <<
+  // "\n";
   dg::analysis::SlicerStatistics& st = slicer.getStatistics();
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
   errs() << *fault_instruction << "\n";
   errs() << "Function is " << F << "\n";
 
   DgSlice *dgSlice;
-  dgSlice->direction = SlicingDirection::Backward;
-  dgSlice->fault_instruction = fault_instruction;
-  //TODO: persistent state
+  dgSlice->direction = SliceDirection::Backward;
+  dgSlice->root_instr = fault_instruction;
+  // TODO: persistent state
   dgSlice->slice_id = 0;
 
   dgSlicer->slices.insert(dgSlice);
@@ -183,9 +182,8 @@ std::list<Instruction *>pmem_list){
   dg::LLVMSlicer slicer2;
   dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
   errs() << "forward slice about\n";
-  slicegraph::SliceGraph sg2;
-  if(node2 != nullptr)
-    slicer2.slice(subdg2, &sg2, node2, 1, 1);
+  SliceGraph sg2;
+  if (node2 != nullptr) slicer2.slice(subdg2, &sg2, node2, 1, 1);
 
   errs() << "forward sliced\n";
   dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
@@ -201,7 +199,7 @@ bool SlicingPass::runOnModule(Module &M) {
 
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
 
-  list<Instruction *>pmem_list;
+  vector<Instruction *> pmem_instrs;
   //Step 1: PMEM Variable Output Mapping
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
@@ -213,7 +211,7 @@ bool SlicingPass::runOnModule(Module &M) {
     //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
     //}
     definitionPoint(F, locator);
-    pmemInstructionSet(F, locator, pmem_list);
+    pmemInstructionSet(F, locator, pmem_instrs);
   }
 
   errs() << "begin instruction slice \n";;
@@ -227,7 +225,7 @@ bool SlicingPass::runOnModule(Module &M) {
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
       if(a == 10 && b == 12){
         fault_inst = &*ii;
-        instructionSlice(fault_inst, F, pmem_list);
+        instructionSlice(fault_inst, F, pmem_instrs);
         llvm::errs() << "function is " << F << "\n";
         goto stop;
       }
@@ -241,7 +239,7 @@ bool SlicingPass::runOnModule(Module &M) {
 
 void SlicingPass::pmemInstructionSet(Function &F,
                                      pmem::PMemVariableLocator &locator,
-                                     std::list<Instruction *> &pmem_list) {
+                                     vector<Instruction *> &pmem_list) {
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     Value& b = const_cast<Value&>(**vi); 
     if(Instruction *Inst = dyn_cast<Instruction>(&b))

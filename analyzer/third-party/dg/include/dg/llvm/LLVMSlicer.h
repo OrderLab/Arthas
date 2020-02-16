@@ -30,7 +30,8 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/legacy/SliceGraph.h"
+#include "Slicing/SliceGraph.h"
+
 #include "dg/analysis/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
@@ -134,28 +135,27 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *, llvm::slicegraph::SliceGraph * sg,
-                   LLVMNode *start, uint32_t sl_id = 0, bool forward_direc=false)
-    {
-        // mark nodes for slicing
-        assert(start || sl_id != 0);
-        if (start){
-            //include argument for forward_slice here
-            sl_id = mark(start, sg, sl_id, forward_direc);
-        }
-        // take every subgraph and slice it intraprocedurally
-        // this includes the main graph
-        extern std::map<const llvm::Value *,
-                        LLVMDependenceGraph *> constructedFunctions;
-        for (auto& it : constructedFunctions) {
-            if (dontTouch(it.first->getName()))
-                continue;
+    uint32_t slice(LLVMDependenceGraph *, llvm::slicing::SliceGraph *sg,
+                   LLVMNode *start, uint32_t sl_id = 0,
+                   bool forward_direc = false) {
+      // mark nodes for slicing
+      assert(start || sl_id != 0);
+      if (start) {
+        // include argument for forward_slice here
+        sl_id = mark(start, sg, sl_id, forward_direc);
+      }
+      // take every subgraph and slice it intraprocedurally
+      // this includes the main graph
+      extern std::map<const llvm::Value *, LLVMDependenceGraph *>
+          constructedFunctions;
+      for (auto &it : constructedFunctions) {
+        if (dontTouch(it.first->getName())) continue;
 
-            LLVMDependenceGraph *subdg = it.second;
-            sliceGraph(subdg, sl_id);
-        }
+        LLVMDependenceGraph *subdg = it.second;
+        sliceGraph(subdg, sl_id);
+      }
 
-        return sl_id;
+      return sl_id;
     }
 
 private:

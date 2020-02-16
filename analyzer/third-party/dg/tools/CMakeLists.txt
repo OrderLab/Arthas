@@ -6,6 +6,7 @@ message(STATUS "llvm_core is ${llvm_core}")
 add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 target_link_libraries(llvm-dg-dump
       PRIVATE LLVMdg
+      PRIVATE LLVMSlicer
       PRIVATE ${llvm_support}
       PRIVATE ${llvm_analysis}
       PRIVATE ${llvm_irreader}

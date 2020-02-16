@@ -40,6 +40,8 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "Slicing/SliceGraph.h"
+
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
@@ -49,7 +51,6 @@
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
-#include "dg/analysis/legacy/SliceGraph.h"
 
 #include "dg/util/TimeMeasure.h"
 
@@ -194,7 +195,7 @@ int main(int argc, char *argv[])
         dg->getCallSites(sc, &callsites);
 
         LLVMSlicer slicer;
-        llvm::slicegraph::SliceGraph sg;
+        llvm::slicing::SliceGraph sg;
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
                 slicer.mark(dg->getExit(), &sg);

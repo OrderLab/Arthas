@@ -84,7 +84,7 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
 
         //find the argument that corresponds to memkind persistent variable
         const Value *v = callInst->getArgOperand(rit->second);
-	varList.push_back(v);
+        varList.push_back(v);
         // Transitive closure to see which memkind_malloc calls use this memkind pmem variable
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {

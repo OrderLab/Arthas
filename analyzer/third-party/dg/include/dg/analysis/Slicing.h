@@ -3,10 +3,11 @@
 
 #include <set>
 
+#include "Slicing/SliceGraph.h"
+
 #include "dg/analysis/legacy/Analysis.h"
 #include "dg/analysis/legacy/NodesWalk.h"
 #include "dg/analysis/legacy/BFS.h"
-#include "dg/analysis/legacy/SliceGraph.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
 
@@ -39,12 +40,13 @@ public:
           ),
           forward_slice(forward_slc) {}
 
-    void mark(const std::set<NodeT *>& start, uint32_t slice_id, llvm::slicegraph::SliceGraph *sg) {
-        WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        this->walk(start, markSlice, &data, sg);
+    void mark(const std::set<NodeT *> &start, uint32_t slice_id,
+              llvm::slicing::SliceGraph *sg) {
+      WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
+      this->walk(start, markSlice, &data, sg);
     }
 
-    void mark(NodeT *start, uint32_t slice_id, llvm::slicegraph::SliceGraph *sg) {
+    void mark(NodeT *start, uint32_t slice_id, llvm::slicing::SliceGraph *sg) {
         WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
         this->walk(start, markSlice, &data, sg);
     }
@@ -53,7 +55,7 @@ public:
     // returns marked blocks, but only for forward slicing atm
     const std::set<BBlock<NodeT> *>& getMarkedBlocks() { return markedBlocks; }
 
-private:
+   private:
     bool forward_slice{false};
     std::set<BBlock<NodeT> *> markedBlocks;
 
@@ -184,7 +186,7 @@ public:
     ///
     // Mark nodes dependent on 'start' with 'sl_id'.
     // If 'forward_slice' is true, mark the nodes depending on 'start' instead.
-    uint32_t mark(NodeT *start, llvm::slicegraph::SliceGraph *sg, uint32_t sl_id = 0, bool forward_slice = false)
+    uint32_t mark(NodeT *start, llvm::slicing::SliceGraph *sg, uint32_t sl_id = 0, bool forward_slice = false)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
