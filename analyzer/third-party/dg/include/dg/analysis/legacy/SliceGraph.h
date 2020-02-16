@@ -58,7 +58,10 @@ class DGSlice{
    void print_dgslice(){
      //llvm::errs() << "Slice " << slice_id << " \n";
      for(std::list<dg::LLVMNode *>::iterator i = nodes.begin(); i != nodes.end(); ++i){
-       llvm::errs() << *i << "\n";
+       //llvm::errs() << *i << "\n";
+       dg::LLVMNode *n = *i;
+       llvm::Value *v = n->getValue();
+       llvm::errs() << *v << "\n";
      }
      //llvm::errs() << "slice persistence is " << static_cast<int>(persistent_state) << "\n";
    }
