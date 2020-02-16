@@ -32,12 +32,17 @@ int main(int argc, char *argv[]) {
 
   Matcher matcher;
   matcher.process(*M);
-  matcher.dumpSPs();
   MatchResult result;
-  matcher.matchFileLine("loop1.c:24", &result);
+  matcher.matchInstructions("test/loop1.c:24", &result);
   if (result.matched) {
-    for (Instruction * inst : result.instrs) {
-      errs() << "Matched instruction " << *inst << "\n";
+    DISubprogram *SP = result.func->getSubprogram();
+    unsigned start_line = ScopeInfoFinder::getFirstLine(result.func);
+    unsigned end_line = ScopeInfoFinder::getLastLine(result.func);
+    errs() << "Matched function <" << getFunctionName(SP) << ">()";
+    errs() << "@" << SP->getDirectory() << "/" << SP->getFilename();
+    errs() << ":" << start_line << "," << end_line << "\n";
+    for (Instruction *inst : result.instrs) {
+      errs() << "- matched instruction: " << *inst << "\n";
     }
   }
 }

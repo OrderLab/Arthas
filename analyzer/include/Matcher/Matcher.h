@@ -46,6 +46,7 @@ typedef Pair<llvm::DISubprogram, int> DISPExt;
 bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
 bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
 bool skipFunction(llvm::Function *);
+llvm::StringRef getFunctionName(const llvm::DISubprogram *SP);
 
 class ScopeInfoFinder {
   public:
@@ -69,63 +70,31 @@ class MatchResult {
 };
 
 class Matcher {
- public:
-  typedef llvm::SmallVectorImpl<llvm::DISubprogram *>::const_iterator sp_iterator;
-  typedef llvm::SmallVectorImpl<llvm::DICompileUnit *>::const_iterator cu_iterator;
-
  protected:
   bool initialized;
   bool processed;
-  std::string filename;
-  const char *patchname;
+  int strips;
+
   llvm::DebugInfoFinder finder;
   llvm::Module *module;
 
  public:
-  llvm::SmallVector<llvm::DISubprogram *, 8> MySPs;
-  llvm::SmallVector<llvm::DICompileUnit *, 8> MyCUs;
-
-  int patchstrips;
-  int debugstrips;
-  bool mydebuginfo;
-
- public:
-  Matcher(bool use_my_debuginfo = false, int d_strips = 0, int p_strips = 0) {
-    mydebuginfo = use_my_debuginfo;
-    patchstrips = p_strips;
-    debugstrips = d_strips;
+  Matcher(int path_strips = 0) {
+    strips = path_strips;
     initialized = false;
     processed = false;
   }
 
-  bool matchFileLine(std::string criteria, MatchResult *result);
+  bool matchInstructions(std::string criteria, MatchResult *result);
 
   void process(llvm::Module &M);
 
-  void setstrips(int p_strips, int d_strips) 
-  {
-    patchstrips = p_strips; 
-    debugstrips = d_strips; 
-  }
-
-  inline sp_iterator sp_begin() { return MySPs.begin(); }
-  inline sp_iterator sp_end() { return MySPs.end(); }
-
-  inline cu_iterator cu_begin() { return MyCUs.begin(); }
-  inline cu_iterator cu_end() { return MyCUs.end(); }
+  void setStrip(int path_strips) { strips = path_strips; }
 
   void dumpSP(llvm::DISubprogram *SP);
   void dumpSPs();
 
- protected:
-  cu_iterator matchCompileUnit(llvm::StringRef);
-  sp_iterator slideToFile(llvm::StringRef);
-  void processCompileUnits(llvm::Module &);
-  void processSubprograms(llvm::Module &);
-  void processInst(llvm::Function *);
-  void processBasicBlock(llvm::Function *);
-
-  bool initName(llvm::StringRef);
+  std::string normalizePath(llvm::StringRef fname);
 };
 
 #endif
