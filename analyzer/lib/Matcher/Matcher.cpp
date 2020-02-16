@@ -117,6 +117,32 @@ bool ScopeInfoFinder::getBlockScope(Scope & scope, BasicBlock *B)
   return true;
 }
 
+bool FileLine::fromCriterionStr(string criterion, FileLine &result)
+{
+  vector<string> parts;
+  splitList(criterion, ':', parts);
+  if (parts.size() < 2) {
+    return false;
+  }
+  result.file = parts[0];
+  result.line = atoi(parts[1].c_str());
+  return true;
+}
+
+bool FileLine::fromCriteriaStr(string criteria, vector<FileLine> &results) {
+  vector<string> criteriaList;
+  splitList(criteria, ',', criteriaList);
+  for (string criterion : criteriaList) {
+    vector<string> parts;
+    splitList(criterion, ':', parts);
+    if (parts.size() < 2) {
+      return false;
+    }
+    results.push_back(FileLine(parts[0], atoi(parts[1].c_str())));
+  }
+  return true;
+}
+
 void Matcher::process(Module &M)
 {
   // With the new LLVM version, it seems we can no longer retrieve the

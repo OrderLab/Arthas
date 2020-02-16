@@ -56,11 +56,16 @@ class ScopeInfoFinder {
    static bool getBlockScope(Scope &, llvm::BasicBlock *);
 };
 
-struct FileLine {
-  std::string file;
-  unsigned int line;
+class FileLine {
+  public:
+   std::string file;
+   unsigned int line;
 
-  FileLine(std::string f, unsigned int l): file(f), line(l) {}
+   FileLine(std::string f, unsigned int l) : file(f), line(l) {}
+   FileLine(){}
+
+   static bool fromCriterionStr(std::string criterion, FileLine &result);
+   static bool fromCriteriaStr(std::string criteria, std::vector<FileLine> &results);
 };
 
 typedef llvm::SmallVector<llvm::Instruction *, 8> MatchInstrs;
@@ -73,7 +78,6 @@ class MatchResult {
     }
 
   public:
-   void print();
    bool matched;
    MatchInstrs instrs;
    llvm::Function *func;

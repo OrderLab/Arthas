@@ -27,27 +27,19 @@ int main(int argc, char *argv[]) {
   Matcher matcher;
   matcher.process(*M);
   if (criteriaList.size() == 1) {
-    vector<string> parts;
-    splitList(criteria, ':', parts);
-    if (parts.size() < 2) {
+    FileLine fl;
+    if (!FileLine::fromCriterionStr(criteria, fl)) {
       errs() << "Invalid criterion '" << criteria << "', must be file:line_number format\n";
       return 1;
     }
-    FileLine fl(parts[0], atoi(parts[1].c_str()));
     MatchResult result;
     matcher.matchInstrsCriterion(fl, &result);
     errs() << result << "\n";
   } else {
     vector<FileLine> fileLines;
-    for (string criterion : criteriaList) {
-      vector<string> parts;
-      splitList(criterion, ':', parts);
-      if (parts.size() < 2) {
-        errs() << "Invalid criterion '" << criterion << "', must be file:line_number format\n";
-        return 1;
-      }
-      FileLine fl(parts[0], atoi(parts[1].c_str()));
-      fileLines.push_back(fl);
+    if (!FileLine::fromCriteriaStr(criteria, fileLines)) {
+      errs() << "Invalid criteria '" << criteria << "', must be file:line_number format\n";
+      return 1;
     }
     vector<MatchResult> results(fileLines.size());
     matcher.matchInstrsCriteria(fileLines, results);
