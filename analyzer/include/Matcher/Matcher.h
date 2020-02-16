@@ -55,6 +55,19 @@ class ScopeInfoFinder {
    static bool getBlockScope(Scope &, llvm::BasicBlock *);
 };
 
+class MatchResult {
+  public:
+    MatchResult()
+    {
+      matched = false;
+    }
+
+  public:
+   bool matched;
+   llvm::SmallVector<llvm::Instruction *, 8> instrs;
+   llvm::Function *func;
+};
+
 class Matcher {
  public:
   typedef llvm::SmallVectorImpl<llvm::DISubprogram *>::const_iterator sp_iterator;
@@ -65,7 +78,8 @@ class Matcher {
   bool processed;
   std::string filename;
   const char *patchname;
-  llvm::DebugInfoFinder Finder;
+  llvm::DebugInfoFinder finder;
+  llvm::Module *module;
 
  public:
   llvm::SmallVector<llvm::DISubprogram *, 8> MySPs;
@@ -73,23 +87,20 @@ class Matcher {
 
   int patchstrips;
   int debugstrips;
+  bool mydebuginfo;
 
  public:
-  Matcher(int d_strips = 0, int p_strips = 0) {
+  Matcher(bool use_my_debuginfo = false, int d_strips = 0, int p_strips = 0) {
+    mydebuginfo = use_my_debuginfo;
     patchstrips = p_strips;
     debugstrips = d_strips;
     initialized = false;
     processed = false;
   }
 
-  llvm::Instruction *matchInstruction(llvm::inst_iterator &, llvm::Function *, Scope &);
+  bool matchFileLine(std::string criteria, MatchResult *result);
 
-  void process(llvm::Module &M) 
-  {
-    processCompileUnits(M);
-    processSubprograms(M); 
-    processed = true;
-  }
+  void process(llvm::Module &M);
 
   void setstrips(int p_strips, int d_strips) 
   {
@@ -103,6 +114,9 @@ class Matcher {
   inline cu_iterator cu_begin() { return MyCUs.begin(); }
   inline cu_iterator cu_end() { return MyCUs.end(); }
 
+  void dumpSP(llvm::DISubprogram *SP);
+  void dumpSPs();
+
  protected:
   cu_iterator matchCompileUnit(llvm::StringRef);
   sp_iterator slideToFile(llvm::StringRef);
@@ -112,7 +126,6 @@ class Matcher {
   void processBasicBlock(llvm::Function *);
 
   bool initName(llvm::StringRef);
-  void dumpSPs();
 };
 
 #endif

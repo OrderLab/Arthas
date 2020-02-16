@@ -29,4 +29,15 @@ int main(int argc, char *argv[]) {
            << ":" << SP->getLine() << " ends at " << SP->getFilename() << ":"
            << ScopeInfoFinder::getLastLine(&F) << "\n";
   }
+
+  Matcher matcher;
+  matcher.process(*M);
+  matcher.dumpSPs();
+  MatchResult result;
+  matcher.matchFileLine("loop1.c:24", &result);
+  if (result.matched) {
+    for (Instruction * inst : result.instrs) {
+      errs() << "Matched instruction " << *inst << "\n";
+    }
+  }
 }

@@ -12,6 +12,8 @@
 
 #include "Utils/String.h"
 
+using namespace std;
+
 void *xmalloc(size_t size) {
   if (size <= 0) {
     fprintf(stderr, "Invalid malloc size %lu", size);
@@ -25,3 +27,23 @@ void *xmalloc(size_t size) {
   return p;
 }
 
+int splitList(const string& str, char sep, vector<string> &ret)
+{
+  if (str.empty())
+    return 0;
+
+  size_t prev_pos = 0;
+  size_t pos = 0;
+  int n = 0;
+  while (true) {
+    prev_pos = pos;
+    pos = str.find(sep, pos);
+    ret.push_back(str.substr(prev_pos, pos-prev_pos));
+    n++;
+    if (pos == std::string::npos)
+      break;
+    else
+      ++pos;
+  }
+  return n;
+}

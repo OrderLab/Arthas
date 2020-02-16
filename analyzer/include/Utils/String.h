@@ -9,8 +9,11 @@
 #ifndef _UTILS_STRING_H_
 #define _UTILS_STRING_H_
 
+#include <string>
+#include <vector>
 #include <stddef.h>
 
 void *xmalloc(size_t size);
+int splitList(const std::string &str, char sep, std::vector<std::string> &ret);
 
 #endif /* _UTILS_STRING_H_ */

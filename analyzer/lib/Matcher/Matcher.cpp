@@ -14,9 +14,11 @@
 
 #include "Matcher/Matcher.h"
 #include "Utils/Path.h"
+#include "Utils/String.h"
 
 static bool DEBUG_MATCHER = false;
 
+using namespace std;
 using namespace llvm;
 
 bool cmpDICU(DICompileUnit *CU1, DICompileUnit *CU2) {
@@ -102,8 +104,19 @@ bool ScopeInfoFinder::getBlockScope(Scope & scope, BasicBlock *B)
   return true;
 }
 
-void Matcher::processInst(Function *F)
+void Matcher::process(Module &M)
 {
+  if (mydebuginfo) {
+    processCompileUnits(M);
+    processSubprograms(M); 
+  } else {
+    finder.processModule(M);
+  }
+  module = &M;
+  processed = true;
+}
+
+void Matcher::processInst(Function *F) {
   for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; FI++) {
     /** Get each instruction's scope information **/
     for (BasicBlock::iterator BI = FI->begin(), BE = FI->end(); BI != BE; BI++) {
@@ -157,13 +170,22 @@ void Matcher::processCompileUnits(Module &M)
   }
 }
 
+static StringRef getFunctionName(const DISubprogram *SP) {
+  if (!SP->getLinkageName().empty())
+    return SP->getLinkageName();
+  return SP->getName();
+}
+
+void Matcher::dumpSP(DISubprogram *SP) {
+  errs() << "@" << SP->getDirectory() << "/" << SP->getFilename();
+  errs() << ":" << SP->getLine() << " <" << getFunctionName(SP);
+  errs() << ">() \n";
+}
+
 void Matcher::dumpSPs() {
   sp_iterator I, E;
   for (I = MySPs.begin(), E = MySPs.end(); I != E; I++) {
-    DISubprogram *SP = *I;
-    errs() << "@" << SP->getDirectory() << "/" << SP->getFile();
-    errs() << ":" << SP->getName();
-    errs() << "([" << SP->getLine() << "," << SP->getScopeLine() << "]) \n";
+    dumpSP(*I);
   }
 }
 
@@ -171,9 +193,10 @@ void Matcher::processSubprograms(Module &M)
 {
   /** DIY SP finder **/
   MySPs.clear();
+  errs() << "MySPs\n";
   for (auto *CU : M.debug_compile_units()) {
-    if (DEBUG_MATCHER)
-      errs() << "CU: " << CU->getDirectory() << "/" << CU->getFilename() << "\n";
+    // errs() << "CU: " << CU->getDirectory() << "/" << CU->getFilename() << "\n";
+    errs() << CU->getFilename() << "\n";
     for (auto *RT : CU->getRetainedTypes())
       if (auto *SP = dyn_cast<DISubprogram>(RT)) {
         MySPs.push_back(SP);
@@ -268,40 +291,52 @@ Matcher::sp_iterator Matcher::slideToFile(StringRef fname)
   return I;
 }
 
-Instruction *Matcher::matchInstruction(llvm::inst_iterator &ii, Function *f,
-                                       Scope &scope) {
-  if (scope.begin > scope.end)
-    return NULL;
-  Instruction * inst = NULL;
-  unsigned line = scope.begin;
-  unsigned l = 0;
-  inst_iterator ie = inst_end(f);
-  for (; ii != ie; ++ii) {
-    inst = &*ii;
-    l = ScopeInfoFinder::getInstLine(inst);
-    if (l == 0)
-      continue;
-    if (l == line) {
-      break;
+bool Matcher::matchFileLine(std::string criteria, MatchResult *result)
+{
+  vector<string> parts;
+  splitList(criteria, ':', parts);
+  if (parts.size() < 2)
+    return false;
+  string file = parts[0];
+  unsigned int line = atoi(parts[1].c_str());
+  if (mydebuginfo) {
+    return false;
+  } else {
+    // for (DISubprogram *SP : finder.subprograms()) {
+    Function *func = nullptr;
+    for (auto &F : module->functions()) {
+      if (F.isDeclaration()) continue;
+      DISubprogram *SP = F.getSubprogram();
+      std::string debugname;
+      // Filename may already contains the path information
+      if (SP->getFilename().size() > 0 && SP->getFilename()[0] == '/')
+        debugname = SP->getFilename();
+      else
+        debugname = SP->getDirectory().str() + "/" + SP->getFilename().str();
+      if (pathendswith(debugname.c_str(), file.c_str())) {
+        dumpSP(SP);
+        if (SP->getLine() > line) {
+          break;
+        } else {
+          func = &F;
+        }
+      }
     }
-    if (l > line) { // (*)
-      // Didn't find any instruction at line but find
-      // one within the range.
-      // Mod: [.........]
-      //         Inst
-      if (l <= scope.end)
-        break;
-      return NULL; // already passed
+    if (func != nullptr) {
+      unsigned l = 0;
+      Instruction * inst = NULL;
+      for (inst_iterator ii = inst_begin(func), ie = inst_end(func); ii != ie; ++ii) {
+        inst = &*ii;
+        l = ScopeInfoFinder::getInstLine(inst);
+        if (l == line) {
+          result->instrs.push_back(inst);
+        } else if (l > line) {
+          break;
+        }
+      }
+      result->func = func;
+      result->matched = true;
     }
+    return true;
   }
-  if (ii == ie)
-    return NULL;
-  ++ii; // adjust fi to the next instruction
-  //TODO there could be multiple instructions at one line
-  
-  // Always assume the next instruction shares the same line.
-  // If it doesn't, in the next call to matchInstruction,
-  // begin will be adjusted to the next line by place (*)
-  scope.begin = l; 
-  return inst;
 }
