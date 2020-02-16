@@ -20,3 +20,21 @@ target_link_libraries(llvm-pta-dump
 			PRIVATE ${llvm_irreader}
 			PRIVATE ${llvm_analysis}
 			PRIVATE ${llvm_support})
+
+add_library(dgllvmslicer SHARED
+	    llvm-slicer-opts.cpp llvm-slicer-opts.h
+	    llvm-slicer-utils.cpp llvm-slicer-utils.h
+	    llvm-slicer.h)
+
+add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
+target_link_libraries(llvm-slicer 
+      PRIVATE dgllvmslicer
+      PRIVATE LLVMSlicer
+			PRIVATE LLVMdg)
+      
+target_link_libraries(llvm-slicer
+			PRIVATE ${llvm_irreader}
+			PRIVATE ${llvm_bitwriter}
+			PRIVATE ${llvm_analysis}
+			PRIVATE ${llvm_support}
+			PRIVATE ${llvm_core})

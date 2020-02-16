@@ -55,4 +55,6 @@ add_library(LLVMdg SHARED
 target_link_libraries(LLVMdg
   PUBLIC LLVMpta
   PUBLIC dgThreadRegions
-  PUBLIC dgControlDependence)
+  PUBLIC dgControlDependence
+  PRIVATE ${llvm_analysis}
+ )

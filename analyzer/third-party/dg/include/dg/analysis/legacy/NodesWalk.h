@@ -83,11 +83,13 @@ public:
       for (auto ent : entry) {
         ent->depth = 0;
         iteration = 0;
-        sg->root = new llvm::slicing::SliceNode(ent, 0);
-        // sg->root->n = ent;
-        // sg->root->depth = 0;
+        if (sg) {
+          sg->root = new llvm::slicing::SliceNode(ent, 0);
+          // sg->root->n = ent;
+          // sg->root->depth = 0;
+          prev_slice_node = sg->root;
+        }
         enqueue(ent);
-        prev_slice_node = sg->root;
         // llvm::errs() << "1 size is  " << prev_slice_node->child_nodes.size()
         // << "\n";
         // llvm::errs() << "blah " << sg->root->n << "\n";
@@ -111,7 +113,10 @@ public:
         }*/
         prev_node = n;
         // llvm::errs() << "prev node is " << prev_node << "\n";
-        prev_slice_node = sg->root->search_children(n);
+        
+        if (sg) {
+          prev_slice_node = sg->root->search_children(n);
+        }
         // llvm::errs() << "prev slice node is " << prev_slice_node << "\n";
         // llvm::errs() << "2 size is  " << prev_slice_node->child_nodes.size()
         // << "\n";
@@ -128,8 +133,8 @@ public:
         if (options & NODES_WALK_CD) {
           processEdges(n->control_begin(), n->control_end());
 #ifdef ENABLE_CFG
-                // we can have control dependencies in BBlocks
-                processBBlockCDs(n);
+          // we can have control dependencies in BBlocks
+          processBBlockCDs(n);
 #endif // ENABLE_CFG
             }
 
