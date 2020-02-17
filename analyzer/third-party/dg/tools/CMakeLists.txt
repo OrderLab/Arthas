@@ -6,7 +6,7 @@ message(STATUS "llvm_core is ${llvm_core}")
 add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 target_link_libraries(llvm-dg-dump
       PRIVATE LLVMdg
-      PRIVATE LLVMSlicer
+      PRIVATE Slicer
       PRIVATE ${llvm_support}
       PRIVATE ${llvm_analysis}
       PRIVATE ${llvm_irreader}
@@ -29,7 +29,7 @@ add_library(dgllvmslicer SHARED
 add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
 target_link_libraries(llvm-slicer 
       PRIVATE dgllvmslicer
-      PRIVATE LLVMSlicer
+      PRIVATE Slicer
 			PRIVATE LLVMdg)
       
 target_link_libraries(llvm-slicer

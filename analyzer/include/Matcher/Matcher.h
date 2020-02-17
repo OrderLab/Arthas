@@ -3,8 +3,8 @@
 // Author: Ryan Huang <ryanhuang@cs.ucsd.edu>
 //
 //===----------------------------------------------------------------------===//
-#ifndef ___MATCHER__H_
-#define ___MATCHER__H_
+#ifndef __MATCHER_H_
+#define __MATCHER_H_
 
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
@@ -28,6 +28,9 @@
 
 #include "Scope.h"
 
+namespace llvm {
+namespace matching {
+
 template <class T1, class T2>
 struct Pair {
   typedef T1 first_type;
@@ -42,11 +45,6 @@ struct Pair {
 };
 
 typedef Pair<llvm::DISubprogram, int> DISPExt;
-
-bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
-bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
-bool skipFunction(llvm::Function *);
-llvm::StringRef getFunctionName(const llvm::DISubprogram *SP);
 
 class ScopeInfoFinder {
   public:
@@ -83,8 +81,6 @@ class MatchResult {
    llvm::Function *func;
 };
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &, const MatchResult &);
-
 class Matcher {
  protected:
   bool initialized;
@@ -116,4 +112,14 @@ class Matcher {
   bool matchInstrsInFunction(unsigned int line, llvm::Function *func, MatchInstrs &result);
 };
 
-#endif
+} // namespace matching
+} // namespace llvm
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &,
+                              const llvm::matching::MatchResult &);
+bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
+bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
+bool skipFunction(llvm::Function *);
+llvm::StringRef getFunctionName(const llvm::DISubprogram *SP);
+
+#endif /* __MATCHER_H_ */

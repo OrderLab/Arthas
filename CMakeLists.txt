@@ -1,4 +1,4 @@
-# The Pmem-Meta Project
+# The Arthas Project
 #
 # Copyright (c) 2019, Johns Hopkins University - Order Lab.
 #
@@ -7,7 +7,7 @@
 #
 
 cmake_minimum_required(VERSION 3.4.3)
-project(pmem-meta)
+project(arthas)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

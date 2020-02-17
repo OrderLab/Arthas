@@ -8,6 +8,7 @@
 
 using namespace std;
 using namespace llvm;
+using namespace llvm::matching;
 
 cl::opt<string> inputFilename(cl::Positional, cl::desc("<input file>"), cl::Required);
 cl::opt<string> criteria(cl::Positional, cl::desc("<criteria>"), cl::Required);

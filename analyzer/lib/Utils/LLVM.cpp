@@ -1,4 +1,4 @@
-// The PMEM-Fault Project
+// The Arthas Project
 //
 // Copyright (c) 2019, Johns Hopkins University - Order Lab.
 //
@@ -17,10 +17,10 @@ unique_ptr<Module> parseModule(LLVMContext& context, string inputFile)
   SMDiagnostic SMD;
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-  auto _M = llvm::ParseIRFile(inputFile, SMD, context);
-  auto M = std::unique_ptr<llvm::Module>(_M);
+  auto _M = ParseIRFile(inputFile, SMD, context);
+  auto M = unique_ptr<Module>(_M);
 #else
-  auto M = llvm::parseIRFile(inputFile, SMD, context);
+  auto M = parseIRFile(inputFile, SMD, context);
 #endif
 
   if (!M) {

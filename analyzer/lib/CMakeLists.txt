@@ -9,7 +9,7 @@ add_library(Utils SHARED
 )
 
 target_link_libraries(Utils
-  PUBLIC ${llvm_libs}
+  PRIVATE ${llvm_irreader}
 )
 
 add_library(Matcher SHARED
@@ -17,30 +17,38 @@ add_library(Matcher SHARED
   Matcher/Matcher.cpp
 )
 
-target_link_libraries(Matcher
-  PUBLIC Utils
-)
-
-add_library(LLVMPMem SHARED
+add_library(PMem SHARED
   PMem/Extractor.cpp
 )
 
-target_link_libraries(LLVMPMem 
+target_link_libraries(PMem 
   PUBLIC DefUse
-  PUBLIC LLVMdg
 )
 
-add_library(LLVMSlicer SHARED
+add_library(LLVMPMem MODULE
+  PMem/PMemVariablePass.cpp
+)
+
+target_link_libraries(LLVMPMem 
+  PUBLIC PMem
+)
+
+add_library(Slicer SHARED
   Slicing/Slice.cpp
   Slicing/SliceGraph.cpp
   Slicing/Slicer.cpp
 )
 
-target_link_libraries(LLVMSlicer
+target_link_libraries(Slicer
   PUBLIC DefUse
-  PUBLIC Utils
   PUBLIC Matcher
-  PUBLIC LLVMdg
-  PUBLIC LLVMPMem
+  PRIVATE LLVMdg
 )
 
+add_library(LLVMSlicer MODULE
+  Slicing/SlicingPass.cpp
+)
+
+target_link_libraries(LLVMSlicer
+  PUBLIC Slicer
+)

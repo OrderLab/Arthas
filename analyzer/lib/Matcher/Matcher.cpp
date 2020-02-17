@@ -20,6 +20,7 @@ static bool DEBUG_MATCHER = false;
 
 using namespace std;
 using namespace llvm;
+using namespace llvm::matching;
 
 bool cmpDICU(DICompileUnit *CU1, DICompileUnit *CU2) {
   int cmp = CU1->getDirectory().compare(CU2->getDirectory());
