@@ -16,7 +16,7 @@
 #include "DefUse/DefUse.h"
 #include "Matcher/Matcher.h"
 #include "Slicing/Slicer.h"
-#include "Utils/LLVM.h"
+#include "Utils/String.h"
 
 using namespace std;
 using namespace llvm;
@@ -25,8 +25,24 @@ using namespace llvm::pmem;
 using namespace llvm::defuse;
 using namespace llvm::matching;
 
-static cl::opt<string> Criteria("criteria", 
-    cl::desc("Comma separated list of slicing criterion"), 
+static cl::opt<string> SliceFunc("slice-func",
+    cl::desc("Function where the slicing starts"),
+    cl::value_desc("function"));
+
+static cl::opt<string> SliceInstr("slice-instr",
+                                  cl::desc("Instruction to start slicing"),
+                                  cl::value_desc("instruction"));
+
+static cl::opt<SliceDirection> SliceDir(
+    "slice-dir", cl::desc("Slicing direction"),
+    cl::values(
+        clEnumValN(SliceDirection::Backward, "backward", "Backward slicing"),
+        clEnumValN(SliceDirection::Forward, "forward", "Forward slicing"),
+        clEnumValN(SliceDirection::Full, "full", "Full slicing"),
+        clEnumValEnd));
+
+static cl::opt<string> SliceCriteria(
+    "slice-crit", cl::desc("Comma separated list of slicing criterion"),
     cl::value_desc("file1:line1,file2:line2,..."));
 
 namespace {
@@ -39,6 +55,8 @@ class SlicingPass : public ModulePass {
   SlicingPass() : ModulePass(ID) {}
 
   virtual bool runOnModule(Module &M) override;
+  bool parseSlicingOption(Module &M);
+
   bool instructionSlice(Instruction *fault_instruction, Function &F, vector<Instruction *> &pmem_instrs);
   bool definitionPoint(Function &F, pmem::PMemVariableLocator &locator);
   void pmemInstructionSet(Function &F, pmem::PMemVariableLocator &locator,
@@ -49,11 +67,80 @@ class SlicingPass : public ModulePass {
   }
 
  private:
+  SmallVector<Instruction *, 8> startSliceInstrs;
+  SliceDirection sliceDir;
+
   bool runOnFunction(Function &F);
   unique_ptr<DgSlicer> dgSlicer;
   // Map with Sliced Dependnence Graph as key and persistent variables as values
   static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
 };
+}
+
+bool SlicingPass::parseSlicingOption(Module &M) {
+  if (!SliceCriteria.empty()) {
+    vector<FileLine> fileLines;
+    if (!FileLine::fromCriteriaStr(SliceCriteria, fileLines)) {
+      errs() << "Failed to parse slicing criteria " << SliceCriteria << "\n";
+      return false;
+    }
+    Matcher matcher;
+    matcher.process(M);
+    vector<MatchResult> matchResults;
+    if (!fileLines.empty()) {
+      if (!matcher.matchInstrsCriteria(fileLines, matchResults)) {
+        errs() << "Failed to find the slicing target instructions in module ";
+        errs() << M.getName() << " from criteria " << SliceCriteria  << "\n";
+        return false;
+      }
+      errs() << "Found slicing target instructions:\n";
+      for (MatchResult &result : matchResults) {
+        for (Instruction * instr : result.instrs ) {
+          startSliceInstrs.push_back(instr);
+        }
+        errs() << result<< "\n";
+      }
+    }
+  }
+  if (!SliceFunc.empty()) {
+    if (SliceInstr.empty()) {
+      errs() << "Must specify slice instruction when giving a slice function\n";
+      return false;
+    }
+    Function *F;
+    bool found = false;
+    for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+      F = &*I;
+      if (F->getName().equals(SliceFunc)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      errs() << "Failed to find slice function " << SliceFunc << "\n";
+      return false;
+    }
+    found = false;
+    for (inst_iterator ii = inst_begin(F), ie = inst_end(F); ii != ie; ++ii) {
+      Instruction * instr = &*ii;
+      std::string str_instr;
+      llvm::raw_string_ostream rso(str_instr);
+      instr->print(rso);
+      trim(str_instr);
+      if (SliceInstr.compare(str_instr) == 0) {
+        errs() << "Found slice instruction " << str_instr << "\n";
+        startSliceInstrs.push_back(instr);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      errs() << "Failed to find slice instruction " << SliceInstr << "\n";
+      return false;
+    }
+  }
+  sliceDir = SliceDir;
+  return true;
 }
 
 bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
@@ -123,26 +210,9 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
 }
 
 bool SlicingPass::runOnModule(Module &M) {
-  vector<FileLine> fileLines;
-  if (!Criteria.empty() && !FileLine::fromCriteriaStr(Criteria, fileLines)) {
-    errs() << "Failed to parse slicing criteria " << Criteria << "\n";
+  if (!parseSlicingOption(M)) {
     return false;
   }
-  Matcher matcher;
-  matcher.process(M);
-  vector<MatchResult> matchResults;
-  if (!fileLines.empty()) {
-    if (!matcher.matchInstrsCriteria(fileLines, matchResults)) {
-      errs() << "Failed to find the slicing target instructions in module ";
-      errs() << M.getName() << " from criteria " << Criteria  << "\n";
-      return false;
-    }
-    errs() << "Found slicing target instructions:\n";
-    for (MatchResult &result : matchResults) {
-      errs() << result<< "\n";
-    }
-  }
-
   //errs() << "beginning\n";
   dgSlicer = make_unique<DgSlicer>(&M);
   dgSlicer->compute();  // compute the dependence graph for module M
