@@ -143,6 +143,7 @@ bool SlicingPass::runOnModule(Module &M) {
     //for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
     //}
+    errs() << "begin def point\n";
     definitionPoint(F, locator);
     pmemInstructionSet(F, locator, pmem_instrs);
   }
@@ -156,12 +157,18 @@ bool SlicingPass::runOnModule(Module &M) {
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-      if(a == 10 && b == 12){
+        fault_inst = &*ii;
+	llvm::errs() << *fault_inst << "\n";
+        if(StoreInst *store_inst = dyn_cast<StoreInst>(fault_inst)){
+          Value* po = store_inst->getPointerOperand();
+          llvm::errs() << "store " << *po << "address " <<  po << "\n";
+        }
+      /*if(a == 20 && b == 0){
         fault_inst = &*ii;
         instructionSlice(fault_inst, F, pmem_instrs);
         llvm::errs() << "function is " << F << "\n";
         goto stop;
-      }
+      }*/
       a++;
     }
     b++;
@@ -183,6 +190,7 @@ void SlicingPass::pmemInstructionSet(Function &F,
 bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator &locator) {
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     Value& b = const_cast<Value&>(**vi); 
+    llvm::errs() << "value is " << b << "\n";
     UserGraph g(&b);
     for (auto ui = g.begin(); ui != g.end(); ++ui) {
       Value& c = const_cast<Value&>(*ui->first);

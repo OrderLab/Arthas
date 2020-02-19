@@ -13,6 +13,7 @@ struct my_root {
         size_t len;
         char buf[MAX_BUF_LEN];
 };
+
 void write_hello_string(char *buf, char *path){
 	PMEMobjpool *pop;
 	pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
@@ -26,39 +27,56 @@ void write_hello_string(char *buf, char *path){
 	printf("root\n");
 
 	struct my_root *rootp = pmemobj_direct(root);
-	double *pmem_int_ptr;
+	double *pmem_double_ptr;
 	int *pmem_int_ptr2;
 	//char * pmem_region_variable = (uint64_t)pop + 10;
 	
+        int *pmem_int_ptrs[5];
         PMEMoid oid;
 	PMEMoid oid2;
 	TX_BEGIN(pop){
 		oid = pmemobj_tx_zalloc(sizeof(double), 1);
-		pmem_int_ptr = pmemobj_direct(oid);
-		printf("address of pmemint is %p\n", pmem_int_ptr);
-		*pmem_int_ptr = 3;
+		pmem_double_ptr = pmemobj_direct(oid);
+		printf("address of pmem double is %p\n", pmem_double_ptr);
+		*pmem_double_ptr = 3;
 		oid2 = pmemobj_tx_zalloc(sizeof(int), 1);
 		pmem_int_ptr2 = pmemobj_direct(oid2);
 		*pmem_int_ptr2 = 12;
 		printf("address of pmemint2 is %p\n", pmem_int_ptr2);
+
+                PMEMoid oid3;
+                for(int i = 0; i < 5; i++){
+                  oid3 = pmemobj_tx_zalloc(sizeof(int), 1);
+                  pmem_int_ptrs[i] = pmemobj_direct(oid3);
+                  *pmem_int_ptrs[i] = i+1;
+                }
 	}TX_END
 
         TX_BEGIN(pop){
-                pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
-                *pmem_int_ptr = 5;
-                pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
-                *pmem_int_ptr = 6;
-                pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
-		*pmem_int_ptr = 10;
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+                *pmem_double_ptr = 5;
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+                *pmem_double_ptr = 6;
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+		*pmem_double_ptr = 10;
                 pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
-		*pmem_int_ptr2 = 3;
+		*pmem_int_ptr2 = 13;
+		pmemobj_tx_add_range_direct(pmem_int_ptrs[0], sizeof(int)*5);
 		//pmemobj_tx_abort(-1);
         }TX_END
 
-	printf("%p %p\n", pmem_int_ptr, pmem_int_ptr2);
-	printf("ints are %f and %d\n", *pmem_int_ptr, *pmem_int_ptr2);
+        TX_BEGIN(pop){
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+               *pmem_double_ptr = 11;
+                pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
+		*pmem_int_ptr2 = 4;
+        }TX_END
+
+	printf("%p %p\n", pmem_double_ptr, pmem_int_ptr2);
+	printf("ints are %f and %d\n", *pmem_double_ptr, *pmem_int_ptr2);
         int a;
-        a = 30/(*pmem_int_ptr);
+	int b = *pmem_double_ptr;
+        a = 30/(b);
 }
 
 void read_hello_string(char *buf){
