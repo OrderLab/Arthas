@@ -130,5 +130,6 @@ else()
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd
 				PUBLIC dgThreadRegions
-				PUBLIC dgControlDependence)
+				PUBLIC dgControlDependence
+        )
 endif(APPLE)

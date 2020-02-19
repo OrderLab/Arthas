@@ -8,10 +8,6 @@ add_library(Utils SHARED
   Utils/LLVM.cpp
 )
 
-target_link_libraries(Utils
-  PRIVATE ${llvm_irreader}
-)
-
 add_library(Matcher SHARED
   Matcher/Scope.cpp
   Matcher/Matcher.cpp
@@ -42,6 +38,8 @@ add_library(Slicer SHARED
 target_link_libraries(Slicer
   PUBLIC DefUse
   PUBLIC Matcher
+  PUBLIC Utils
+  PUBLIC PMem
   PRIVATE LLVMdg
 )
 

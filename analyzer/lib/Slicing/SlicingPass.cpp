@@ -25,10 +25,9 @@ using namespace llvm::pmem;
 using namespace llvm::defuse;
 using namespace llvm::matching;
 
-static cl::list<string> TargetFunctions("target-functions", 
-    cl::desc("<Function>"), cl::ZeroOrMore);
-
-static cl::opt<string> TargetInstruction("target-instruction", cl::desc("<Instruction>"));
+static cl::opt<string> Criteria("criteria", 
+    cl::desc("Comma separated list of slicing criterion"), 
+    cl::value_desc("file1:line1,file2:line2,..."));
 
 namespace {
 class SlicingPass : public ModulePass {
@@ -124,21 +123,35 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
 }
 
 bool SlicingPass::runOnModule(Module &M) {
+  vector<FileLine> fileLines;
+  if (!Criteria.empty() && !FileLine::fromCriteriaStr(Criteria, fileLines)) {
+    errs() << "Failed to parse slicing criteria " << Criteria << "\n";
+    return false;
+  }
   Matcher matcher;
   matcher.process(M);
+  vector<MatchResult> matchResults;
+  if (!fileLines.empty()) {
+    if (!matcher.matchInstrsCriteria(fileLines, matchResults)) {
+      errs() << "Failed to find the slicing target instructions in module ";
+      errs() << M.getName() << " from criteria " << Criteria  << "\n";
+      return false;
+    }
+    errs() << "Found slicing target instructions:\n";
+    for (MatchResult &result : matchResults) {
+      errs() << result<< "\n";
+    }
+  }
+
   //errs() << "beginning\n";
   dgSlicer = make_unique<DgSlicer>(&M);
   dgSlicer->compute();  // compute the dependence graph for module M
-
-  set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
 
   vector<Instruction *> pmem_instrs;
   //Step 1: PMEM Variable Output Mapping
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
-    if (F.isDeclaration() || targetFunctionSet.empty() || 
-        targetFunctionSet.count(F.getName()) != 0)
-      continue;
+    if (F.isDeclaration()) continue;
     pmem::PMemVariableLocator locator(F);
     //for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     //  errs() << "* Identified pmem variable instruction: " << **vi << "\n";
@@ -150,6 +163,7 @@ bool SlicingPass::runOnModule(Module &M) {
   errs() << "begin instruction slice \n";;
   //Step 2: Getting Slice of Fault Instruction
   // Hard coded in-input for Fault Instruction
+
   int a = 0;
   int b = 0;
   Instruction * fault_inst;

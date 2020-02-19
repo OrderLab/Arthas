@@ -217,10 +217,7 @@ bool Matcher::matchInstrsInFunction(unsigned int line, Function *func, MatchInst
 
 bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria, 
     vector<MatchResult> &results) {
-  if (criteria.size() != results.size()) {
-    errs() << "Criteria list size is unequal to the match result list size\n";
-    return false;
-  }
+  results.resize(criteria.size());
   size_t sz = criteria.size();
   for (auto &F : module->functions()) {
     if (skipFunction(&F))
