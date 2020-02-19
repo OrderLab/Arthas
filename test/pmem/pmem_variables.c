@@ -29,20 +29,21 @@ void write_hello_string(char *buf, char *path){
 	double *pmem_int_ptr;
 	int *pmem_int_ptr2;
 	//char * pmem_region_variable = (uint64_t)pop + 10;
-
+	
         PMEMoid oid;
 	PMEMoid oid2;
 	TX_BEGIN(pop){
 		oid = pmemobj_tx_zalloc(sizeof(double), 1);
 		pmem_int_ptr = pmemobj_direct(oid);
 		printf("address of pmemint is %p\n", pmem_int_ptr);
-		*pmem_int_ptr = 0;
+		*pmem_int_ptr = 3;
 		oid2 = pmemobj_tx_zalloc(sizeof(int), 1);
+		pmem_int_ptr2 = pmemobj_direct(oid2);
 		*pmem_int_ptr2 = 12;
 		printf("address of pmemint2 is %p\n", pmem_int_ptr2);
 	}TX_END
 
-        /*TX_BEGIN(pop){
+        TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
                 *pmem_int_ptr = 5;
                 pmemobj_tx_add_range_direct(pmem_int_ptr, sizeof(double));
@@ -51,8 +52,10 @@ void write_hello_string(char *buf, char *path){
 		*pmem_int_ptr = 10;
                 pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
 		*pmem_int_ptr2 = 3;
-		pmemobj_tx_abort(-1);
-        }TX_END*/
+		//pmemobj_tx_abort(-1);
+        }TX_END
+
+	printf("%p %p\n", pmem_int_ptr, pmem_int_ptr2);
 	printf("ints are %f and %d\n", *pmem_int_ptr, *pmem_int_ptr2);
         int a;
         a = 30/(*pmem_int_ptr);
