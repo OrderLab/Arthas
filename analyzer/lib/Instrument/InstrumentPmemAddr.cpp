@@ -23,6 +23,8 @@ bool PmemAddrInstrumenter::runOnModule(Module &M)
     Function &F = *I;
     runOnFunction(F);
   }
+  verifyModule(M);
+  outs() << M;
   return false;
 }
 
@@ -32,6 +34,7 @@ bool PmemAddrInstrumenter::runOnFunction(Function &F)
   context = &F.getContext();
   for(inst_iterator ii = inst_begin(F), ie = inst_end(F); ii != ie; ++ii){
     instr = &*ii;
+    //TODO: modify to only include instructions in Slices.
     instrument(instr);
   }
   return false; 
@@ -51,8 +54,15 @@ bool PmemAddrInstrumenter::instrument(Instruction *instr)
   }
   // TODO: insert a call instruction to the hook function with CallInst::Create.
   // Pass addr as an argument to this call instruction
-  //IRBuilder <> builder(context);
-  //CallInst * print_call = CallInst::Create(AddrHookFunction, params, "call", bb);
+  IRBuilder <> builder(*context);
+  builder.SetInsertPoint(instr->getNextNode());
+
+  Value *str = builder.CreateGlobalStringPtr("address: %p\n");
+  std::vector<llvm::Value*> params;
+  params.push_back(str);
+   
+  params.push_back(addr);
+  CallInst * print_call = CallInst::Create(AddrHookFunction, params, "call", instr->getNextNode());
   return true;
 }
 
