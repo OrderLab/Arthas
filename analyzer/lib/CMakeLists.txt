@@ -13,6 +13,10 @@ add_library(Matcher SHARED
   Matcher/Matcher.cpp
 )
 
+add_library(Instrument SHARED
+  Instrument/InstrumentPmemAddr.cpp
+)
+
 add_library(PMem SHARED
   PMem/Extractor.cpp
 )
