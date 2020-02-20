@@ -11,9 +11,29 @@
 using namespace llvm;
 using namespace llvm::instrument;
 
+bool PmemAddrInstrumenter::runOnModule(Module &M) 
+{
+  AddrHookFunction = M.getFunction("printf");
+  if(!AddrHookFunction)
+    errs() << "could not find printf\n";
+  else
+    errs() << "found printf\n";
+
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
+    Function &F = *I;
+    runOnFunction(F);
+  }
+  return false;
+}
+
 bool PmemAddrInstrumenter::runOnFunction(Function &F) 
 {
+  Instruction * instr;
   context = &F.getContext();
+  for(inst_iterator ii = inst_begin(F), ie = inst_end(F); ii != ie; ++ii){
+    instr = &*ii;
+    instrument(instr);
+  }
   return false; 
 }
 
@@ -31,5 +51,10 @@ bool PmemAddrInstrumenter::instrument(Instruction *instr)
   }
   // TODO: insert a call instruction to the hook function with CallInst::Create.
   // Pass addr as an argument to this call instruction
+  //IRBuilder <> builder(context);
+  //CallInst * print_call = CallInst::Create(AddrHookFunction, params, "call", bb);
   return true;
 }
+
+char PmemAddrInstrumenter::ID = 0;
+static RegisterPass<PmemAddrInstrumenter> X("instr", "Instruments the code");

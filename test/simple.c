@@ -4,7 +4,7 @@ int main(){
    int a = 3;
    int b = 5;
    int c;
-
+   printf("a is %d\n", a);
    if(b == 5){
       a++;
    }
