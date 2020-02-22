@@ -24,7 +24,7 @@ bool PmemAddrInstrumenter::runOnModule(Module &M)
     runOnFunction(F);
   }
   verifyModule(M);
-  outs() << M;
+  //outs() << M;
   return false;
 }
 
@@ -40,8 +40,7 @@ bool PmemAddrInstrumenter::runOnFunction(Function &F)
   return false; 
 }
 
-bool PmemAddrInstrumenter::instrument(Instruction *instr) 
-{
+bool PmemAddrInstrumenter::instrument(Instruction *instr) {
   Value *addr;
   if (isa<LoadInst>(instr)) {
     LoadInst *li = dyn_cast<LoadInst>(instr);
@@ -63,6 +62,7 @@ bool PmemAddrInstrumenter::instrument(Instruction *instr)
    
   params.push_back(addr);
   CallInst * print_call = CallInst::Create(AddrHookFunction, params, "call", instr->getNextNode());
+  builder.CreateRet(print_call);
   return true;
 }
 
