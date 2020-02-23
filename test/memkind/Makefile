@@ -6,12 +6,16 @@ RM = rm
 EXES = memkind_malloc
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
+OBJS = $(patsubst %.c, %.o, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
 
 all: $(EXES) $(BITCODES) $(ASSEMBLYS)
 
-memkind_malloc.o: memkind_malloc.c
-	$(CC)  memkind_malloc.c -o memkind_malloc -lmemkind
+$(EXES): $(OBJS)
+	$(CC) $< -o $@ -lmemkind
+
+%.o: %.c
+	$(CC) -c $< -o $@ 
 
 %.bc: %.c
 	clang -c -g -O0 -emit-llvm $< -o $@
