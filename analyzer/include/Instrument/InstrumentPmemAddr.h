@@ -19,6 +19,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/BasicBlock.h"
 
 namespace llvm {
 
@@ -30,6 +31,7 @@ class PmemAddrInstrumenter : public ModulePass {
 
   bool runOnFunction(Function &F);
   bool runOnModule(Module &M);
+  bool runOnBasicBlock(Function::iterator &BB);
   PmemAddrInstrumenter() : ModulePass(ID) {}
 
   // instrument a call to hook func before an instruction.
@@ -39,6 +41,7 @@ class PmemAddrInstrumenter : public ModulePass {
  protected:
   Function *AddrHookFunction;
   LLVMContext *context;
+
 };
 
 } // namespace llvm

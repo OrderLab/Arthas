@@ -23,8 +23,6 @@ bool PmemAddrInstrumenter::runOnModule(Module &M)
     Function &F = *I;
     runOnFunction(F);
   }
-  verifyModule(M);
-  //outs() << M;
   return false;
 }
 
@@ -59,10 +57,10 @@ bool PmemAddrInstrumenter::instrument(Instruction *instr) {
   Value *str = builder.CreateGlobalStringPtr("address: %p\n");
   std::vector<llvm::Value*> params;
   params.push_back(str);
-   
+  
   params.push_back(addr);
   CallInst * print_call = CallInst::Create(AddrHookFunction, params, "call", instr->getNextNode());
-  builder.CreateRet(print_call);
+
   return true;
 }
 
