@@ -9,6 +9,7 @@
 #include "Instrument/InstrumentPmemAddr.h"
 
 using namespace llvm;
+using namespace llvm::pmem;
 using namespace llvm::instrument;
 
 bool PmemAddrInstrumenter::runOnModule(Module &M) 
@@ -32,7 +33,9 @@ bool PmemAddrInstrumenter::runOnFunction(Function &F)
   context = &F.getContext();
   for(inst_iterator ii = inst_begin(F), ie = inst_end(F); ii != ie; ++ii){
     instr = &*ii;
-    //TODO: modify to only include instructions in Slices.
+    //TODO: modify to only include instructions in Slices, get locator to get Pmem variables
+    //get slicer, find overlap in slices, pmem variables
+    //pmem::PMemVariableLocator locator(F);
     instrument(instr);
   }
   return false; 

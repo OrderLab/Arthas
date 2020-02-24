@@ -18,6 +18,7 @@ add_library(Instrument SHARED
 )
 
 target_link_libraries(Instrument
+  PUBLIC PMem
   PRIVATE AddrTracker
 )
 

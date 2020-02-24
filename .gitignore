@@ -31,3 +31,5 @@ test/pmem/refreshScript
 test/pmem/pmdk/
 instrumentScript
 pmemInstrumentScript
+usefulCommands
+

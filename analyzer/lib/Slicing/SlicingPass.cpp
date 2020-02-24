@@ -241,18 +241,18 @@ bool SlicingPass::runOnModule(Module &M) {
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     for (inst_iterator ii = inst_begin(&F), ie = inst_end(&F); ii != ie; ++ii) {
-        fault_inst = &*ii;
+        /*fault_inst = &*ii;
 	llvm::errs() << *fault_inst << "\n";
         if(StoreInst *store_inst = dyn_cast<StoreInst>(fault_inst)){
           Value* po = store_inst->getPointerOperand();
           llvm::errs() << "store " << *po << "address " <<  po << "\n";
-        }
-      /*if(a == 20 && b == 0){
+        }*/
+      if(a == 30 && b == 0){
         fault_inst = &*ii;
         instructionSlice(fault_inst, F, pmem_instrs);
         llvm::errs() << "function is " << F << "\n";
         goto stop;
-      }*/
+      }
       a++;
     }
     b++;
@@ -274,13 +274,13 @@ void SlicingPass::pmemInstructionSet(Function &F,
 bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator &locator) {
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
     Value& b = const_cast<Value&>(**vi); 
-    llvm::errs() << "value is " << b << "\n";
     UserGraph g(&b);
     for (auto ui = g.begin(); ui != g.end(); ++ui) {
       Value& c = const_cast<Value&>(*ui->first);
-      if(Instruction *Inst = dyn_cast<Instruction>(&c))
+      if(Instruction *Inst = dyn_cast<Instruction>(&c)){
+        //llvm::errs() << "value is " << *Inst << "\n";
         pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
-      //pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, &*(ui->first)));
+      }
     }
   }
   errs() << "size is " << pmemMetadata.size() << "\n";
