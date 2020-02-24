@@ -30,3 +30,4 @@ test/pmem/ndctl/
 test/pmem/refreshScript
 test/pmem/pmdk/
 instrumentScript
+pmemInstrumentScript

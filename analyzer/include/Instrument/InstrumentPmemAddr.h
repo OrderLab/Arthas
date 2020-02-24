@@ -21,6 +21,8 @@
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/BasicBlock.h"
+#include "../PMem/Extractor.h"
+
 
 namespace llvm {
 namespace instrument {
@@ -49,7 +51,6 @@ class PmemAddrInstrumenter : public ModulePass {
  protected:
   Function *AddrHookFunction;
   LLVMContext *context;
-
 };
 
 } // namespace llvm
