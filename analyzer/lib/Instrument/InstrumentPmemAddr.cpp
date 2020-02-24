@@ -72,8 +72,9 @@ bool PmemAddrInstrumenter::instrument(Instruction *instr) {
   Value *str;
   if(pool){
     str = builder.CreateGlobalStringPtr("POOL address: %p\n");
+    pool_addr = addr;
   }else{
-    str = builder.CreateGlobalStringPtr("address: %p\n");
+    str = builder.CreateGlobalStringPtr("address: %p");
   }
   //Value *str = builder.CreateGlobalStringPtr("address: %p\n");
   std::vector<llvm::Value*> params;

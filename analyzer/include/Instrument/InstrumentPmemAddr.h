@@ -51,6 +51,7 @@ class PmemAddrInstrumenter : public ModulePass {
  protected:
   Function *AddrHookFunction;
   LLVMContext *context;
+  Value *pool_addr;
 };
 
 } // namespace llvm
