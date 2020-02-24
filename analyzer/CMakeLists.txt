@@ -54,5 +54,6 @@ include_directories(third-party/LLVMSlicer/include)
 link_directories(third-party/LLVMSlicer/lib)
 
 add_subdirectory(lib)
+add_subdirectory(runtime)
 add_subdirectory(tools)
 add_subdirectory(third-party)

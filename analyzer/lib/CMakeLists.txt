@@ -17,6 +17,10 @@ add_library(Instrument SHARED
   Instrument/InstrumentPmemAddr.cpp
 )
 
+target_link_libraries(Instrument
+  PRIVATE AddrTracker
+)
+
 add_library(PMem SHARED
   PMem/Extractor.cpp
 )
