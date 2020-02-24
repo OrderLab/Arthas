@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<stdlib.h>
 
 int foo(int c)
 {
@@ -16,11 +17,11 @@ int foo(int c)
     return c;
 }
 
-int add()
+int add(int n)
 {
     int i;
     int sum = 0;
-    for (i = 1; i * i < 81; i++) {
+    for (i = 1; i * i < n; i++) {
        sum += i; 
     }
     if (sum > 10000)
@@ -28,9 +29,9 @@ int add()
     return sum;
 }
 
-int mul(int n)
+unsigned long mul(int n)
 {
-  int product = 1;
+  unsigned long product = 1;
   for (int i = 2; i < n; i++) {
     product *= i;
   }
@@ -47,9 +48,18 @@ int bar(int n)
   return ret;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    foo(add());
-    int n = 10;
-    mul(n);
+  int n, sum;
+  unsigned long result;
+  if (argc > 1) {
+    n = atoi(argv[1]);
+  } else {
+    printf("Enter input: ");
+    scanf("%d", &n);
+  }
+  sum = add(n);
+  result = foo(sum);
+  result = mul(bar(result));
+  printf("result for input %d is %lu\n", n, result);
 }
