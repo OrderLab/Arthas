@@ -9,6 +9,7 @@
 #ifndef __INSTRUMENT_PMEMADDR_H_
 #define __INSTRUMENT_PMEMADDR_H_
 
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
@@ -22,8 +23,15 @@
 #include "llvm/IR/BasicBlock.h"
 
 namespace llvm {
-
 namespace instrument {
+
+inline StringRef getRuntimeHookInitName() {
+  return "__arthas_addr_tracker_init";
+}
+
+inline StringRef getRuntimeHookName() {
+  return "__arthas_track_addr";
+}
 
 class PmemAddrInstrumenter : public ModulePass {
  public:
