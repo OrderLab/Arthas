@@ -40,21 +40,39 @@ bool PmemAddrInstrumenter::runOnFunction(Function &F)
 
 bool PmemAddrInstrumenter::instrument(Instruction *instr) {
   Value *addr;
+  bool pool = false;
+
   if (isa<LoadInst>(instr)) {
     LoadInst *li = dyn_cast<LoadInst>(instr);
     addr = li->getPointerOperand();
   } else if (isa<StoreInst>(instr)) {
     StoreInst *si = dyn_cast<StoreInst>(instr);
     addr = si->getPointerOperand();
+  } else if(isa<CallInst>(instr)){
+    CallInst *ci = dyn_cast<CallInst>(instr);
+    Function *callee = ci->getCalledFunction();
+    if(callee->getName().compare("pmemobj_create") == 0){
+      pool = true;
+    }
+    else {
+      return false;
+    }
   } else {
     return false;
   }
+
   // TODO: insert a call instruction to the hook function with CallInst::Create.
   // Pass addr as an argument to this call instruction
   IRBuilder <> builder(*context);
   builder.SetInsertPoint(instr->getNextNode());
 
-  Value *str = builder.CreateGlobalStringPtr("address: %p\n");
+  Value *str;
+  if(pool){
+    str = builder.CreateGlobalStringPtr("POOL address: %p\n");
+  }else{
+    str = builder.CreateGlobalStringPtr("address: %p\n");
+  }
+  //Value *str = builder.CreateGlobalStringPtr("address: %p\n");
   std::vector<llvm::Value*> params;
   params.push_back(str);
   
