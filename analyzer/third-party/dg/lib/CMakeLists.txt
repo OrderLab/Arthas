@@ -115,6 +115,14 @@ if(APPLE)
 endif(APPLE)
 
 if (APPLE)
+  target_link_libraries(dgControlDependence
+        PRIVATE LLVMpta 
+				PRIVATE ${llvm_support}
+        PRIVATE ${llvm_core})
+  target_link_libraries(dgThreadRegions
+        PRIVATE LLVMpta 
+				PRIVATE ${llvm_support}
+        PRIVATE ${llvm_core})
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd

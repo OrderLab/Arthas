@@ -30,7 +30,7 @@ struct AnalysisOptions {
         fieldSensitivity = o; return *this;
     }
 
-    std::map<const std::string, AllocationFunction> allocationFunctions = {
+    std::map<std::string, AllocationFunction> allocationFunctions = {
         {"malloc", AllocationFunction::MALLOC},
         {"calloc", AllocationFunction::CALLOC},
         {"alloca", AllocationFunction::ALLOCA},
