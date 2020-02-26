@@ -1,0 +1,740 @@
+pmem_persist is 0x7f734a5c7000 with len 4096 and value PMEMOBJ or value 1296387408
+variable count in search is 0
+variable index is 0
+before memcpy variable count is 1
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+flush clwb no log is 0x7f734a5c7000 with len 4096 and value PMEMOBJ or value 1296387408
+pmem_persist is 0x7f7349202000 with len 3145728 and value  or value 0
+variable count in search is 1
+variable index is 1
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+flush clwb no log is 0x7f7349202000 with len 3145728 and value  or value 0
+pmem_persist is 0x7f7349502000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+variable count in search is 2
+variable index is 2
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+flush clwb no log is 0x7f7349502000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+flush clwb no log is 0x7f7349502440 with len 8 and value  or value 0
+pmem_persist is 0x7f7349201820 with len 8 and value  or value 5234688
+variable count in search is 3
+variable index is 3
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+flush clwb no log is 0x7f7349201820 with len 8 and value  or value 5234688
+pmem_persist is 0x7f7349201000 with len 2048 and value hello_layout or value 1819043176
+variable count in search is 4
+variable index is 4
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+flush clwb no log is 0x7f7349201000 with len 2048 and value hello_layout or value 1819043176
+pmem_persist is 0x7f7349201808 with len 8 and value  or value 0
+variable count in search is 5
+variable index is 5
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+flush clwb no log is 0x7f7349201808 with len 8 and value  or value 0
+pmem_persist is 0x7f7349201800 with len 8 and value  or value 0
+variable count in search is 6
+variable index is 6
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+flush clwb no log is 0x7f7349201800 with len 8 and value  or value 0
+pmem_persist is 0x7f7349201810 with len 8 and value  or value 0
+variable count in search is 7
+variable index is 7
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+flush clwb no log is 0x7f7349201810 with len 8 and value  or value 0
+pmem_persist is 0x7f7349201818 with len 8 and value  or value 0
+variable count in search is 8
+variable index is 8
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+flush clwb no log is 0x7f7349201818 with len 8 and value  or value 0
+flush clwb no log is 0x7f7349201830 with len 16 and value  or value 0
+pmem_persist is 0x7f7349201808 with len 8 and value  or value 2
+variable index is 5
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+flush clwb no log is 0x7f7349201808 with len 8 and value  or value 2
+pmem_persist is 0x7f7349201818 with len 8 and value  or value 0
+variable index is 8
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+flush clwb no log is 0x7f7349201818 with len 8 and value  or value 0
+create
+pmem_persist is 0x7f7349502440 with len 8 and value  or value 2
+variable count in search is 9
+variable index is 9
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+flush clwb no log is 0x7f7349502440 with len 8 and value  or value 2
+pmem_persist is 0x7f7349502400 with len 64 and value Ò¢ðÃ or value -1007639854
+variable count in search is 10
+variable index is 10
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+flush clwb no log is 0x7f7349502400 with len 64 and value Ò¢ðÃ or value -1007639854
+pmem_persist is 0x7f7349502440 with len 8 and value  or value 2
+variable index is 9
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+flush clwb no log is 0x7f7349502440 with len 8 and value  or value 2
+pmem_persist is 0x7f7349502448 with len 8 and value  or value 2
+variable count in search is 11
+variable index is 11
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+flush clwb no log is 0x7f7349502448 with len 8 and value  or value 2
+pmem_persist is 0x7f7349502440 with len 8 and value  or value 65538
+variable index is 9
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+flush clwb no log is 0x7f7349502440 with len 8 and value  or value 65538
+flush clwb no log is 0x7f7349582400 with len 320 and value € or value 128
+pmem_persist is 0x7f7349502448 with len 0 and value  or value 2
+variable index is 11
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+flush clwb no log is 0x7f7349502448 with len 0 and value  or value 2
+pmem_persist is 0x7f7349502440 with len 8 and value  or value 589828
+variable index is 9
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+flush clwb no log is 0x7f7349502440 with len 8 and value  or value 589828
+flush clwb no log is 0x7f73495c0550 with len 48 and value  or value 0
+before for loop
+before second for loop
+inside all for loops
+call the function
+flush clwb no log is 0x7f7349201810 with len 8 and value ( or value 40
+inside all for loops
+call the function
+flush clwb no log is 0x7f7349201800 with len 8 and value P< or value 3933520
+inside all for loops
+call the function
+flush clwb no log is 0x7f7349582508 with len 8 and value  or value 1
+inside all for loops
+root
+address of pmem double is 0x7f73495c05d0
+address of pmemint2 is 0x7f73495c0650
+flush clwb no log is 0x7f73495c05d0 with len 112 and value  or value 0
+flush clwb no log is 0x7f73495c0650 with len 112 and value  or value 12
+flush clwb no log is 0x7f73495c06d0 with len 112 and value  or value 1
+flush clwb no log is 0x7f73495c0750 with len 112 and value  or value 2
+flush clwb no log is 0x7f73495c07d0 with len 112 and value  or value 3
+flush clwb no log is 0x7f73495c0850 with len 112 and value  or value 4
+flush clwb no log is 0x7f73495c08d0 with len 112 and value  or value 5
+pmem_persist is 0x7f7349582508 with len 8 and value ÿ or value 255
+variable count in search is 12
+variable index is 12
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+address is 0x7f7349582508
+version is 0 size is 8 value is ÿ or -26815615859886712536169554547381774170420457367136870138103944267378733681913574341851045960059718335437362739910885912184642391418949176334285408883965952.000000 or 255 offset us 140133128480008
+flush clwb no log is 0x7f7349582508 with len 8 and value ÿ or value 255
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c0650 0x7f73495c0650 4
+op add buffer 0x7f73495c0650 0x7f73495c0650 4
+op add buffer 0x7f73495c06d0 0x7f73495c06d0 20
+op add buffer 0x7f73495c06d0 0x7f73495c06d0 20
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202418 and 3.000000 0x7f73495c05d0 8 10.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f7349200000, offset should be 9240
+before memcpy variable count is 1
+sa: 140133128734170 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202458 and 0.000000 0x7f73495c0650 4 0.000000
+undo value is 13 or 12 size is 4
+pop is 0x7f7349200000, offset should be 9304
+sa: 140133128734298 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202498 and 0.000000 0x7f73495c06d0 20 0.000000
+undo value is 1 or 1 size is 20
+pop is 0x7f7349200000, offset should be 9368
+sa: 140133128734426 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+address is 0x7f73495c06d0
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 9368
+flush clwb no log is 0x7f73495c05d0 with len 8 and value  or value 0
+flush clwb no log is 0x7f73495c0650 with len 4 and value  or value 13
+flush clwb no log is 0x7f73495c06d0 with len 20 and value  or value 1
+pmem_persist is 0x7f73492023d8 with len 8 and value  or value 1
+variable count in search is 13
+variable index is 13
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+address is 0x7f7349582508
+version is 0 size is 8 value is ÿ or -26815615859886712536169554547381774170420457367136870138103944267378733681913574341851045960059718335437362739910885912184642391418949176334285408883965952.000000 or 255 offset us 140133128480008
+address is 0x7f73492023d8
+version is 0 size is 8 value is  or 0.000000 or 1 offset us 140133124809688
+flush clwb no log is 0x7f73492023d8 with len 8 and value  or value 1
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c0650 0x7f73495c0650 4
+op add buffer 0x7f73495c0650 0x7f73495c0650 4
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202418 and 10.000000 0x7f73495c05d0 8 11.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f7349200000, offset should be 9240
+sa: 140133128734170 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+version is 1 size is 8 value is  or 10.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+address is 0x7f73495c06d0
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 9368
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202458 and 0.000000 0x7f73495c0650 4 0.000000
+undo value is 4 or 13 size is 4
+pop is 0x7f7349200000, offset should be 9304
+sa: 140133128734298 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+version is 1 size is 8 value is  or 10.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+version is 1 size is 4 value is  or 0.000000 or 13 offset us 9304
+address is 0x7f73495c06d0
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 9368
+flush clwb no log is 0x7f73495c05d0 with len 8 and value  or value 0
+flush clwb no log is 0x7f73495c0650 with len 4 and value  or value 4
+pmem_persist is 0x7f73492023d8 with len 8 and value  or value 2
+variable index is 13
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+address is 0x7f7349582508
+version is 0 size is 8 value is ÿ or -26815615859886712536169554547381774170420457367136870138103944267378733681913574341851045960059718335437362739910885912184642391418949176334285408883965952.000000 or 255 offset us 140133128480008
+address is 0x7f73492023d8
+version is 0 size is 8 value is  or 0.000000 or 1 offset us 140133124809688
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124809688
+flush clwb no log is 0x7f73492023d8 with len 8 and value  or value 2
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202418 and 11.000000 0x7f73495c05d0 8 8.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f7349200000, offset should be 9240
+sa: 140133128734170 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 9240
+version is 1 size is 8 value is  or 10.000000 or 0 offset us 9240
+version is 2 size is 8 value is  or 11.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+version is 1 size is 4 value is  or 0.000000 or 13 offset us 9304
+address is 0x7f73495c06d0
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 9368
+flush clwb no log is 0x7f73495c05d0 with len 8 and value  or value 0
+pmem_persist is 0x7f73492023d8 with len 8 and value  or value 3
+variable index is 13
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+address is 0x7f7349582508
+version is 0 size is 8 value is ÿ or -26815615859886712536169554547381774170420457367136870138103944267378733681913574341851045960059718335437362739910885912184642391418949176334285408883965952.000000 or 255 offset us 140133128480008
+address is 0x7f73492023d8
+version is 0 size is 8 value is  or 0.000000 or 1 offset us 140133124809688
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124809688
+version is 2 size is 8 value is  or 0.000000 or 3 offset us 140133124809688
+flush clwb no log is 0x7f73492023d8 with len 8 and value  or value 3
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+op add buffer 0x7f73495c05d0 0x7f73495c05d0 8
+correct case statement
+going in copy checkpoint
+undo here is 0x7f7349202418 and 8.000000 0x7f73495c05d0 8 50.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f7349200000, offset should be 9240
+sa: 140133128734170 ub:234119822004120 ad_num: 140133128734160
+good
+print begin
+address is 0x7f73495c05d0
+version is 0 size is 8 value is  or 10.000000 or 0 offset us 9240
+version is 1 size is 8 value is  or 11.000000 or 0 offset us 9240
+version is 2 size is 8 value is  or 8.000000 or 0 offset us 9240
+address is 0x7f73495c0650
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 9304
+version is 1 size is 4 value is  or 0.000000 or 13 offset us 9304
+address is 0x7f73495c06d0
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 9368
+flush clwb no log is 0x7f73495c05d0 with len 8 and value  or value 0
+pmem_persist is 0x7f73492023d8 with len 8 and value  or value 4
+variable index is 13
+print begin
+address is 0x7f734a5c7000
+version is 0 size is 4096 value is PMEMOBJ or 0.000000 or 1296387408 offset us 140133145538560
+address is 0x7f7349202000
+version is 0 size is 3145728 value is  or 0.000000 or 0 offset us 140133124808704
+address is 0x7f7349502000
+version is 0 size is 1024 value is MEMORY_HEAP_HDR or 42669928171794897963858767128691837239296.000000 or 1330464077 offset us 140133127954432
+address is 0x7f7349201820
+version is 0 size is 8 value is  or 0.000000 or 5234688 offset us 140133124806688
+address is 0x7f7349201000
+version is 0 size is 2048 value is hello_layout or 199448053184319443587465101058770985225577315257548178646969180596548461646047232642771564338882276411826320139411246666641585322175717923983572488179508272168960.000000 or 1819043176 offset us 140133124804608
+address is 0x7f7349201808
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806664
+version is 1 size is 8 value is  or 0.000000 or 2 offset us 140133124806664
+address is 0x7f7349201800
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806656
+address is 0x7f7349201810
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806672
+address is 0x7f7349201818
+version is 0 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+version is 1 size is 8 value is  or 0.000000 or 0 offset us 140133124806680
+address is 0x7f7349502440
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955520
+version is 1 size is 8 value is  or 0.000000 or 65538 offset us 140133127955520
+version is 2 size is 8 value is  or 0.000000 or 589828 offset us 140133127955520
+address is 0x7f7349502400
+version is 0 size is 64 value is Ò¢ðÃ or 0.000000 or -1007639854 offset us 140133127955456
+address is 0x7f7349502448
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133127955528
+version is 1 size is 0 value is  or 0.000000 or 0 offset us 140133127955528
+address is 0x7f7349582508
+version is 0 size is 8 value is ÿ or -26815615859886712536169554547381774170420457367136870138103944267378733681913574341851045960059718335437362739910885912184642391418949176334285408883965952.000000 or 255 offset us 140133128480008
+address is 0x7f73492023d8
+version is 0 size is 8 value is  or 0.000000 or 2 offset us 140133124809688
+version is 1 size is 8 value is  or 0.000000 or 3 offset us 140133124809688
+version is 2 size is 8 value is  or 0.000000 or 4 offset us 140133124809688
+flush clwb no log is 0x7f73492023d8 with len 8 and value  or value 4
+0x7f73495c05d0 0x7f73495c0650
+ints are 50.000000 and 4

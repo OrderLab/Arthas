@@ -41,6 +41,40 @@ bool PmemAddrInstrumenter::runOnFunction(Function &F)
   return false; 
 }
 
+bool PmemAddrInstrumenter::registerHook(Module &M){
+  AddrHookFunction = M.getFunction("printf");
+  if(!AddrHookFunction){
+    errs() << "could not find printf\n";
+    return false;
+  }
+  else{
+    errs() << "found printf\n";
+    return true;
+  }
+  return false;
+}
+
+bool PmemAddrInstrumenter::runOnSlice(llvm::slicing::DgSlice slice,
+ std::map<Value *, Instruction *> pmemMetadata ){
+
+  llvm::Value *v = slice.root_node->getValue();
+  if(pmemMetadata.find(v) != pmemMetadata.end()){
+     //found element
+     instrument(pmemMetadata.at(v));
+  }
+  for(auto i = slice.dep_nodes.begin(); i != slice.dep_nodes.end(); ++i){
+    //for each node, check if instruction is a persistent value. If it is
+    //then get definition point
+    dg::LLVMNode *n = *i;
+    v = n->getValue();
+    if(pmemMetadata.find(v) != pmemMetadata.end()){
+       //found element
+       instrument(pmemMetadata.at(v));
+    }
+  }
+  return false;
+}
+
 bool PmemAddrInstrumenter::instrument(Instruction *instr) {
   Value *addr;
   bool pool = false;

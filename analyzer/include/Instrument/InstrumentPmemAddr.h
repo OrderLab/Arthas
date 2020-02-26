@@ -21,8 +21,9 @@
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/BasicBlock.h"
+#include "Slicing/Slicer.h"
+#include "Slicing/Slice.h"
 #include "PMem/Extractor.h"
-
 
 namespace llvm {
 namespace instrument {
@@ -39,8 +40,10 @@ class PmemAddrInstrumenter : public ModulePass {
  public:
   static char ID;
 
+  bool registerHook(Module &M);
   bool runOnFunction(Function &F);
   bool runOnModule(Module &M);
+  bool runOnSlice(llvm::slicing::DgSlice slice, std::map<Value *, Instruction *> pmemMetadata);
   bool runOnBasicBlock(Function::iterator &BB);
   PmemAddrInstrumenter() : ModulePass(ID) {}
 
@@ -52,6 +55,7 @@ class PmemAddrInstrumenter : public ModulePass {
   Function *AddrHookFunction;
   LLVMContext *context;
   Value *pool_addr;
+  int count;
 };
 
 } // namespace llvm

@@ -17,6 +17,7 @@
 #include "Matcher/Matcher.h"
 #include "Slicing/Slicer.h"
 #include "Utils/String.h"
+#include "Instrument/InstrumentPmemAddr.h"
 
 using namespace std;
 using namespace llvm;
@@ -57,7 +58,7 @@ class SlicingPass : public ModulePass {
   virtual bool runOnModule(Module &M) override;
   bool parseSlicingOption(Module &M);
 
-  bool instructionSlice(Instruction *fault_instruction, Function &F, vector<Instruction *> &pmem_instrs);
+  bool instructionSlice(Instruction *fault_instruction, Function &F, vector<Instruction *> &pmem_instrs, Module &M);
   bool definitionPoint(Function &F, pmem::PMemVariableLocator &locator);
   void pmemInstructionSet(Function &F, pmem::PMemVariableLocator &locator,
                           vector<Instruction *> &pmem_instrs);
@@ -144,10 +145,12 @@ bool SlicingPass::parseSlicingOption(Module &M) {
 }
 
 bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
-                                   vector<Instruction *> &pmem_instrs)
+                                   vector<Instruction *> &pmem_instrs, Module &M)
 {
   ofstream outputFile("program3data.txt");
   outputFile << "starting instructionSlice\n" << flush;;
+  llvm::instrument::PmemAddrInstrumenter p_inst;
+  p_inst.registerHook(M);
 
   //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
   //of persistent variables
@@ -174,6 +177,10 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
     i->dump();
     i->set_persistence(pmem_instrs);
     count++;
+    if(count == 3){
+      DgSlice i_slice = *i;
+      p_inst.runOnSlice(i_slice, pmemMetadata);
+    }
   }
   sg.root->dump(0);
   outputFile << "Finished slicing\n" << flush;;
@@ -194,7 +201,7 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
   dgSlicer->slices.insert(dgSlice);
 
   //Forward Slice
-  list<list<const Instruction *>>  slice_list2;
+  /*list<list<const Instruction *>>  slice_list2;
   dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
   dg::LLVMSlicer slicer2;
   dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
@@ -205,8 +212,8 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
   errs() << "forward sliced\n";
   dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
   errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " << st2.nodesTotal << " nodes\n";
-
-  return false;
+  */
+  return true;
 }
 
 bool SlicingPass::runOnModule(Module &M) {
@@ -249,8 +256,8 @@ bool SlicingPass::runOnModule(Module &M) {
         }*/
       if(a == 30 && b == 0){
         fault_inst = &*ii;
-        instructionSlice(fault_inst, F, pmem_instrs);
-        llvm::errs() << "function is " << F << "\n";
+        instructionSlice(fault_inst, F, pmem_instrs,  M);
+        //llvm::errs() << "function is " << F << "\n";
         goto stop;
       }
       a++;
@@ -258,7 +265,8 @@ bool SlicingPass::runOnModule(Module &M) {
     b++;
   }
   stop:
-  return false;
+  llvm::errs() << "done with run on module\n";
+  return true;
 }
 
 void SlicingPass::pmemInstructionSet(Function &F,
@@ -278,7 +286,7 @@ bool SlicingPass::definitionPoint(Function &F, pmem::PMemVariableLocator &locato
     for (auto ui = g.begin(); ui != g.end(); ++ui) {
       Value& c = const_cast<Value&>(*ui->first);
       if(Instruction *Inst = dyn_cast<Instruction>(&c)){
-        //llvm::errs() << "value is " << *Inst << "\n";
+        llvm::errs() << "Def point value is " << *Inst << "\n";
         pmemMetadata.insert(std::pair<Value *, Instruction *>(&b, Inst));
       }
     }

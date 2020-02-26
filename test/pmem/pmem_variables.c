@@ -72,6 +72,16 @@ void write_hello_string(char *buf, char *path){
 		*pmem_int_ptr2 = 4;
         }TX_END
 
+	TX_BEGIN(pop){
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+               *pmem_double_ptr = 8;
+	}TX_END
+
+	TX_BEGIN(pop){
+                pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+               *pmem_double_ptr = 50;
+	}TX_END
+
 	printf("%p %p\n", pmem_double_ptr, pmem_int_ptr2);
 	printf("ints are %f and %d\n", *pmem_double_ptr, *pmem_int_ptr2);
         int a;
