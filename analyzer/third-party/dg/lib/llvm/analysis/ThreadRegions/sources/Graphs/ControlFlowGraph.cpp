@@ -1,5 +1,7 @@
 #include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
 
+#include <iostream>
+
 #include "GraphBuilder.h"
 #include "ThreadRegionsBuilder.h"
 #include "CriticalSectionsBuilder.h"

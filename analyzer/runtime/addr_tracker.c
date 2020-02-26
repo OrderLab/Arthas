@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "addr_tracker.h"
 
 FILE *__arthas_tracker_file;
 

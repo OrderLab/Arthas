@@ -26,6 +26,10 @@ add_library(dgllvmslicer SHARED
 	    llvm-slicer-utils.cpp llvm-slicer-utils.h
 	    llvm-slicer.h)
 
+if (APPLE)
+  target_link_libraries(dgllvmslicer PUBLIC LLVMdg)
+endif(APPLE)
+
 add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
 target_link_libraries(llvm-slicer 
       PRIVATE dgllvmslicer

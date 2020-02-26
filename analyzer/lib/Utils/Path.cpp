@@ -160,8 +160,7 @@ char *canonpath(const char *name, char *resolved) {
         rpath_limit = rpath + new_size;
         dest = rpath + dest_offset;
       }
-
-      mempcpy (dest, start, end - start);
+      memcpy(dest, start, end - start);
       dest += (end - start);
       *dest = '\0';
     }

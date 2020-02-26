@@ -59,3 +59,36 @@ add_library(LLVMSlicer MODULE
 target_link_libraries(LLVMSlicer
   PUBLIC Slicer
 )
+
+if (APPLE)
+  set_target_properties(PMem PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+endif(APPLE)
+
+if (APPLE)
+  target_link_libraries(PMem
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_core})
+      target_link_libraries(LLVMPMem
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_core})
+  target_link_libraries(Utils
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_core})
+  target_link_libraries(Matcher
+        PRIVATE Utils
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_core})
+  target_link_libraries(LLVMSlicer
+        PRIVATE LLVMdg
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_core})
+  target_link_libraries(Instrument
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_core})
+endif(APPLE)
