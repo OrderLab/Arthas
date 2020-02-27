@@ -179,7 +179,13 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
     count++;
     if(count == 3){
       DgSlice i_slice = *i;
-      p_inst.runOnSlice(i_slice, pmemMetadata);
+      if(i_slice.persistence == SlicePersistence::Volatile){
+        errs() << "slice is volatile, do nothing\n";
+      }
+      else{
+         errs() << "slice is persistent or mixed, instrument it\n";
+        p_inst.runOnSlice(i_slice, pmemMetadata);
+      }
     }
   }
   sg.root->dump(0);
