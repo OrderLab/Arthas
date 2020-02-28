@@ -162,6 +162,33 @@ Matched function <write_hello_string>()@test/pmem/hello_libpmem.c:51,75
 - matched instruction:   %15 = call i8* @strcpy(i8* %13, i8* %14) #8, !dbg !39
 ```
 
+## Instrumented program to print address
+```
+$ cd build
+$ ../scripts/instrument-compile.sh --output loop1-instrumented ../test/loop1.bc
+
+$ ./loop1-instrumented
+
+openning address tracker output file pmem_addr_pid_8224.dat
+address: 0x7ffd58998d1c
+address: 0x7ffd58998d18
+address: 0x7ffd58998d10
+address: 0x7ffd58998d18
+Enter input: 30
+...
+address: 0x7ffd58998c3c
+address: 0x7ffd58998c3c
+address: 0x7ffd58998c3c
+address: 0x7ffd58998c4c
+address: 0x7ffd58998c40
+address: 0x7ffd58998d00
+address: 0x7ffd58998d0c
+address: 0x7ffd58998d00
+result for input 30 is 362880
+address: 0x7ffd58998d1c
+
+```
+
 # Code Style
 
 ### Command-Line
