@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -g -std=c++11 -Wall -Wextra -W
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(analyzer)
+add_subdirectory(reactor)
 
 # Make clang-format into a make target to enforce coding style
 # http://mariobadr.com/using-clang-format-to-enforce-style.html
