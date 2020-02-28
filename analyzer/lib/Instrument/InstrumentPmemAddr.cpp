@@ -14,11 +14,34 @@ using namespace llvm::instrument;
 
 bool PmemAddrInstrumenter::runOnModule(Module &M) 
 {
+  Function *main = M.getFunction("main");
+  if (!main)
+    return false;
+
+  IRBuilder<> builder(cast<Instruction>(main->front().getFirstInsertionPt()));
+  StringRef funcName = getRuntimeHookInitName();
+  // Function *hookInitFunc = M.getFunction(funcName);
+  Function *hookInitFunc = cast<Function>(M.getOrInsertFunction(funcName, builder.getVoidTy()));
+  AddrHookFunction = M.getFunction(funcName);
+  if (!hookInitFunc) {
+    errs() << "could not find address hook function " << funcName << "\n";
+    return false;
+  }
+  else {
+    errs() << "found hook function " << funcName << "\n";
+  }
+  errs() << "found address hook function " << funcName << "\n";
+  builder.CreateCall(hookInitFunc);
+
+  // FIXME: use the address tracker runtime lib tracing APIs
   AddrHookFunction = M.getFunction("printf");
-  if(!AddrHookFunction)
+  if (!AddrHookFunction) {
     errs() << "could not find printf\n";
-  else
+    return false;
+  }
+  else {
     errs() << "found printf\n";
+  }
 
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;

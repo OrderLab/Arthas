@@ -71,7 +71,7 @@ if (APPLE)
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_core})
-      target_link_libraries(LLVMPMem
+  target_link_libraries(LLVMPMem
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_core})
