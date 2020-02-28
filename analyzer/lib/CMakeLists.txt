@@ -49,6 +49,7 @@ target_link_libraries(Slicer
   PUBLIC Matcher
   PUBLIC Utils
   PUBLIC PMem
+  PUBLIC Instrument
   PRIVATE LLVMdg
 )
 
