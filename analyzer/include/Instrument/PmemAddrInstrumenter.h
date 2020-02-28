@@ -9,21 +9,22 @@
 #ifndef __INSTRUMENT_PMEMADDR_H_
 #define __INSTRUMENT_PMEMADDR_H_
 
-#include "llvm/ADT/StringRef.h"
+#include "PMem/Extractor.h"
+#include "Slicing/Slice.h"
+#include "Slicing/Slicer.h"
+
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Instruction.h"
-#include "llvm/Transforms/Instrumentation.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/IR/BasicBlock.h"
-#include "Slicing/Slicer.h"
-#include "Slicing/Slice.h"
-#include "PMem/Extractor.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Instrumentation.h"
 
 namespace llvm {
 namespace instrument {
@@ -38,6 +39,10 @@ inline StringRef getRuntimeHookName() {
 
 inline StringRef getTrackDumpHookName() {
   return "__arthas_addr_tracker_dump";
+}
+
+inline StringRef getTrackHookFinishName() {
+  return "__arthas_addr_tracker_finish";
 }
 
 class PmemAddrInstrumenter {
@@ -58,11 +63,15 @@ class PmemAddrInstrumenter {
   bool initialized;
 
   Function *main;
+
   Function *trackAddrFunc;
   Function *trackerInitFunc;
   Function *trackerDumpFunc;
+  Function *trackerFinishFunc;
+
   Function *printfFunc;
 
+  PointerType *I8PtrTy;
   Value *pool_addr;
   int count;
 };

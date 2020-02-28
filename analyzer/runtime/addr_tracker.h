@@ -18,11 +18,12 @@
 extern "C" {
 #endif
 
-extern inline char *__arthas_tracker_file_name(char * buf);
-extern inline void __arthas_track_addr(void *addr);
+extern inline char *__arthas_tracker_file_name(char *buf);
+extern inline void __arthas_track_addr(char *addr);
 
 void __arthas_addr_tracker_init();
 bool __arthas_addr_tracker_dump();
+void __arthas_addr_tracker_finish();
 
 #ifdef __cplusplus
 }  // extern "C"
