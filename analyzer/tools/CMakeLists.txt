@@ -15,3 +15,15 @@ target_link_libraries(locator
   PRIVATE ${llvm_irreader}
   PRIVATE ${llvm_core}
 )
+
+add_executable(instrumentor instrumentor/main.cpp)
+target_link_libraries(instrumentor
+  PRIVATE Instrument
+  PRIVATE AddrTracker
+  PRIVATE Utils
+  PRIVATE Matcher
+)
+target_link_libraries(instrumentor
+  PRIVATE ${llvm_irreader}
+  PRIVATE ${llvm_core}
+)

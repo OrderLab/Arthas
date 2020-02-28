@@ -54,7 +54,9 @@ include_directories(third-party/LLVMSlicer/include)
 # add Weiser slicer's lib to link path
 link_directories(third-party/LLVMSlicer/lib)
 
-add_subdirectory(lib)
+link_directories(runtime)
 add_subdirectory(runtime)
+
+add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(third-party)
