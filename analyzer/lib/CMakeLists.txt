@@ -14,7 +14,8 @@ add_library(Matcher SHARED
 )
 
 add_library(Instrument SHARED
-  Instrument/InstrumentPmemAddr.cpp
+  Instrument/PmemAddrInstrumenter.cpp
+  Instrument/InstrumentPmemAddrPass.cpp
 )
 
 target_link_libraries(Instrument

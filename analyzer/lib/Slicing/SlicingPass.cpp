@@ -14,10 +14,10 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "DefUse/DefUse.h"
+#include "Instrument/PmemAddrInstrumenter.h"
 #include "Matcher/Matcher.h"
 #include "Slicing/Slicer.h"
 #include "Utils/String.h"
-#include "Instrument/InstrumentPmemAddr.h"
 
 using namespace std;
 using namespace llvm;
@@ -150,7 +150,7 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
   ofstream outputFile("program3data.txt");
   outputFile << "starting instructionSlice\n" << flush;;
   llvm::instrument::PmemAddrInstrumenter p_inst;
-  p_inst.registerHook(M);
+  p_inst.initHookFuncs(M);
 
   //Take faulty instruction and walk through Dependency Graph to obtain slices + metadata
   //of persistent variables
@@ -183,8 +183,8 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function &F,
         errs() << "slice is volatile, do nothing\n";
       }
       else{
-         errs() << "slice is persistent or mixed, instrument it\n";
-        p_inst.runOnSlice(i_slice, pmemMetadata);
+        errs() << "slice is persistent or mixed, instrument it\n";
+        p_inst.instrumentSlice(i_slice, pmemMetadata);
       }
     }
   }

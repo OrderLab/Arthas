@@ -36,24 +36,33 @@ inline StringRef getRuntimeHookName() {
   return "__arthas_track_addr";
 }
 
-class PmemAddrInstrumenter : public ModulePass {
- public:
-  static char ID;
+inline StringRef getTrackDumpHookName() {
+  return "__arthas_addr_tracker_dump";
+}
 
-  bool registerHook(Module &M);
-  bool runOnFunction(Function &F);
-  bool runOnModule(Module &M);
-  bool runOnSlice(llvm::slicing::DgSlice slice, std::map<Value *, Instruction *> pmemMetadata);
-  bool runOnBasicBlock(Function::iterator &BB);
-  PmemAddrInstrumenter() : ModulePass(ID) {}
+class PmemAddrInstrumenter {
+ public:
+  PmemAddrInstrumenter() : initialized(false) {}
+
+  bool initHookFuncs(Module &M);
+
+  // instrument the persistent points in a slice
+  bool instrumentSlice(llvm::slicing::DgSlice slice,
+                  std::map<Value *, Instruction *> pmemMetadata);
 
   // instrument a call to hook func before an instruction.
   // this instruction must be a LoadInst or StoreInst
-  bool instrument(Instruction * instr);
+  bool instrumentInstr(Instruction * instr);
 
  protected:
-  Function *AddrHookFunction;
-  LLVMContext *context;
+  bool initialized;
+
+  Function *main;
+  Function *trackAddrFunc;
+  Function *trackerInitFunc;
+  Function *trackerDumpFunc;
+  Function *printfFunc;
+
   Value *pool_addr;
   int count;
 };
