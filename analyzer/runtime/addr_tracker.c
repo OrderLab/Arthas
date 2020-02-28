@@ -4,7 +4,7 @@ FILE *__arthas_tracker_file;
 
 #define MAX_FILE_NAME_SIZE 128
 
-inline char *__arthas_tracker_file_name(char * buf)
+char *__arthas_tracker_file_name(char * buf)
 {
   snprintf(buf, 128, "pmem_addr_pid_%d.dat", getpid()); 
   return buf;
