@@ -19,8 +19,7 @@ extern "C" {
 #endif
 
 extern inline char *__arthas_tracker_file_name(char *buf);
-extern inline void __arthas_track_addr(char *addr, const char *scope,
-                                       unsigned int line);
+extern inline void __arthas_track_addr(char *addr, unsigned int guid);
 
 void __arthas_addr_tracker_init();
 bool __arthas_addr_tracker_dump();

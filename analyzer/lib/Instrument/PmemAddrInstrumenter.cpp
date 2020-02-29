@@ -6,14 +6,24 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include "Instrument/PmemAddrInstrumenter.h"
+
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
-#include "Instrument/PmemAddrInstrumenter.h"
+#include <fstream>
+#include <iostream>
 
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
+
+unsigned int llvm::instrument::PmemVarGuidStart = 200;
+const char *llvm::instrument::PmemVarGuidFileFieldSep = "##";
+
+static unsigned int PmemVarCurrentGuid = llvm::instrument::PmemVarGuidStart;
 
 bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   if (initialized) {
@@ -55,7 +65,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   }
 
   trackAddrFunc = cast<Function>(M.getOrInsertFunction(
-      getRuntimeHookName(), VoidTy, I8PtrTy, I8PtrTy, I32Ty, nullptr));
+      getRuntimeHookName(), VoidTy, I8PtrTy, I32Ty, nullptr));
   if (!trackAddrFunc) {
     errs() << "could not find function " << getRuntimeHookName() << "\n";
     return false;
@@ -130,7 +140,8 @@ bool PmemAddrInstrumenter::instrumentSlice(
   return false;
 }
 
-bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
+bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr)
+{
   Value *addr;
   bool pool = false;
   if (isa<LoadInst>(instr)) {
@@ -143,9 +154,9 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
     if(callee->getName().compare("pmemobj_create") == 0){
+      // FIXME: variable 'addr' is used uninitialized!
       pool = true;
-    }
-    else {
+    } else {
       return false;
     }
   } else {
@@ -174,15 +185,51 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
 
   // insert an __arthas_track_addr call
   // need to explicitly cast the address, which could be i32* or i64*, to i8*
-  auto &Loc = instr->getDebugLoc();
-  unsigned int line = 0;
-  if (Loc) {
-    line = Loc.getLine();
-  }
-  Function *func = instr->getFunction();
-  auto funcName = builder.CreateGlobalStringPtr(func->getName().data());
+
+  hookPointGuidMap[PmemVarCurrentGuid] = instr;
   auto i8addr = builder.CreateBitCast(addr, I8PtrTy);
-  auto lineNo = ConstantInt::get(I32Ty, line, false);
-  builder.CreateCall(trackAddrFunc, {i8addr, funcName, lineNo});
+  auto guid = ConstantInt::get(I32Ty, PmemVarCurrentGuid, false);
+  builder.CreateCall(trackAddrFunc, {i8addr, guid});
+  PmemVarCurrentGuid++;
   return true;
+}
+
+void PmemAddrInstrumenter::dumpHookGuidMapToFile(std::string fileName) 
+{
+  std::ofstream guidfile(fileName);
+  if (!guidfile.is_open()) {
+    errs() << "Failed to open " << fileName << " for writing guid map\n";
+    return;
+  }
+  for (auto gi = hookPointGuidMap.begin(); gi != hookPointGuidMap.end(); ++gi) {
+    unsigned int guid = gi->first;
+    Instruction *instr = gi->second;
+    auto &Loc = instr->getDebugLoc();
+    Function *func = instr->getFunction();
+    DISubprogram *SP = func->getSubprogram();
+    unsigned int line = 0;
+    if (Loc) {
+      line = Loc.getLine();
+    } else {
+      // if this instruction does not have attached metadata, we assume it
+      // is the beginning of the function, and use the function line number 
+      line = SP->getLine(); 
+    }
+    std::string instr_str;
+    llvm::raw_string_ostream rso(instr_str);
+    instr->print(rso);
+
+    // Now output the key information for this instrumented instruction, each
+    // piece of information is separated by the field separator. Later we will
+    // use this guid information to locate the LLVM instruction for a printed address.
+    //
+    // The more information we record in this map, the better it helps with 
+    // precisely locating the instruction. If, for example, we only record the
+    // file name and line number, there could be multiple LLVM instructions.
+    guidfile << guid << PmemVarGuidFileFieldSep << SP->getDirectory().data() << PmemVarGuidFileFieldSep;
+    guidfile << SP->getFilename().data() << PmemVarGuidFileFieldSep;
+    guidfile << func->getName().data() << PmemVarGuidFileFieldSep;
+    guidfile << line << PmemVarGuidFileFieldSep << instr_str << "\n";
+  }
+  guidfile.close();
 }

@@ -6,12 +6,18 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-
 #include "Instrument/PmemAddrInstrumenter.h"
 
+#include "llvm/Support/CommandLine.h"
+
+using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
+
+static cl::opt<string> HookGuidFile(
+    "guid-ouput", cl::desc("File to write the hook GUID map file"),
+    cl::init("hook_guids.dat"), cl::value_desc("file"));
 
 namespace {
 class InstrumentPmemAddrPass: public ModulePass {
@@ -35,6 +41,7 @@ bool InstrumentPmemAddrPass::runOnModule(Module &M)
     Function &F = *I;
     runOnFunction(F);
   }
+  instrumenter->dumpHookGuidMapToFile(HookGuidFile);
   return false;
 }
 

@@ -26,8 +26,14 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
 
+#include <map>
+#include <string>
+
 namespace llvm {
 namespace instrument {
+
+extern unsigned int PmemVarGuidStart;
+extern const char *PmemVarGuidFileFieldSep;
 
 inline StringRef getRuntimeHookInitName() {
   return "__arthas_addr_tracker_init";
@@ -59,6 +65,10 @@ class PmemAddrInstrumenter {
   // this instruction must be a LoadInst or StoreInst
   bool instrumentInstr(Instruction * instr);
 
+  // dump the guid to instruction map to file so that we can later connect the
+  // address back to the LLVM instruction
+  void dumpHookGuidMapToFile(std::string fileName);
+
  protected:
   bool initialized;
 
@@ -75,6 +85,8 @@ class PmemAddrInstrumenter {
   PointerType *I8PtrTy;
   Value *pool_addr;
   int count;
+
+  std::map<unsigned int, Instruction *> hookPointGuidMap;
 };
 
 } // namespace llvm
