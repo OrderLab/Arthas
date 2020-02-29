@@ -26,10 +26,10 @@ void __arthas_addr_tracker_init()
   __arthas_tracker_file = fopen(filename, "w");
 }
 
-inline void __arthas_track_addr(char *addr) 
+inline void __arthas_track_addr(char *addr, const char *scope, unsigned int line) 
 {
   // TODO: replace the fprintf with buffering and async write
-  fprintf(__arthas_tracker_file, "%p,%s,%d\n", addr, __FILE__, __LINE__);
+  fprintf(__arthas_tracker_file, "%p,%s,%d\n", addr, scope, line);
 }
 
 bool __arthas_addr_tracker_dump()

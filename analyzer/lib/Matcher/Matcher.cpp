@@ -66,7 +66,7 @@ llvm::raw_ostream & operator<<(llvm::raw_ostream& os, const MatchResult& result)
 }
 
 unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {
-  auto Loc = I->getDebugLoc();
+  auto & Loc = I->getDebugLoc();
   if (!Loc) {
     if (DEBUG_MATCHER) {
       errs() << "Unknown LOC" << "\n";
@@ -91,7 +91,7 @@ unsigned ScopeInfoFinder::getLastLine(Function *F)
     return 0;
   const BasicBlock & BB = F->back();
   const Instruction & I = BB.back();
-  auto Loc = I.getDebugLoc();
+  auto & Loc = I.getDebugLoc();
   if (!Loc) return 0;
   return Loc.getLine();
 }

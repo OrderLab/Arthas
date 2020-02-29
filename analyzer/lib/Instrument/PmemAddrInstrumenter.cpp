@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include "llvm/IR/Constants.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
 #include "Instrument/PmemAddrInstrumenter.h"
@@ -27,8 +28,9 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 
   auto &llvm_context = M.getContext();
   auto I1Ty = Type::getInt1Ty(llvm_context);
-  auto I32Ty = Type::getInt32Ty(llvm_context);
   auto VoidTy = Type::getVoidTy(llvm_context);
+
+  I32Ty = Type::getInt32Ty(llvm_context);
 
   // need i8* for later arthas_track_addr call
   I8PtrTy = Type::getInt8PtrTy(llvm_context);
@@ -52,7 +54,8 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "found tracker initialization function " << funcName << "\n";
   }
 
-  trackAddrFunc = cast<Function>(M.getOrInsertFunction(getRuntimeHookName(), VoidTy, I8PtrTy, nullptr));
+  trackAddrFunc = cast<Function>(M.getOrInsertFunction(
+      getRuntimeHookName(), VoidTy, I8PtrTy, I8PtrTy, I32Ty, nullptr));
   if (!trackAddrFunc) {
     errs() << "could not find function " << getRuntimeHookName() << "\n";
     return false;
@@ -171,7 +174,15 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
 
   // insert an __arthas_track_addr call
   // need to explicitly cast the address, which could be i32* or i64*, to i8*
-  auto addr2 = builder.CreateBitCast(addr, I8PtrTy);
-  builder.CreateCall(trackAddrFunc, addr2);
+  auto &Loc = instr->getDebugLoc();
+  unsigned int line = 0;
+  if (Loc) {
+    line = Loc.getLine();
+  }
+  Function *func = instr->getFunction();
+  auto funcName = builder.CreateGlobalStringPtr(func->getName().data());
+  auto i8addr = builder.CreateBitCast(addr, I8PtrTy);
+  auto lineNo = ConstantInt::get(I32Ty, line, false);
+  builder.CreateCall(trackAddrFunc, {i8addr, funcName, lineNo});
   return true;
 }

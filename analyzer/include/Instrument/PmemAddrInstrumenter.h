@@ -71,6 +71,7 @@ class PmemAddrInstrumenter {
 
   Function *printfFunc;
 
+  IntegerType *I32Ty;
   PointerType *I8PtrTy;
   Value *pool_addr;
   int count;
