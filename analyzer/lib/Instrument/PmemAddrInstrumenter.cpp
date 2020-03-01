@@ -16,6 +16,8 @@
 #include <fstream>
 #include <iostream>
 
+#define DEBUG_TYPE "pmem-addr-instrumenter"
+
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
@@ -61,7 +63,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     return false;
   }
   else {
-    errs() << "found tracker initialization function " << funcName << "\n";
+    DEBUG(dbgs() << "found tracker initialization function " << funcName << "\n");
   }
 
   trackAddrFunc = cast<Function>(M.getOrInsertFunction(
@@ -70,7 +72,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "could not find function " << getRuntimeHookName() << "\n";
     return false;
   } else {
-    errs() << "found track address function " << getRuntimeHookName() << "\n";
+    DEBUG(dbgs() << "found track address function " << getRuntimeHookName() << "\n");
   }
 
   trackerDumpFunc = cast<Function>(M.getOrInsertFunction(getTrackDumpHookName(), I1Ty, nullptr));
@@ -79,7 +81,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     return false;
   }
   else {
-    errs() << "found track dump function " << getTrackDumpHookName() << "\n";
+    DEBUG(dbgs() << "found track dump function " << getTrackDumpHookName() << "\n");
   }
 
   trackerFinishFunc = cast<Function>(M.getOrInsertFunction(getTrackHookFinishName(), VoidTy, nullptr));
@@ -87,7 +89,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "could not find function " << getTrackHookFinishName() << "\n";
     return false;
   } else {
-    errs() << "found track finish function " << getTrackHookFinishName() << "\n";
+    DEBUG(dbgs() << "found track finish function " << getTrackHookFinishName() << "\n");
   }
 
   // get or create printf function declaration:
@@ -101,19 +103,17 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     return false;
   }
   else {
-    errs() << "found printf\n";
+    DEBUG(dbgs() << "found printf\n");
   }
 
   // insert call to __arthas_addr_tracker_init at the beginning of main function
   IRBuilder<> builder(cast<Instruction>(main->front().getFirstInsertionPt()));
-  errs() << "Instrumenting call to " << getRuntimeHookInitName() << " in main\n";
   builder.CreateCall(trackerInitFunc);
-  errs() << "Done\n";
+  errs() << "Instrumented call to " << getRuntimeHookInitName() << " in main\n";
 
   // insert call to __arthas_addr_tracker_finish at program exit
-  errs() << "Instrumenting call to " << getTrackHookFinishName() << " in main\n";
   appendToGlobalDtors(M, trackerFinishFunc, 1);
-  errs() << "Done\n";
+  errs() << "Instrumented call to " << getTrackHookFinishName() << " in main\n";
 
   initialized = true;
   return true;

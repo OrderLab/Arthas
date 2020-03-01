@@ -46,6 +46,7 @@ class PMemVariableLocator {
 
   ApiCallList::const_iterator call_begin() const { return callList.begin(); }
   ApiCallList::const_iterator call_end() const { return callList.end(); }
+  size_t call_size() const { return callList.size(); }
 
   ApiCallList::iterator call_begin() { return callList.begin(); }
   ApiCallList::iterator call_end() { return callList.end(); }
@@ -55,12 +56,14 @@ class PMemVariableLocator {
 
   VariableList::const_iterator var_begin() const { return varList.begin(); }
   VariableList::const_iterator var_end() const { return varList.end(); }
+  size_t var_size() const { return varList.size(); }
 
   RegionList::iterator region_begin() { return regionList.begin(); }
   RegionList::iterator region_end() { return regionList.end(); }
 
   RegionList::const_iterator region_begin() const { return regionList.begin(); }
   RegionList::const_iterator region_end() const { return regionList.end(); }
+  size_t region_size() const { return regionList.size(); }
 
  private:
   ApiCallList callList;

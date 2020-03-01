@@ -8,6 +8,7 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include "PMem/PMemVariablePass.h"
 #include "PMem/Extractor.h"
 
 #include "llvm/Support/CommandLine.h"
@@ -19,24 +20,6 @@ using namespace llvm::pmem;
 // opt argument to extract persistent variables only in the target functions
 static cl::list<std::string> TargetFunctions("target-functions",
                                       cl::desc("<Function>"), cl::ZeroOrMore);
-
-namespace {
-class PMemVariablePass : public ModulePass {
- public:
-  static char ID;
-
-  PMemVariablePass() : ModulePass(ID) {}
-
-  virtual bool runOnModule(Module &M) override;
-
-  void getAnalysisUsage(AnalysisUsage &AU) const override {
-    AU.setPreservesAll();
-  }
-
- private:
-  bool runOnFunction(Function &F);
-  };
-}
 
 char PMemVariablePass::ID = 0;
 static RegisterPass<PMemVariablePass> X("pmem", "Pass that analyzes variables backed by persistent memory");

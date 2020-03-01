@@ -15,7 +15,9 @@
 
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
@@ -29,6 +31,8 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/util/TimeMeasure.h"
+
+#define DEBUG_TYPE "pmem-extractor"
 
 using namespace std;
 using namespace llvm;
@@ -59,7 +63,10 @@ const map<std::string, unsigned int> PMemVariableLocator::memkindCreationGeneral
   {"memkind_create_kind", 4}};
 
 PMemVariableLocator::PMemVariableLocator(Function &F) {
-  errs() << "[" << F.getName() << "]\n";
+  if (F.isDeclaration()) {
+    return;
+  }
+  DEBUG(dbgs() << "[" << F.getName() << "]\n");
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     const Instruction *inst = &*I;
     if (!isa<CallInst>(inst)) continue;
@@ -83,7 +90,7 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
         // Transitive closure to see which memkind_malloc calls use this memkind pmem variable
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
-          errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+          DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first) << "\n");
           varList.push_back(ui->first);
         }
       }
@@ -101,7 +108,7 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
             // Transitive closure to see which memkind_malloc calls use this memkind pmem var$
             UserGraph g(v);
             for (auto ui = g.begin(); ui != g.end(); ++ui) {
-              errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+              DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first) << "\n");
               varList.push_back(ui->first);
             }
           }
@@ -114,12 +121,12 @@ PMemVariableLocator::PMemVariableLocator(Function &F) {
           pmdkPMEMVariableReturnSet.end()) {
         // Step 2: if this API call returns something, we get a pmem variable.
         const Value *v = inst;
-        errs() << "- this instruction creates a pmem variable: " << *v << "\n";
+        DEBUG(dbgs() << "- this instruction creates a pmem variable: " << *v << "\n");
         varList.push_back(v);
         // Step 3: find the transitive closure of the users of the pmem variables.
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
-          errs() << "- users of the pmem variable: " << *(ui->first) << "\n";
+          DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first) << "\n");
           varList.push_back(ui->first);
         }
       }
