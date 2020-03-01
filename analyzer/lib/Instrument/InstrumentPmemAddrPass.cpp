@@ -45,14 +45,15 @@ bool InstrumentPmemAddrPass::runOnModule(Module &M) {
 
 bool InstrumentPmemAddrPass::runOnFunction(Function &F) 
 {
-  pmem::PMemVariableLocator locator(F);
+  pmem::PMemVariableLocator locator;
+  locator.runOnFunction(F);
   if (locator.var_size() == 0) {
     DEBUG(dbgs() << "No pmem instructions found in " << F.getName() 
         << ", skip instrumentation\n");
     return false;
   }
   for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-    Value *v = const_cast<Value *>(*vi);
+    Value *v = *vi;
     if (Instruction *instr = dyn_cast<Instruction>(v)) {
       if (instrumenter->instrumentInstr(instr)) {
         DEBUG(dbgs() << "Instrumented pmem instruction in " << F.getName() 

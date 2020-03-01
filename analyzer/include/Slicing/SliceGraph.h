@@ -35,6 +35,7 @@ class SliceNode {
   public:
     typedef std::vector<SliceNode *> Children;
     typedef Children::iterator child_iterator;
+    typedef Children::const_iterator child_const_iterator;
 
   public:
    dg::LLVMNode *n;
@@ -46,6 +47,20 @@ class SliceNode {
      n = node;
      depth = node_depth;
    }
+
+   ~SliceNode() {
+     for (child_iterator ci = child_begin(); ci != child_end(); ++ci) {
+       // the child nodes are dynamically allocated, deallocate them when 
+       // a slice node is destroyed.
+       SliceNode *sn = *ci;
+       delete sn;
+     }
+   }
+
+   inline child_iterator child_begin() { return child_nodes.begin(); }
+   inline child_iterator child_end() { return child_nodes.end(); }
+   inline child_const_iterator child_begin() const { return child_nodes.begin(); }
+   inline child_const_iterator child_end() const { return child_nodes.end(); }
 
    void add_child(dg::LLVMNode *n, int depth, dg::LLVMNode *prev_node) {
      // FIXME: memory leak
@@ -73,14 +88,22 @@ class SliceNode {
 };
 
 class SliceGraph {
-  public:
-    typedef std::vector<SliceNode *> SliceNodeList;
-    typedef SliceNodeList::iterator iterator;
-    typedef SliceNodeList::const_iterator const_iterator;
+ public:
+   typedef std::vector<SliceNode *> SliceNodeList;
+   typedef SliceNodeList::iterator node_iterator;
+   typedef SliceNodeList::const_iterator node_const_iterator;
 
-  public:
+ public:
+   SliceGraph() {}
+   ~SliceGraph();
+
    SliceNode *root;
    int maxDepth;
+
+   inline node_iterator node_begin() { return nodeList.begin(); }
+   inline node_iterator node_end() { return nodeList.end(); }
+   inline node_const_iterator node_begin() const { return nodeList.begin(); }
+   inline node_const_iterator node_end() const { return nodeList.end(); }
 
    bool compute_slices() { return false; }
 
@@ -88,9 +111,8 @@ class SliceGraph {
 
    bool add_node() { return false; }
 
-  protected:
+ protected:
    SliceNodeList nodeList;
-
 };
 
 } // namespace slicing

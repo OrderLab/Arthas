@@ -120,16 +120,16 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 }
 
 bool PmemAddrInstrumenter::instrumentSlice(
-    llvm::slicing::DgSlice slice,
-    std::map<Value *, Instruction *> pmemMetadata) {
-  Value *v = slice.root_node->getValue();
+    llvm::slicing::DgSlice *slice,
+    std::map<Value *, Instruction *> &pmemMetadata) {
+  Value *v = slice->root_node->getValue();
   if (pmemMetadata.find(v) != pmemMetadata.end()) {
     // found element
     instrumentInstr(pmemMetadata.at(v));
   }
-  for(auto i = slice.dep_nodes.begin(); i != slice.dep_nodes.end(); ++i){
-    //for each node, check if instruction is a persistent value. If it is
-    //then get definition point
+  for(auto i = slice->dep_nodes.begin(); i != slice->dep_nodes.end(); ++i){
+    // for each node, check if instruction is a persistent value. If it is
+    // then get definition point
     dg::LLVMNode *n = *i;
     v = n->getValue();
     if (pmemMetadata.find(v) != pmemMetadata.end()) {

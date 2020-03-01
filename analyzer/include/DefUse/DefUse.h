@@ -37,15 +37,16 @@ enum class UserGraphWalkType {
 // the transitive closure of users' users etc.
 class UserGraph {
   public:
-   typedef std::pair<const Value *, int> UserNode;
+   typedef std::pair<Value *, int> UserNode;
    typedef std::vector<UserNode> UserNodeList;
    typedef UserNodeList::iterator iterator;
    typedef UserNodeList::const_iterator const_iterator;
-   typedef SmallPtrSet<const Value *, 8> VistedNodeSet;
-   typedef std::queue<Optional<const Value *>> VisitQueue;
-   typedef std::stack<const Value *> VisitStack;
+   typedef SmallPtrSet<Value *, 8> VistedNodeSet;
+   typedef std::queue<Optional<Value *>> VisitQueue;
+   typedef std::stack<Value *> VisitStack;
 
-   UserGraph(const Value *v, UserGraphWalkType t=UserGraphWalkType::DFS, int depth=-1) {
+   UserGraph(Value *v, UserGraphWalkType t = UserGraphWalkType::DFS,
+             int depth = -1) {
      root = v;
      maxDepth = depth;
      if (t == UserGraphWalkType::DFS)
@@ -64,7 +65,7 @@ class UserGraph {
      visited.insert(root);
      visit_stack.push(root);
      while (!visit_stack.empty()) {
-       const Value *elem = visit_stack.top();
+       Value *elem = visit_stack.top();
        if (elem != root && !isa<AllocaInst>(elem)) {
          // skip alloca inst, which comes from the operand of StoreInstruction.
          userList.push_back(UserNode(elem, 1));
@@ -80,9 +81,9 @@ class UserGraph {
       visit_queue.push(None);  // a dummy element marking end of a level
       int level = 0;
       while (!visit_queue.empty()) {
-        Optional<const Value *> head = visit_queue.front();
+        Optional<Value *> head = visit_queue.front();
         if (head != None) {
-          const Value *elem = head.getValue();
+          Value *elem = head.getValue();
           if (elem != root && !isa<AllocaInst>(elem)) {
             // skip alloca inst, which comes from the operand of StoreInstruction.
             userList.push_back(UserNode(elem, level));
@@ -111,11 +112,11 @@ class UserGraph {
     }
 
   private:
-   void processUser(const Value *elem, UserGraphWalkType walk) {
+   void processUser(Value *elem, UserGraphWalkType walk) {
      for (auto ui = elem->user_begin(); ui != elem->user_end(); ++ui) {
-       if (const Instruction *inst = dyn_cast<Instruction>(*ui)) {
-         if (const StoreInst *store = dyn_cast<StoreInst>(inst)) {
-           if (const Instruction *op = dyn_cast<Instruction>(store->getOperand(1))) {
+       if (Instruction *inst = dyn_cast<Instruction>(*ui)) {
+         if (StoreInst *store = dyn_cast<StoreInst>(inst)) {
+           if (Instruction *op = dyn_cast<Instruction>(store->getOperand(1))) {
              // if this is a store instruction, it does not have users. we
              // need to find the users of the target (second operand) instead.
              if (visited.insert(op).second) {
@@ -139,7 +140,7 @@ class UserGraph {
 
   private:
    int maxDepth;
-   const Value *root;
+   Value *root;
    UserNodeList userList;
    VistedNodeSet visited;
    VisitQueue visit_queue;

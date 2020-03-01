@@ -55,7 +55,7 @@ void SliceNode::slice_node_copy(DgSlice &base, DgSlices &slices)
 {
   DgSlice *s;
   for (auto i = slices.begin(); i != slices.end(); ++i) {
-    s = &*i;
+    s = *i;
     // if(this->prev_node == s->highest_node || slices.size() == 1){
     if (n == s->root_node || slices.size() == 1) {
       // errs() << "prev node is " << this->prev_node << "current node
@@ -76,10 +76,10 @@ int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
   uint64_t slice_num = slice_id;
   // Base Case: Adding in a slice of just the root node of the graph
   if (slices.empty()) {
-    DgSlice dgs = DgSlice(fi, sd, sp, slice_id, n);
-    dgs.dep_nodes.push_back(n);
-    dgs.root_node = n;
-    slices.push_back(dgs);
+    DgSlice *slice = new DgSlice(fi, sd, sp, slice_id, n);
+    slice->dep_nodes.push_back(n);
+    slice->root_node = n;
+    slices.add(slice);
     slice_num++;
   }
 
@@ -87,7 +87,7 @@ int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
   // DGSlice base = DGSlice(fi, sd, sp, slice_num, this->n);
   DgSlice *s;
   for (auto i = slices.begin(); i != slices.end(); ++i) {
-    s = &*i;
+    s = *i;
     // if (this->prev_node == s->highest_node || slices.size() == 1){
     if (this->n == s->root_node || slices.size() == 1) {
       // errs() << "prev node is " << this->prev_node << "current node
@@ -122,18 +122,26 @@ int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
       s->root_node = sn->n;
       // errs() << "number of slices is " << slices.size() << "\n";
     } else {
-      DgSlice base = DgSlice(fi, sd, sp, slice_num, this->n);
-      this->slice_node_copy(base, slices);
+      DgSlice *base = new DgSlice(fi, sd, sp, slice_num, this->n);
+      this->slice_node_copy(*base, slices);
       // errs() << "new slice old highest is " << base.highest_node << "\n";
       // errs() << "base nodes size is " << base.nodes.size() << "\n";
-      base.slice_id = slice_num;
-      base.root_node = sn->n;
-      base.dep_nodes.push_back(sn->n);
+      base->slice_id = slice_num;
+      base->root_node = sn->n;
+      base->dep_nodes.push_back(sn->n);
       slice_num++;
-      slices.push_back(base);
+      slices.add(base);
       // errs() << "number of slices is " << slices.size() << "\n";
     }
     slice_num = sn->compute_slices(slices, fi, sd, sp, slice_num);
   }
   return slice_num;
+}
+
+SliceGraph::~SliceGraph()
+{
+  for (node_iterator ni = node_begin(); ni != node_end(); ++ni) {
+    SliceNode *node = *ni;
+    delete node;
+  }
 }

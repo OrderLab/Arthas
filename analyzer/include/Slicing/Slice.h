@@ -52,10 +52,32 @@ class DgSlice {
   }
 
   void dump();
-  void set_persistence(std::vector<llvm::Instruction *> &persist_instrs);
+  void set_persistence(llvm::SmallVectorImpl<llvm::Value *> &persist_insts);
 };
 
-typedef std::vector<DgSlice> DgSlices;
+class DgSlices {
+ public:
+  typedef std::vector<DgSlice *> SliceList;
+  typedef SliceList::iterator slice_iterator;
+  typedef SliceList::const_iterator slice_const_iterator;
+
+  DgSlices() {}
+  ~DgSlices();
+
+  inline slice_iterator begin() { return slices.begin(); }
+  inline slice_iterator end() { return slices.end(); }
+  inline slice_const_iterator begin() const { return slices.begin(); }
+  inline slice_const_iterator end() const { return slices.end(); }
+  inline SliceList &vec() { return slices; }
+
+  inline size_t size() const { return slices.size(); }
+  inline bool empty() const { return slices.empty(); }
+
+  inline void add(DgSlice * slice) { slices.push_back(slice); }
+
+ protected:
+  SliceList slices;
+};
 
 } // namespace slicing
 } // namespace llvm

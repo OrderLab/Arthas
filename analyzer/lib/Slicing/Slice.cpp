@@ -27,8 +27,7 @@ void DgSlice::dump()
   // static_cast<int>(persistent_state) << "\n";
 }
 
-void DgSlice::set_persistence(vector<Instruction *> &persist_instrs)
-{
+void DgSlice::set_persistence(SmallVectorImpl<Value *> &persist_insts) {
   bool vol = false;
   bool persistent = false;
   for (auto di = dep_nodes.begin(); di != dep_nodes.end(); ++di) {
@@ -36,8 +35,8 @@ void DgSlice::set_persistence(vector<Instruction *> &persist_instrs)
     llvm::Value *v = n->getValue();
     llvm::Instruction *inst = dyn_cast<llvm::Instruction>(v);
     dep_instrs.push_back(inst);
-    for (auto pi = persist_instrs.begin(); pi != persist_instrs.end(); ++pi) {
-      if (inst == *pi) {
+    for (auto pi = persist_insts.begin(); pi != persist_insts.end(); ++pi) {
+      if (v == *pi) {
         persistent = true;
       } else {
         vol = true;
@@ -53,5 +52,15 @@ void DgSlice::set_persistence(vector<Instruction *> &persist_instrs)
   } else if (persistent) {
     errs() << "Slice " << slice_id << " is persistent\n";
     persistence = SlicePersistence::Persistent;
+  }
+}
+
+DgSlices::~DgSlices()
+{
+  // Assume DgSlices are the owner of all the slices. Therefore, it must release
+  // the memory of each dynamically allocated slice in its destructor.
+  for (slice_iterator si = begin(); si != end(); ++si) {
+    DgSlice *slice = *si;
+    delete slice;
   }
 }

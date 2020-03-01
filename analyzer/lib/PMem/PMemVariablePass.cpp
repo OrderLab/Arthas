@@ -39,7 +39,8 @@ bool PMemVariablePass::runOnModule(Module &M) {
 }
 
 bool PMemVariablePass::runOnFunction(Function &F) {
-  PMemVariableLocator locator(F);
+  PMemVariableLocator locator;
+  locator.runOnFunction(F);
 
   // Iterate through the identified PMDK API calls in this function
   for (auto ci = locator.call_begin(); ci != locator.call_end(); ++ci) {
