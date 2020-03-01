@@ -22,6 +22,17 @@ int main (int argc, char *argv[]){
     struct checkpoint_log c_log = old_pool + sizeof(void *);
     uint64_t offset;
     offset = (uint64_t)c_log.c_data - (uint64_t)(old_pool);
+    int variables = c_log.variables;
+    for(int i = 0; i < variables; i++){
+      offset = (uint64_t)c_log.c_data[i].address - (uint64_t)(old_pool);
+      c_log.c_data[i].address = (void *)((uint64_t) c_log.c_data[i].address + offset);
+      offset = (uint64_t)c_log.c_data[i].size - (uint64_t)(old_pool);
+      c_log.c_data[i].size = (void *)((uint64_t)c_log.c_data[i].size + offset);
+      for(int j = 0; j < version; j++){
+        offset = (uint64_t)c_log.c_data[i].data[j] - (uint64_t)(old_pool);
+        c_log.c_data[i].data[j] = (void *)((uint64_t)c_log.c_data[i].data[j] + offset);
+      }
+    }
   */
   
   //Step 2: Read printed out file
@@ -56,10 +67,13 @@ int main (int argc, char *argv[]){
   */
 
   //Step 4: For each printed address, revert each data structure
+
+  //Try coarse-grained control, revert everything to a version
+  //that is passed by an argument
   /*for(int i = 0; i < num_data; i++){
     //find the offset in checkpoint, need to modify for range-based
     int variable_index = search_for_offset(pop, addresses[i]);
-    revert_by_offset(addresses[i] + pop, addresses[i], variable_index, 0, 0, 
+    revert_by_offset(addresses[i] + pop, addresses[i], variable_index, argv[2], 0, 
     c_log.c_data[variable_index].size);
   }*/
 }
