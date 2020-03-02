@@ -14,6 +14,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
@@ -21,9 +22,21 @@
 namespace llvm {
 namespace slicing {
 
-enum class SlicePersistence { Persistent, Volatile, Mixed };
+enum class SlicePersistence { NA, Persistent, Volatile, Mixed };
 
 enum class SliceDirection { Backward, Forward, Full };
+
+inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
+    const SlicePersistence & persistence)
+{
+  switch(persistence) {
+    case SlicePersistence::NA: os << "n/a"; return os;
+    case SlicePersistence::Persistent: os << "persistent"; return os;
+    case SlicePersistence::Volatile: os << "volatile"; return os;
+    case SlicePersistence::Mixed: os << "mixed"; return os;
+    default: os << "unknown"; return os;
+  }
+}
 
 class DgSlice {
  public:
@@ -39,7 +52,7 @@ class DgSlice {
   DependentNodes dep_nodes;
   dg::LLVMNode *root_node;
 
-  DgSlice() {}
+  DgSlice(): slice_id(0) {}
 
   DgSlice(llvm::Instruction *root, SliceDirection direction,
           SlicePersistence persistence, uint64_t slice_id,
@@ -51,7 +64,7 @@ class DgSlice {
     root_node = node;
   }
 
-  void dump();
+  void dump(llvm::raw_ostream &os);
   void set_persistence(llvm::SmallVectorImpl<llvm::Value *> &persist_insts);
 };
 

@@ -32,59 +32,61 @@ namespace llvm {
 namespace slicing {
 
 class SliceNode {
-  public:
-    typedef std::vector<SliceNode *> Children;
-    typedef Children::iterator child_iterator;
-    typedef Children::const_iterator child_const_iterator;
+ public:
+  typedef std::vector<SliceNode *> Children;
+  typedef Children::iterator child_iterator;
+  typedef Children::const_iterator child_const_iterator;
 
-  public:
-   dg::LLVMNode *n;
-   int depth;
-   Children child_nodes;
-   dg::LLVMNode *prev_node;
+ public:
+  dg::LLVMNode *node;
+  int depth;
+  Children child_nodes;
+  dg::LLVMNode *prev_node;
 
-   SliceNode(dg::LLVMNode *node, int node_depth) {
-     n = node;
-     depth = node_depth;
-   }
+  SliceNode(dg::LLVMNode *node, int node_depth) {
+    this->node = node;
+    depth = node_depth;
+  }
 
-   ~SliceNode() {
-     for (child_iterator ci = child_begin(); ci != child_end(); ++ci) {
-       // the child nodes are dynamically allocated, deallocate them when 
-       // a slice node is destroyed.
-       SliceNode *sn = *ci;
-       delete sn;
-     }
-   }
+  ~SliceNode() {
+    for (child_iterator ci = child_begin(); ci != child_end(); ++ci) {
+      // the child nodes are dynamically allocated, deallocate them when
+      // a slice node is destroyed.
+      SliceNode *sn = *ci;
+      delete sn;
+    }
+  }
 
-   inline child_iterator child_begin() { return child_nodes.begin(); }
-   inline child_iterator child_end() { return child_nodes.end(); }
-   inline child_const_iterator child_begin() const { return child_nodes.begin(); }
-   inline child_const_iterator child_end() const { return child_nodes.end(); }
+  inline child_iterator child_begin() { return child_nodes.begin(); }
+  inline child_iterator child_end() { return child_nodes.end(); }
+  inline child_const_iterator child_begin() const {
+    return child_nodes.begin();
+  }
+  inline child_const_iterator child_end() const { return child_nodes.end(); }
 
-   void add_child(dg::LLVMNode *n, int depth, dg::LLVMNode *prev_node) {
-     // FIXME: memory leak
-     SliceNode *sn = new SliceNode(n, depth);
-     // llvm::errs() << "added value of " << n << "\n";
-     sn->prev_node = prev_node;
-     child_nodes.push_back(sn);
-     // llvm::errs() << "added value of " << sn << "\n";
-   }
+  void add_child(dg::LLVMNode *n, int depth, dg::LLVMNode *prev_node) {
+    // FIXME: memory leak
+    SliceNode *sn = new SliceNode(n, depth);
+    // llvm::errs() << "added value of " << n << "\n";
+    sn->prev_node = prev_node;
+    child_nodes.push_back(sn);
+    // llvm::errs() << "added value of " << sn << "\n";
+  }
 
-   int total_size(SliceNode *sn) {
-     int num = 1;
-     for (auto i = sn->child_nodes.begin(); i != sn->child_nodes.end(); ++i) {
-       num += total_size(*i);
-     }
-     return num;
-   }
+  int total_size(SliceNode *sn) {
+    int num = 1;
+    for (auto i = sn->child_nodes.begin(); i != sn->child_nodes.end(); ++i) {
+      num += total_size(*i);
+    }
+    return num;
+  }
 
-   SliceNode *search_children(dg::LLVMNode *n);
-   void dump();
-   void dump(int level);
-   void slice_node_copy(DgSlice &base, DgSlices &slices);
-   int compute_slices(DgSlices &slices, llvm::Instruction *fi, SliceDirection sd,
-       SlicePersistence sp, uint64_t slice_id);
+  SliceNode *search_children(dg::LLVMNode *n);
+  void dump(raw_ostream &os);
+  void dump(raw_ostream &os, int level);
+  void slice_node_copy(DgSlice &base, DgSlices &slices);
+  int compute_slices(DgSlices &slices, llvm::Instruction *fi, SliceDirection sd,
+                     SlicePersistence sp, uint64_t slice_id);
 };
 
 class SliceGraph {

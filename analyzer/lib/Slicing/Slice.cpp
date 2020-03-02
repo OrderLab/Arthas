@@ -6,25 +6,21 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-#include "llvm/Support/raw_ostream.h"
-
 #include "Slicing/Slice.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
-void DgSlice::dump() 
+void DgSlice::dump(raw_ostream &os)
 {
-  // errs() << "Slice " << slice_id << " \n";
-  for(auto i = dep_nodes.begin(); i != dep_nodes.end(); ++i){
-    // errs() << *i << "\n";
+  os << "Slice " << slice_id << ":\n";
+  for (auto i = dep_nodes.begin(); i != dep_nodes.end(); ++i) {
     dg::LLVMNode *n = *i;
     llvm::Value *v = n->getValue();
-    errs() << *v << "\n";
+    os << *v << "\n";
   }
-  // errs() << "slice persistence is " <<
-  // static_cast<int>(persistent_state) << "\n";
+  os << "Slice " << slice_id << " is " << persistence << "\n";
 }
 
 void DgSlice::set_persistence(SmallVectorImpl<Value *> &persist_insts) {
@@ -44,13 +40,10 @@ void DgSlice::set_persistence(SmallVectorImpl<Value *> &persist_insts) {
     }
   }
   if (vol && persistent) {
-    errs() << "Slice " << slice_id << " is mixed\n";
     persistence = SlicePersistence::Mixed;
   } else if (vol) {
-    errs() << "Slice " << slice_id << " is volatile\n";
     persistence = SlicePersistence::Volatile;
   } else if (persistent) {
-    errs() << "Slice " << slice_id << " is persistent\n";
     persistence = SlicePersistence::Persistent;
   }
 }
