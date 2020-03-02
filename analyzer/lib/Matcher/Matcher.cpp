@@ -22,6 +22,23 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::matching;
 
+void MatchResult::print(raw_ostream &os) const
+{
+  if (matched) {
+    DISubprogram *SP = func->getSubprogram();
+    unsigned start_line = ScopeInfoFinder::getFirstLine(func);
+    unsigned end_line = ScopeInfoFinder::getLastLine(func);
+    os << "Matched function <" << getFunctionName(SP) << ">()";
+    os << "@" << SP->getDirectory() << "/" << SP->getFilename();
+    os << ":" << start_line << "," << end_line << "\n";
+    for (Instruction *inst : instrs) {
+      os << "- matched instruction: " << *inst << "\n";
+    }
+  } else {
+    os << "No match found";
+  }
+}
+
 bool cmpDICU(DICompileUnit *CU1, DICompileUnit *CU2) {
   int cmp = CU1->getDirectory().compare(CU2->getDirectory());
   if (cmp == 0)
@@ -45,24 +62,6 @@ inline bool skipFunction(Function *F)
   // Skip intrinsic functions and function declaration because DT only 
   // works with function definition.
   return F->isDeclaration() || F->getName().startswith("llvm.dbg");
-}
-
-llvm::raw_ostream & operator<<(llvm::raw_ostream& os, const MatchResult& result)
-{
-  if (result.matched) {
-    DISubprogram *SP = result.func->getSubprogram();
-    unsigned start_line = ScopeInfoFinder::getFirstLine(result.func);
-    unsigned end_line = ScopeInfoFinder::getLastLine(result.func);
-    os << "Matched function <" << getFunctionName(SP) << ">()";
-    os << "@" << SP->getDirectory() << "/" << SP->getFilename();
-    os << ":" << start_line << "," << end_line << "\n";
-    for (Instruction *inst : result.instrs) {
-      os << "- matched instruction: " << *inst << "\n";
-    }
-  } else {
-    os << "No match found";
-  }
-  return os;
 }
 
 unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {

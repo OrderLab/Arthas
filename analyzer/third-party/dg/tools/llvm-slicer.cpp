@@ -481,8 +481,9 @@ int main(int argc, char *argv[])
 
     SlicerOptions options = parseSlicerOptions(argc, argv);
 
-    if (enable_debug)
-        DBG_ENABLE();
+    if (enable_debug) {
+      DBG_ENABLE();
+    }
 
     // dump_dg_only implies dumg_dg
     if (dump_dg_only)

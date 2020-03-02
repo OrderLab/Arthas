@@ -75,6 +75,8 @@ class MatchResult {
       matched = false;
     }
 
+    void print(raw_ostream &os) const;
+
   public:
    bool matched;
    MatchInstrs instrs;
@@ -113,10 +115,15 @@ class Matcher {
 };
 
 } // namespace matching
+
+inline raw_ostream &operator<<(raw_ostream &os, const matching::MatchResult &result)
+{
+  result.print(os);
+  return os;
+}
+
 } // namespace llvm
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &,
-                              const llvm::matching::MatchResult &);
 bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
 bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
 bool skipFunction(llvm::Function *);
