@@ -5,6 +5,7 @@
 #include <string>
 
 #define MAX_DATA 1000
+#define FINE_GRAIN_ATTEMPTS 10
 
 using namespace std;
 
@@ -65,8 +66,20 @@ int main (int argc, char *argv[]){
     addresses[i] = addresses[i] - pool_address;
   }
   */
-
+  
   //Step 4: For each printed address, revert each data structure
+  //Fine-grained reversion
+  /*DgSlices slices;
+  for (auto i = slices.begin(); i != slices.end(); ++i){
+    //Link slice nodes with addresses that were collected
+    DgSlice *slice = *i;
+    for(int j = 0; j < FINE_GRAIN_ATTEMPTS; j++){
+      uint64_t fine_grain_address = search_for_fine_address(instructions, j, slice->dep_instrs, addresses);
+      int variable_index = search_for_offset(pop, find_grain_address);
+      revert_by_offset(fine_grain_address + pop, fine_grain_address, variable_index, argv[2], 0,
+      c_log.c_data[variable_index].size);
+    }
+  }
 
   //Try coarse-grained control, revert everything to a version
   //that is passed by an argument
@@ -76,4 +89,24 @@ int main (int argc, char *argv[]){
     revert_by_offset(addresses[i] + pop, addresses[i], variable_index, argv[2], 0, 
     c_log.c_data[variable_index].size);
   }*/
+  //TODO: Need to use detector to find if a run crashes to retry reversion with
+  //a different version or different slices.
+  //Need to identify different slices for reversion
 }
+
+
+/*uint64_t search_for_fine_address(llvm::SmallVector<const llvm::Instruction *> instructions, int index, llvm::SmallVector<const llvm::Instruction *> dep_instrs, string *addresses){
+  int count = 0;
+  int iteration = 0;
+  for(auto i = instructions.begin(); i != instructions.end(); i++){
+    llvm::instruction *inst = *i;
+    if(inst == i){
+      if(count < num)
+        count++;
+      else{
+        return addresses[iteration];
+      }
+    }
+    iteration++;
+  }
+}*/

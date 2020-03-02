@@ -130,10 +130,10 @@ bool SlicingPass::instructionSlice(Instruction *fault_instruction, Function *F,
   errs() << "Function is " << F << "\n";
 
   // FIXME: wtf???
+  //This is a remnant from old code, no longer being used
   DgSlice *dgSlice = new DgSlice();
   dgSlice->direction = SliceDirection::Backward;
   dgSlice->root_instr = fault_instruction;
-  // TODO: persistent state
   dgSlice->slice_id = 0;
 
   dgSlicer->slices.insert(dgSlice);
