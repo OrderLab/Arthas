@@ -6,8 +6,8 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-#ifndef __SLICER_H_
-#define __SLICER_H_
+#ifndef _SLICING_SLICER_H_
+#define _SLICING_SLICER_H_
 
 #include "PMem/Extractor.h"
 #include "Slicing/Slice.h"
@@ -44,8 +44,9 @@ class DgSlicer {
   typedef const std::map<llvm::Value *, dg::LLVMDependenceGraph *> FunctionDgMap;
 
  public:
-  DgSlicer(llvm::Module *m, SliceDirection d=SliceDirection::Full): 
-    module(m), direction(d), dg(nullptr), funcDgMap(nullptr) {}
+  DgSlicer(llvm::Module *m, SliceDirection d = SliceDirection::Full)
+      : _module(m), _direction(d), _dg(nullptr), _funcDgMap(nullptr) {}
+
   std::set<DgSlice *> slices;
 
   bool compute();
@@ -53,17 +54,18 @@ class DgSlicer {
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 
  private:
-  llvm::Module *module;
-  SliceDirection direction;
-  std::unique_ptr<dg::LLVMDependenceGraph> dg;
-  FunctionDgMap *funcDgMap;
-  SlicePersistence persistent_state;
-  uint64_t slice_id;
+  llvm::Module *_module;
+  SliceDirection _direction;
+  std::unique_ptr<dg::LLVMDependenceGraph> _dg;
+  FunctionDgMap *_funcDgMap;
+  SlicePersistence _persistent_state;
+  uint64_t _slice_id;
+
   // We need to hold a reference to the dg builder before the slicer is destroyed.
   // This is because the builder holds a unique_ptr to the LLVMPointerAnalysis.
   // If we need to use the PTA from the dg later, the PTA data structure memory
   // will become invalid and likely cause core dump when using it.
-  std::unique_ptr<dg::llvmdg::LLVMDependenceGraphBuilder> builder;
+  std::unique_ptr<dg::llvmdg::LLVMDependenceGraphBuilder> _builder;
 };
 
 
@@ -71,4 +73,4 @@ class DgSlicer {
 } // namespace slicing
 } // namespace llvm
 
-#endif /* __SLICER_H_ */
+#endif /* _SLICING_SLICER_H_ */

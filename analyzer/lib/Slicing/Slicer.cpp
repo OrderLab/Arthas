@@ -27,54 +27,43 @@ using namespace llvm::pmem;
 using namespace llvm::defuse;
 
 bool DgSlicer::compute() {
-  dg::debug::TimeMeasure tm;
-  tm.start();
-  dg::analysis::pta::PointerAnalysis *pa;
-  dg::LLVMPointerAnalysis pta(module);
-  // create a flow-sensitive pointer analysis
-  pa = pta.createPTA<dg::analysis::pta::PointerAnalysisFS>();
-  pa->run();
-  tm.stop();
-  tm.report("INFO: points-to analysis took");
-  const auto &nodes = pta.getNodes();
-
-  errs() << "Points-to graph size " << nodes.size() << "\n";
-
+  // dependency graph options
   dg::llvmdg::LLVMDependenceGraphOptions dg_options;
-  dg::llvmdg::LLVMPointerAnalysisOptions pta_options;
-  // flow-sensitive
-  pta_options.analysisType =
+  // use flow-sensitive pointer analysis
+  dg_options.PTAOptions.analysisType =
       dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;
-  dg_options.PTAOptions = pta_options;
+  // use data-flow reaching definition analysis, another option is memory-ssa
+  dg_options.RDAOptions.analysisType = dg::llvmdg::
+      LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
 
-  builder = make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(module, dg_options);
+  _builder = make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(_module, dg_options);
 
-  dg = std::move(builder->constructCFGOnly());
-  if (!dg) {
+  _dg = std::move(_builder->constructCFGOnly());
+  if (!_dg) {
     llvm::errs() << "Building the dependence graph failed!\n";
+    return false;
   }
   // compute both data dependencies (def-use) and control dependencies
-  dg = builder->computeDependencies(std::move(dg));
+  _dg = _builder->computeDependencies(std::move(_dg));
 
-  const auto &stats = builder->getStatistics();
-
+  const auto &stats = _builder->getStatistics();
   errs() << "[slicer] CPU time of pointer analysis: "
          << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
   errs() << "[slicer] CPU time of reaching definitions analysis: "
          << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
   errs() << "[slicer] CPU time of control dependence analysis: "
          << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
-  funcDgMap = &dg::getConstructedFunctions();
+  _funcDgMap = &dg::getConstructedFunctions();
 
   return true;
 }
 
 dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
 {
-  if (funcDgMap == nullptr)
+  if (_funcDgMap == nullptr)
     return nullptr;
-  auto dgit = funcDgMap->find(func);
-  if (dgit == funcDgMap->end()) {
+  auto dgit = _funcDgMap->find(func);
+  if (dgit == _funcDgMap->end()) {
     errs() << "Could not find dependency graph for function " << func->getName() << "\n";
   }
   return dgit->second;
