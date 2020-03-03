@@ -4,47 +4,47 @@
 #include <pthread.h>
 #include <string>
 #include "checkpoint_generic.h"
-
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
 
 using namespace std;
 
-int main (int argc, char *argv[]){
+extern "C" {
+PMEMobjpool *pmemobj_open(const char *path, const char *layout);
+}
 
-  //Step 1: Opening Checkpoint Component PMEM File
+struct checkpoint_log * reconstruct_checkpoint(){
   PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
   if(!pop){
    cout << "pool not found\n";
-   return -1;
+   cout << pmemobj_errormsg();
+   return NULL;
   }
   PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
   uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
-  printf("old_pool is %p\n", *old_pool);
+  cout << "old pool " << *old_pool << "\n";
   struct checkpoint_log *c_log;
   PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
   c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
-  printf("c_log.c_data[0] %d\n",c_log->c_data[0].version);
- 
-  //TODO: Read pop, reconstruct checkpoint data structure
-  /*
-    void *old_pool = pmemobj_root(pop, sizeof(void *))
-    struct checkpoint_log c_log = old_pool + sizeof(void *);
-    uint64_t offset;
-    offset = (uint64_t)c_log.c_data - (uint64_t)(old_pool);
-    int variables = c_log.variables;
-    for(int i = 0; i < variables; i++){
-      offset = (uint64_t)c_log.c_data[i].address - (uint64_t)(old_pool);
-      c_log.c_data[i].address = (void *)((uint64_t) c_log.c_data[i].address + offset);
-      offset = (uint64_t)c_log.c_data[i].size - (uint64_t)(old_pool);
-      c_log.c_data[i].size = (void *)((uint64_t)c_log.c_data[i].size + offset);
-      for(int j = 0; j < version; j++){
-        offset = (uint64_t)c_log.c_data[i].data[j] - (uint64_t)(old_pool);
-        c_log.c_data[i].data[j] = (void *)((uint64_t)c_log.c_data[i].data[j] + offset);
-      }
-    }
-  */
+  cout << "c log c data " << c_log->c_data[0].version << "\n";
   
+  uint64_t offset;
+  offset = (uint64_t)c_log->c_data - *old_pool;
+  int variable_count = c_log->variable_count;
+  for(int i = 0; i < variable_count; i++){
+    for(int j = 0; j < c_log->c_data[i].version; j++){
+      offset = (uint64_t)c_log->c_data[i].data[j] - *old_pool;
+      c_log->c_data[i].data[j] = (void *)((uint64_t)c_log->c_data[i].data[j] + offset);
+    }
+  }
+
+}
+
+int main (int argc, char *argv[]){
+
+  //Step 1: Opening Checkpoint Component PMEM File
+  struct checkpoint_log *c_log = reconstruct_checkpoint();
+
   //Step 2: Read printed out file
   ifstream file (argv[1]);
   string line;

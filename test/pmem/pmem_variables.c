@@ -16,8 +16,10 @@ struct my_root {
 
 void write_hello_string(char *buf, char *path){
 	PMEMobjpool *pop;
+        printf("before create\n");
 	pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
 	printf("create\n");
+        printf("POOL address:%p\n", pop);
         if (pop == NULL)
         {
                 perror(path);
@@ -37,12 +39,12 @@ void write_hello_string(char *buf, char *path){
 	TX_BEGIN(pop){
 		oid = pmemobj_tx_zalloc(sizeof(double), 1);
 		pmem_double_ptr = pmemobj_direct(oid);
-		printf("address of pmem double is %p\n", pmem_double_ptr);
+		printf("address of pmem double is %p %ld\n", pmem_double_ptr, (uint64_t)pmem_double_ptr);
 		*pmem_double_ptr = 3;
 		oid2 = pmemobj_tx_zalloc(sizeof(int), 1);
 		pmem_int_ptr2 = pmemobj_direct(oid2);
 		*pmem_int_ptr2 = 12;
-		printf("address of pmemint2 is %p\n", pmem_int_ptr2);
+		printf("address of pmemint2 is %p %ld\n", pmem_int_ptr2, (uint64_t)pmem_int_ptr2);
 
                 PMEMoid oid3;
                 for(int i = 0; i < 5; i++){
