@@ -16,15 +16,16 @@ int main (int argc, char *argv[]){
   PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
   if(!pop){
    cout << "pool not found\n";
+   cout << pmemobj_errormsg();
    return -1;
   }
   PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
   uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
-  printf("old_pool is %p\n", *old_pool);
+  cout << "old pool " << *old_pool << "\n";
   struct checkpoint_log *c_log;
   PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
   c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
-  printf("c_log.c_data[0] %d\n",c_log->c_data[0].version);
+  cout << "c log c data " << c_log->c_data[0].version << "\n";
  
   //TODO: Read pop, reconstruct checkpoint data structure
   /*
