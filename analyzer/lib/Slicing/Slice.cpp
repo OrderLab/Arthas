@@ -14,25 +14,21 @@ using namespace llvm::slicing;
 
 void DgSlice::dump(raw_ostream &os)
 {
-  os << "Slice " << slice_id << ":\n";
-  for (auto i = dep_nodes.begin(); i != dep_nodes.end(); ++i) {
-    dg::LLVMNode *n = *i;
-    llvm::Value *v = n->getValue();
-    os << *v << "\n";
+  os << "Slice " << id << ":\n";
+  for (auto i = begin(); i != end(); ++i) {
+    Value *val = *i;
+    os << *val << "\n";
   }
-  os << "Slice " << slice_id << " is " << persistence << "\n";
+  os << "Slice " << id << " is " << persistence << "\n";
 }
 
-void DgSlice::set_persistence(SmallVectorImpl<Value *> &persist_insts) {
+void DgSlice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
   bool vol = false;
   bool persistent = false;
-  for (auto di = dep_nodes.begin(); di != dep_nodes.end(); ++di) {
-    dg::LLVMNode *n = *di;
-    llvm::Value *v = n->getValue();
-    llvm::Instruction *inst = dyn_cast<llvm::Instruction>(v);
-    dep_instrs.push_back(inst);
-    for (auto pi = persist_insts.begin(); pi != persist_insts.end(); ++pi) {
-      if (v == *pi) {
+  for (auto si = begin(); si != end(); ++si) {
+    Value *val = *si;
+    for (auto pi = persist_vals.begin(); pi != persist_vals.end(); ++pi) {
+      if (val == *pi) {
         persistent = true;
       } else {
         vol = true;
@@ -56,4 +52,6 @@ DgSlices::~DgSlices()
     DgSlice *slice = *si;
     delete slice;
   }
+  slices.clear();
+  sliceMap.clear();
 }

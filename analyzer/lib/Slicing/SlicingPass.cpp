@@ -121,7 +121,7 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   int count = 0;
   for (auto i = slices.begin(); i != slices.end(); ++i) {
     DgSlice *slice = *i;
-    slice->set_persistence(locator.vars());
+    slice->setPersistence(locator.vars());
     slice->dump(*_out_stream);
     count++;
     if (count == 3) {
@@ -144,12 +144,8 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
 
   // FIXME: wtf???
-  DgSlice *dgSlice = new DgSlice();
-  dgSlice->direction = SliceDirection::Backward;
-  dgSlice->root_instr = fault_inst;
-  // TODO: persistent state
-  dgSlice->slice_id = 0;
-
+  DgSlice *dgSlice = new DgSlice(0, fault_inst, SliceDirection::Backward,
+                                 SlicePersistence::NA);
   _dgSlicer->slices.insert(dgSlice);
 
   // Forward Slice

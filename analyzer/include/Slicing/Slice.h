@@ -40,37 +40,39 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 
 class DgSlice {
  public:
-  typedef llvm::SmallVector<const llvm::Instruction *, 20> DependentInstrs;
-  typedef llvm::SmallVector<dg::LLVMNode *, 20> DependentNodes;
+  typedef llvm::SmallVector<llvm::Value *, 20> DependentValueList;
 
+  typedef DependentValueList::iterator dep_iterator;
+  typedef DependentValueList::const_iterator dep_const_iterator;
+
+  uint64_t id;
+  llvm::Value *root;
   SliceDirection direction;
   SlicePersistence persistence;
-  uint64_t slice_id;
+  DependentValueList dep_values;
 
-  DependentInstrs dep_instrs;
-  llvm::Instruction *root_instr;
-  DependentNodes dep_nodes;
-  dg::LLVMNode *root_node;
-
-  DgSlice(): slice_id(0) {}
-
-  DgSlice(llvm::Instruction *root, SliceDirection direction,
-          SlicePersistence persistence, uint64_t slice_id,
-          dg::LLVMNode *node) {
-    root_instr = root;
-    direction = direction;
-    persistence = persistence;
-    slice_id = slice_id;
-    root_node = node;
+  DgSlice(uint64_t slice_id, llvm::Value *root_val, SliceDirection dir,
+          SlicePersistence kind)
+      : id(slice_id), root(root_val), direction(dir)
+  {
+    dep_values.push_back(root_val);  // root val depends on itself
   }
 
+  inline void add(llvm::Value *val) { dep_values.push_back(val); }
+
+  inline dep_iterator begin() { return dep_values.begin(); }
+  inline dep_iterator end() { return dep_values.end(); }
+  inline dep_const_iterator begin() const { return dep_values.begin(); }
+  inline dep_const_iterator end() const { return dep_values.end(); }
+
+  void setPersistence(llvm::SmallVectorImpl<llvm::Value *> &persist_vals);
   void dump(llvm::raw_ostream &os);
-  void set_persistence(llvm::SmallVectorImpl<llvm::Value *> &persist_insts);
 };
 
 class DgSlices {
  public:
   typedef std::vector<DgSlice *> SliceList;
+  typedef std::map<uint64_t, DgSlice *> SliceMap;
   typedef SliceList::iterator slice_iterator;
   typedef SliceList::const_iterator slice_const_iterator;
 
@@ -86,10 +88,15 @@ class DgSlices {
   inline size_t size() const { return slices.size(); }
   inline bool empty() const { return slices.empty(); }
 
-  inline void add(DgSlice * slice) { slices.push_back(slice); }
+  inline void add(DgSlice *slice)
+  { 
+    sliceMap.insert(std::make_pair(slice->id, slice));
+    slices.push_back(slice);
+  }
 
  protected:
   SliceList slices;
+  SliceMap sliceMap;
 };
 
 } // namespace slicing

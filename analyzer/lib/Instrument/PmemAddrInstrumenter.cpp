@@ -18,9 +18,11 @@
 
 #define DEBUG_TYPE "pmem-addr-instrumenter"
 
+using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
+using namespace llvm::slicing;
 
 unsigned int llvm::instrument::PmemVarGuidStart = 200;
 const char *llvm::instrument::PmemVarGuidFileFieldSep = "##";
@@ -94,7 +96,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 
   // get or create printf function declaration:
   //    int printf(const char * format, ...);
-  std::vector<Type *> printfArgsTypes;
+  vector<Type *> printfArgsTypes;
   printfArgsTypes.push_back(I8PtrTy); 
   FunctionType *printfType = FunctionType::get(I32Ty, printfArgsTypes, true);
   printfFunc = cast<Function>(M.getOrInsertFunction("printf", printfType));
@@ -119,22 +121,17 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   return true;
 }
 
-bool PmemAddrInstrumenter::instrumentSlice(
-    llvm::slicing::DgSlice *slice,
-    std::map<Value *, Instruction *> &pmemMetadata) {
-  Value *v = slice->root_node->getValue();
-  if (pmemMetadata.find(v) != pmemMetadata.end()) {
-    // found element
-    instrumentInstr(pmemMetadata.at(v));
-  }
-  for(auto i = slice->dep_nodes.begin(); i != slice->dep_nodes.end(); ++i){
-    // for each node, check if instruction is a persistent value. If it is
-    // then get definition point
-    dg::LLVMNode *n = *i;
-    v = n->getValue();
-    if (pmemMetadata.find(v) != pmemMetadata.end()) {
+bool PmemAddrInstrumenter::instrumentSlice(DgSlice *slice, 
+    map<Value *, Instruction *> &pmemMetadata) {
+  for(auto i = slice->begin(); i != slice->end(); ++i){
+    // For each node, check if instruction is a persistent value. If it is
+    // then get definition point. The root node is also in the iterator (the
+    // first one), so we don't need to specially handle it.
+    Value *val  = *i;
+    auto pmi = pmemMetadata.find(val);
+    if (pmi != pmemMetadata.end()) {
       // found element
-      instrumentInstr(pmemMetadata.at(v));
+      instrumentInstr(pmi->second);
     }
   }
   return false;
