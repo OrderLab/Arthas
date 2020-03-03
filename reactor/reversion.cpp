@@ -3,6 +3,7 @@
 #include "libpmemobj.h"
 #include <pthread.h>
 #include <string>
+#include "checkpoint_generic.h"
 
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
@@ -17,6 +18,14 @@ int main (int argc, char *argv[]){
    cout << "pool not found\n";
    return -1;
   }
+  PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
+  uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
+  printf("old_pool is %p\n", *old_pool);
+  struct checkpoint_log *c_log;
+  PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
+  c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
+  printf("c_log.c_data[0] %d\n",c_log->c_data[0].version);
+ 
   //TODO: Read pop, reconstruct checkpoint data structure
   /*
     void *old_pool = pmemobj_root(pop, sizeof(void *))
@@ -62,6 +71,7 @@ int main (int argc, char *argv[]){
   //then subtract from the pool_address to get the offset of
   //each data structure.
   /*
+  void *ptr_addresses[MAX_DATA];
   for(int i = 0; i < num_data; i++){
     addresses[i] = addresses[i] - pool_address;
   }
