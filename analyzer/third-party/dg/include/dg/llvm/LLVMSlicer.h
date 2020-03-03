@@ -30,8 +30,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "Slicing/SliceGraph.h"
-
 #include "dg/analysis/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
@@ -135,14 +133,13 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *, llvm::slicing::SliceGraph *sg,
-                   LLVMNode *start, uint32_t sl_id = 0,
+    uint32_t slice(LLVMDependenceGraph *, LLVMNode *start, uint32_t sl_id = 0,
                    bool forward_direc = false) {
       // mark nodes for slicing
       assert(start || sl_id != 0);
       if (start) {
         // include argument for forward_slice here
-        sl_id = mark(start, sg, sl_id, forward_direc);
+        sl_id = mark(start, sl_id, forward_direc);
       }
       // take every subgraph and slice it intraprocedurally
       // this includes the main graph
@@ -158,8 +155,8 @@ public:
       return sl_id;
     }
 
-private:
-        /*
+ public:
+    /*
     void sliceCallNode(LLVMNode *callNode,
                        LLVMDependenceGraph *graph, uint32_t slice_id)
     {
@@ -182,7 +179,7 @@ private:
         for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
             sliceCallNode(callNode, subgraph, slice_id);
     }
-        */
+    */
 
     static void
     adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)

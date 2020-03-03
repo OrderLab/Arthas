@@ -11,6 +11,7 @@
 
 #include "PMem/Extractor.h"
 #include "Slicing/Slice.h"
+#include "Slicing/SliceGraph.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
@@ -39,26 +40,78 @@
 namespace llvm {
 namespace slicing {
 
+
+// this class will go through the nodes
+// and will mark the ones that should be in the slice
+class DgWalkAndMark
+  : public dg::analysis::legacy::NodesWalk<dg::LLVMNode, 
+    dg::ADT::QueueFIFO<dg::LLVMNode *>> {
+
+  using Queue = dg::ADT::QueueFIFO<dg::LLVMNode *>;
+  using DgBasicBlock = dg::BBlock<dg::LLVMNode>;
+
+ public:
+  DgWalkAndMark(SliceDirection dir)
+      : dg::analysis::legacy::NodesWalk<dg::LLVMNode, Queue>(
+            sliceRelationOpts(dir)),
+        _dir(dir) {}
+
+  void mark(const std::set<dg::LLVMNode *> &start, uint32_t slice_id,
+            llvm::slicing::SliceGraph *sg);
+
+  inline bool isForward() const { return _dir == SliceDirection::Forward; }
+  inline bool isBackward() const { return _dir == SliceDirection::Backward; }
+  inline bool isFull() const { return _dir == SliceDirection::Full; }
+
+  static uint32_t sliceRelationOpts(SliceDirection dir);
+
+  const std::set<DgBasicBlock *>& getMarkedBlocks() { return _markedBlocks; }
+
+ private:
+  std::set<DgBasicBlock *> _markedBlocks;
+  SliceDirection _dir;
+
+  struct DgWalkData {
+    DgWalkData(uint32_t si, DgWalkAndMark *wm,
+             std::set<DgBasicBlock *> *mb = nullptr)
+        : slice_id(si), analysis(wm), markedBlocks(mb) {}
+    uint32_t slice_id;
+    DgWalkAndMark *analysis;
+    std::set<DgBasicBlock *> *markedBlocks;
+  };
+
+  static void markSlice(dg::LLVMNode *n, DgWalkData *data);
+};
+
 // Slicer based on dependency graph
-class DgSlicer {
+class DgSlicer : public dg::analysis::Slicer<dg::LLVMNode>
+{
   typedef const std::map<llvm::Value *, dg::LLVMDependenceGraph *> FunctionDgMap;
 
  public:
   DgSlicer(llvm::Module *m, SliceDirection d = SliceDirection::Full)
-      : _module(m), _direction(d), _dg(nullptr), _funcDgMap(nullptr) {}
+      : _module(m), _direction(d), _dg(nullptr), _funcDgMap(nullptr), 
+      _dependency_computed(false) {}
 
   std::set<DgSlice *> slices;
 
-  bool compute();
-
+  bool computeDependencies();
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
+  uint32_t slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t sl_id = 0);
+  void sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id);
 
+  bool removeBlock(dg::LLVMBBlock *block) override;
+  bool removeNode(dg::LLVMNode *node) override;
+
+ protected:
  private:
   llvm::Module *_module;
   SliceDirection _direction;
   std::unique_ptr<dg::LLVMDependenceGraph> _dg;
   FunctionDgMap *_funcDgMap;
   SlicePersistence _persistent_state;
+  bool _dependency_computed;
+
   uint64_t _slice_id;
 
   // We need to hold a reference to the dg builder before the slicer is destroyed.
