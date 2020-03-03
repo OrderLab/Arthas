@@ -4,11 +4,14 @@
 #include <pthread.h>
 #include <string>
 #include "checkpoint_generic.h"
-
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
 
 using namespace std;
+
+extern "C" {
+PMEMobjpool *pmemobj_open(const char *path, const char *layout);
+}
 
 int main (int argc, char *argv[]){
 
@@ -26,8 +29,17 @@ int main (int argc, char *argv[]){
   PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
   c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
   cout << "c log c data " << c_log->c_data[0].version << "\n";
+  
+  uint64_t offset;
+  offset = (uint64_t)c_log->c_data - *old_pool;
+  int variable_count = c_log->variable_count;
+  for(int i = 0; i < variable_count; i++){
+    for(int j = 0; j < c_log->c_data[i].version; j++){
+      offset = (uint64_t)c_log->c_data[i].data[j] - *old_pool;
+      c_log->c_data[i].data[j] = (void *)((uint64_t)c_log->c_data[i].data[j] + offset);
+    }
+  }
  
-  //TODO: Read pop, reconstruct checkpoint data structure
   /*
     void *old_pool = pmemobj_root(pop, sizeof(void *))
     struct checkpoint_log c_log = old_pool + sizeof(void *);
