@@ -69,14 +69,23 @@ int main (int argc, char *argv[]){
   
   long long_addresses[MAX_DATA];
   void * ptr_addresses[MAX_DATA];
+  long long_pool_address;
+  void * ptr_pool_address;
 
   for(int i = 0; i < num_data; i++){
-    cout << addresses[i] << "\n";
     long_addresses[i] = stol(addresses[i], nullptr, 16);
-    cout << long_addresses[i] << "\n";
     ptr_addresses[i] = (void *)long_addresses[i];
     cout << "ptr address is " << ptr_addresses[i] << "\n";
-    //long_addresses[i] = strtol(addresses[i], NULL, 16);
+  }
+  long_pool_address = stol(pool_address, nullptr, 16);
+  ptr_pool_address = (void *)long_pool_address;
+  cout << "pool address is " << ptr_pool_address << "\n";
+
+  //Step 3: Calculating offsets from pointers
+  uint64_t offsets[MAX_DATA];
+  for(int i = 0; i < num_data; i++){
+    offsets[i] = (uint64_t)ptr_addresses[i] - (uint64_t)ptr_pool_address;
+    cout << "offset is " << offsets[i] << "\n";
   }
 
   //Step 1: Opening Checkpoint Component PMEM File
