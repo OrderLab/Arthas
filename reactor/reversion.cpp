@@ -13,14 +13,12 @@ extern "C" {
 PMEMobjpool *pmemobj_open(const char *path, const char *layout);
 }
 
-int main (int argc, char *argv[]){
-
-  //Step 1: Opening Checkpoint Component PMEM File
+struct checkpoint_log * reconstruct_checkpoint(){
   PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
   if(!pop){
    cout << "pool not found\n";
    cout << pmemobj_errormsg();
-   return -1;
+   return NULL;
   }
   PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
   uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
@@ -39,25 +37,14 @@ int main (int argc, char *argv[]){
       c_log->c_data[i].data[j] = (void *)((uint64_t)c_log->c_data[i].data[j] + offset);
     }
   }
- 
-  /*
-    void *old_pool = pmemobj_root(pop, sizeof(void *))
-    struct checkpoint_log c_log = old_pool + sizeof(void *);
-    uint64_t offset;
-    offset = (uint64_t)c_log.c_data - (uint64_t)(old_pool);
-    int variables = c_log.variables;
-    for(int i = 0; i < variables; i++){
-      offset = (uint64_t)c_log.c_data[i].address - (uint64_t)(old_pool);
-      c_log.c_data[i].address = (void *)((uint64_t) c_log.c_data[i].address + offset);
-      offset = (uint64_t)c_log.c_data[i].size - (uint64_t)(old_pool);
-      c_log.c_data[i].size = (void *)((uint64_t)c_log.c_data[i].size + offset);
-      for(int j = 0; j < version; j++){
-        offset = (uint64_t)c_log.c_data[i].data[j] - (uint64_t)(old_pool);
-        c_log.c_data[i].data[j] = (void *)((uint64_t)c_log.c_data[i].data[j] + offset);
-      }
-    }
-  */
-  
+
+}
+
+int main (int argc, char *argv[]){
+
+  //Step 1: Opening Checkpoint Component PMEM File
+  struct checkpoint_log *c_log = reconstruct_checkpoint();
+
   //Step 2: Read printed out file
   ifstream file (argv[1]);
   string line;
