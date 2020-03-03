@@ -3,13 +3,11 @@
 
 #include <set>
 
-#include "Slicing/SliceGraph.h"
-
-#include "dg/analysis/legacy/Analysis.h"
-#include "dg/analysis/legacy/NodesWalk.h"
-#include "dg/analysis/legacy/BFS.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
+#include "dg/analysis/legacy/Analysis.h"
+#include "dg/analysis/legacy/BFS.h"
+#include "dg/analysis/legacy/NodesWalk.h"
 
 #ifdef ENABLE_CFG
 #include "dg/BBlock.h"
@@ -40,15 +38,14 @@ public:
           ),
           forward_slice(forward_slc) {}
 
-    void mark(const std::set<NodeT *> &start, uint32_t slice_id,
-              llvm::slicing::SliceGraph *sg) {
+    void mark(const std::set<NodeT *> &start, uint32_t slice_id) {
       WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-      this->walk(start, markSlice, &data, sg);
+      this->walk(start, markSlice, &data);
     }
 
-    void mark(NodeT *start, uint32_t slice_id, llvm::slicing::SliceGraph *sg) {
-        WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
-        this->walk(start, markSlice, &data, sg);
+    void mark(NodeT *start, uint32_t slice_id) {
+      WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
+      this->walk(start, markSlice, &data);
     }
 
     bool isForward() const { return forward_slice; }
@@ -80,7 +77,6 @@ public:
     {
         uint32_t slice_id = data->slice_id;
         n->setSlice(slice_id);
-        //llvm::errs() << "mark slice of node " << n << "\n";
 
 #ifdef ENABLE_CFG
         // when we marked a node, we need to mark even
@@ -103,7 +99,6 @@ public:
                 // Now I need the correctness...
                 NodeT *entry = dg->getEntry();
                 assert(entry && "No entry node in dg");
-                //llvm::errs() << "this is the problem\n";
                 data->analysis->enqueue(entry);
             }
         }
@@ -186,31 +181,22 @@ public:
     ///
     // Mark nodes dependent on 'start' with 'sl_id'.
     // If 'forward_slice' is true, mark the nodes depending on 'start' instead.
-    uint32_t mark(NodeT *start, llvm::slicing::SliceGraph *sg, uint32_t sl_id = 0, bool forward_slice = false)
-    {
-        if (sl_id == 0)
-            sl_id = ++slice_id;
+    uint32_t mark(NodeT *start, uint32_t sl_id = 0,
+                  bool forward_slice = false) {
+      if (sl_id == 0) sl_id = ++slice_id;
 
-       /* if(direction == 1){
-          forward_slice = 1;
-          direction = 0;
-        }
-        else{
-          direction++;
-        }*/
-        //llvm::errs() << "FORWARD SLICE IN HERE ********\n";
-        WalkAndMark<NodeT> wm(forward_slice);
-        wm.mark(start, sl_id, sg);
+      WalkAndMark<NodeT> wm(forward_slice);
+      wm.mark(start, sl_id);
 
-        ///
-        // If we are performing forward slicing,
-        // we are missing the control dependencies now.
-        // So gather all control dependencies of the nodes that
-        // we want to have in the slice and perform normal backward
-        // slicing w.r.t these nodes.
-        if (forward_slice) {
-            std::set<NodeT *> branchings;
-            for (auto *BB : wm.getMarkedBlocks()) {
+      ///
+      // If we are performing forward slicing,
+      // we are missing the control dependencies now.
+      // So gather all control dependencies of the nodes that
+      // we want to have in the slice and perform normal backward
+      // slicing w.r.t these nodes.
+      if (forward_slice) {
+        std::set<NodeT *> branchings;
+        for (auto *BB : wm.getMarkedBlocks()) {
 #if ENABLE_CFG
                for (auto cBB : BB->revControlDependence()) {
                    assert(cBB->successorsNum() > 1);
@@ -221,7 +207,7 @@ public:
 
             if (!branchings.empty()) {
                 WalkAndMark<NodeT> wm2;
-                wm2.mark(branchings, sl_id, sg);
+                wm2.mark(branchings, sl_id);
             }
         }
 

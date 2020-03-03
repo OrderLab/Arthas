@@ -140,7 +140,7 @@ public:
 
         tm.start();
         for (dg::LLVMNode *start : criteria_nodes)
-            slice_id = slicer.mark(start, nullptr, slice_id, _options.forwardSlicing);
+          slice_id = slicer.mark(start, slice_id, _options.forwardSlicing);
 
         assert(slice_id != 0 && "Somethig went wrong when marking nodes");
 
@@ -162,7 +162,7 @@ public:
         dg::debug::TimeMeasure tm;
 
         tm.start();
-        slicer.slice(_dg.get(), nullptr, nullptr, slice_id);
+        slicer.slice(_dg.get(), nullptr, slice_id);
 
         tm.stop();
         tm.report("[llvm-slicer] Slicing dependence graph took");

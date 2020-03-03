@@ -40,17 +40,15 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "Slicing/SliceGraph.h"
-
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
-#include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 
 #include "dg/util/TimeMeasure.h"
 
@@ -195,12 +193,11 @@ int main(int argc, char *argv[])
         dg->getCallSites(sc, &callsites);
 
         LLVMSlicer slicer;
-        llvm::slicing::SliceGraph sg;
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
-                slicer.mark(dg->getExit(), &sg);
+              slicer.mark(dg->getExit());
             else
-                slicer.slice(dg.get(), &sg, dg->getExit());
+              slicer.slice(dg.get(), dg->getExit());
         } else {
             if (callsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
@@ -210,9 +207,9 @@ int main(int argc, char *argv[])
 
             uint32_t slid = 0;
             for (LLVMNode *start : callsites)
-                slid = slicer.mark(start, &sg, slid);
+                slid = slicer.mark(start, slid);
             if (!mark_only)
-               slicer.slice(dg.get(), &sg, nullptr, slid);
+               slicer.slice(dg.get(), nullptr, slid);
         }
 
         if (!mark_only) {

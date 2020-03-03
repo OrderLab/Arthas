@@ -141,9 +141,6 @@ int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
 }
 
 SliceGraph::~SliceGraph()
-{
-  for (node_iterator ni = node_begin(); ni != node_end(); ++ni) {
-    SliceNode *node = *ni;
-    delete node;
-  }
+{ 
+  delete root;
 }

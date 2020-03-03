@@ -113,8 +113,9 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   //Testing purposes: Using existing slicer first..
   list<list<const Instruction *>> slice_list;
   dg::LLVMSlicer slicer;
-  SliceGraph sg;
-  slicer.slice(subdg, &sg, node, 0, 0);
+  SliceGraph sg(node);
+  slicer.slice(subdg, node, 0, 0);
+
   DgSlices slices;
   sg.root->compute_slices(slices, fault_inst, SliceDirection::Backward, SlicePersistence::Mixed, 0);
   int count = 0;
@@ -190,7 +191,7 @@ bool SlicingPass::runOnModule(Module &M) {
 
   // Step 2: Compute dependence graph and slicer for the module
   _dgSlicer = make_unique<DgSlicer>(&M);
-  _dgSlicer->compute();  // compute the dependence graph for module M
+  _dgSlicer->computeDependencies();  // compute the dependence graph for module M
 
   // Step 3: PMEM variable location and mapping
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;

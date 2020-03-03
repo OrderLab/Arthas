@@ -49,6 +49,7 @@ class SliceNode {
   }
 
   ~SliceNode() {
+    // FIXME: buggy, a child may get deallocated multiple times if we are not careful
     for (child_iterator ci = child_begin(); ci != child_end(); ++ci) {
       // the child nodes are dynamically allocated, deallocate them when
       // a slice node is destroyed.
@@ -96,22 +97,24 @@ class SliceGraph {
    typedef SliceNodeList::const_iterator node_const_iterator;
 
  public:
-   SliceGraph() {}
-   ~SliceGraph();
+  SliceGraph(SliceNode *root_node) : root(root_node) {}
+  SliceGraph(dg::LLVMNode *rn) { root = new SliceNode(rn, 0); }
 
-   SliceNode *root;
-   int maxDepth;
+  ~SliceGraph();
 
-   inline node_iterator node_begin() { return nodeList.begin(); }
-   inline node_iterator node_end() { return nodeList.end(); }
-   inline node_const_iterator node_begin() const { return nodeList.begin(); }
-   inline node_const_iterator node_end() const { return nodeList.end(); }
+  SliceNode *root;
+  int maxDepth;
 
-   bool compute_slices() { return false; }
+  inline node_iterator node_begin() { return nodeList.begin(); }
+  inline node_iterator node_end() { return nodeList.end(); }
+  inline node_const_iterator node_begin() const { return nodeList.begin(); }
+  inline node_const_iterator node_end() const { return nodeList.end(); }
 
-   SliceNode *find_node(dg::LLVMNode *n) { return nullptr; }
+  bool compute_slices() { return false; }
 
-   bool add_node() { return false; }
+  SliceNode *find_node(dg::LLVMNode *n) { return nullptr; }
+
+  bool add_node() { return false; }
 
  protected:
    SliceNodeList nodeList;
