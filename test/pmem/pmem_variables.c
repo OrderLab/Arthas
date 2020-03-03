@@ -50,6 +50,7 @@ void write_hello_string(char *buf, char *path){
                   pmem_int_ptrs[i] = pmemobj_direct(oid3);
                   *pmem_int_ptrs[i] = i+1;
                 }
+		printf("end of first transaction\n");
 	}TX_END
 
         TX_BEGIN(pop){
@@ -65,7 +66,7 @@ void write_hello_string(char *buf, char *path){
 		//pmemobj_tx_abort(-1);
         }TX_END
 
-        TX_BEGIN(pop){
+        /*TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
                *pmem_double_ptr = 11;
                 pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
@@ -80,13 +81,13 @@ void write_hello_string(char *buf, char *path){
 	TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
                *pmem_double_ptr = 50;
-	}TX_END
+	}TX_END*/
 
 	printf("%p %p\n", pmem_double_ptr, pmem_int_ptr2);
 	printf("ints are %f and %d\n", *pmem_double_ptr, *pmem_int_ptr2);
-        int a;
-	int b = *pmem_double_ptr;
-        a = 30/(b);
+        //int a;
+	//int b = *pmem_double_ptr;
+        //a = 30/(b);
 }
 
 void read_hello_string(char *buf){
