@@ -45,12 +45,16 @@ struct checkpoint_log * reconstruct_checkpoint(){
       *((int *)c_log->c_data[i].data[j]));
     }
   }
+  *old_pool = (uint64_t)pop;
+  return c_log;
 }
 
 int main(int argc, char *argv[]){
   
   //Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log = reconstruct_checkpoint();
+  printf("finished checkpoint reconstruction\n");
+
   //Step 2: Read printed out file
   FILE *fp;
   char line[100];
@@ -94,11 +98,36 @@ int main(int argc, char *argv[]){
   }
   long_pool_address = strtol(str_pool_address, NULL, 16);
   pool_address = (void *)long_pool_address;
-  
+
   //Step 4: Calculating offsets from pointers
   uint64_t offsets[MAX_DATA];
+  void *pmem_addresses [MAX_DATA];
+  PMEMobjpool *pop = pmemobj_open(argv[2], argv[3]);
+  if(pop == NULL){
+    printf("could not open pop\n");
+    return -1;
+  }
   for(int i = 0; i < num_data; i++){
     offsets[i] = (uint64_t)addresses[i] - (uint64_t)pool_address;
+    pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
+   
+  //Step 5: Fine-grain reversion
+
+  //Step 6: Coarse-grain reversion
+  for(int i = 0; i < c_log->variable_count; i++){
+    printf("coarse address is %p\n", c_log->c_data[i].address);
+    for(int j = 0; j < num_data; j++){
+      if(addresses[i] == c_log->c_data[i].address){
+        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
+        *((int *)pmem_addresses[i]));
+      }
+    }
+    /*printf("coarse value is %f or %d\n", *((double *)c_log->c_data[i].address),
+      *((int *)c_log->c_data[i].address));*/
+  }
+  for(int i = 0; i < num_data; i++){
+    
+  }
 }
