@@ -71,31 +71,16 @@ void DgWalkAndMark::markSlice(dg::LLVMNode *n, DgWalkData *data)
   n->setSlice(slice_id);
   errs() << "setting node " << *n->getValue() << " to slice " << slice_id << "\n";
 
-  // NOTE: the original dg slicer marks the BB of a node, for us it should be
-  // fine to skip this step.
-
-  return;
-
   // when we marked a node, we need to mark even
   // the basic block - if there are basic blocks
   if (DgBasicBlock *B = n->getBBlock()) {
     B->setSlice(slice_id);
-    if (data->markedBlocks)
-      data->markedBlocks->insert(B);
+    if (data->markedBlocks) data->markedBlocks->insert(B);
   }
 
   // the same with dependence graph, if we keep a node from
   // a dependence graph, we need to keep the dependence graph
   if (dg::LLVMDependenceGraph *dg = n->getDG()) {
     dg->setSlice(slice_id);
-    if (!data->analysis->isForward()) {
-      // and keep also all call-sites of this func (they are
-      // control dependent on the entry node)
-      // This is correct but not so precise - fix it later.
-      // Now I need the correctness...
-      dg::LLVMNode *entry = dg->getEntry();
-      assert(entry && "No entry node in dg");
-      data->analysis->enqueue(entry);
-    }
   }
 }

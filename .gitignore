@@ -6,6 +6,7 @@
 *.ll
 *.dot
 *.sliced
+slices.log
 
 CMakeFiles/
 cmake_install.cmake

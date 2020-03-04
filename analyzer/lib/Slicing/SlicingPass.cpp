@@ -69,7 +69,7 @@ class SlicingPass : public ModulePass {
   virtual bool runOnModule(Module &M) override;
 
   bool instructionSlice(Instruction *fault_inst, Function *F,
-                        PMemVariableLocator &locator);
+                        PMemVariableLocator *locator);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -97,8 +97,7 @@ SlicingPass::~SlicingPass()
 }
 
 bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
-                                   PMemVariableLocator &locator)
-{
+                                   PMemVariableLocator *locator) {
   // Take faulty instruction and walk through Dependency Graph to 
   // obtain slices + metadata of persistent variables
   dg::LLVMDependenceGraph *subdg = _dgSlicer->getDependenceGraph(F);
@@ -116,13 +115,17 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   SliceGraph sg(new SliceNode(fault_inst, 0));
   _dgSlicer->slice(node, &sg);
 
+  auto& st = _dgSlicer->getStatistics();
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
+         << " nodes\n";
+
   return true;
 
   Slices slices;
 
   for (auto i = slices.begin(); i != slices.end(); ++i) {
     Slice *slice = *i;
-    slice->setPersistence(locator.vars());
+    slice->setPersistence(locator->vars());
     slice->dump(*_out_stream);
     if (slice->persistence == SlicePersistence::Volatile) {
       errs() << "Slice is volatile, do nothing\n";
@@ -174,7 +177,7 @@ bool SlicingPass::runOnModule(Module &M) {
     PMemVariableLocator *locator = locatorMap[F].get();
     locator->runOnFunction(*F);
     locator->findDefinitionPoints();
-    instructionSlice(fault_inst, F, *locator);
+    instructionSlice(fault_inst, F, locator);
   }
   llvm::errs() << "Done with run on module\n";
   return false;

@@ -119,91 +119,28 @@ uint32_t DgSlicer::slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t slice_id)
 
 void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
 {
-  // first slice away bblocks that should go away
-  sliceBBlocks(graph, slice_id);
+  // NOTE: original dg slicer will do a bunch of fix-ups in the slice graph 
+  // function, such as adjusting the bbblocks successors. Its purpose is
+  // to make the sliced graph still executable. For us, we don't really
+  // care whether the slicing result is executable. So we skip them and
+  // mainly update the statistics.
 
-  // NOTE: original LLVMSlicer will adjust the bbblocks successors.
-  // For us, we don't really care if the graph if complete, so we skip it
-
-  // now slice away instructions from BBlocks that left
-  for (auto I = graph->begin(), E = graph->end(); I != E;) {
-    dg::LLVMNode *n = I->second;
-    // shift here, so that we won't corrupt the iterator
-    // by deleteing the node
-    ++I;
-
-    // we added this node artificially and
-    // we don't want to slice it away or
-    // take any other action on it
-    if (n == graph->getExit())
-      continue;
-
-    ++statistics.nodesTotal;
-
-    // NOTE: the original LLVMSlicer keeps instructions like ret or unreachable
-    // for us, we don't really care whether the slice is executable or not. 
-    // so we assume it's OK to slice them away.
-
-    if (n->getSlice() != slice_id) {
-      removeNode(n);
-      graph->deleteNode(n);
-      ++statistics.nodesRemoved;
+  // We just update the statistics of sliced blocks and nodes. 
+  // We don't actually remove nodes or basic blocks.
+  for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
+    dg::LLVMNode *node = I->second;
+    if (node == graph->getExit()) continue;
+    ++_statistics.nodesTotal;
+    if (node->getSlice() != slice_id) {
+      ++_statistics.nodesRemoved;
     }
   }
-}
-
-bool DgSlicer::removeBlock(dg::LLVMBBlock *block)
-{
-  assert(block);
-
-  Value *val = block->getKey();
-  if (val == nullptr)
-    return true;
-
-  BasicBlock *blk = cast<BasicBlock>(val);
-  for (auto& succ : block->successors()) {
-    if (succ.label == 255)
-      continue;
-
-    // don't adjust phi nodes in this block if this is a self-loop,
-    // we're gonna remove the block anyway
-    if (succ.target == block)
-      continue;
-
-    if (Value *sval = succ.target->getKey())
-      dg::LLVMSlicer::adjustPhiNodes(cast<BasicBlock>(sval), blk);
+  auto &blocks = graph->getBlocks();
+  for (auto& it : blocks) {
+    auto blk = it.second;
+    // if an entire basic block is not marked slice id, it's not in the slice
+    if (blk->getSlice() != slice_id) {
+      ++_statistics.blocksRemoved;
+    }
   }
-
-  // We need to drop the reference to this block in all
-  // braching instructions that jump to this block.
-  // See #99
-  dg::dropAllUses(blk);
-
-  // we also must drop refrences to instructions that are in
-  // this block (or we would need to delete the blocks in
-  // post-dominator order), see #101
-  for (llvm::Instruction &Inst : *blk) 
-    dg::dropAllUses(&Inst);
-
-  // finally, erase the block per se
-  blk->eraseFromParent();
-  return true;
-}
-
-bool DgSlicer::removeNode(dg::LLVMNode *node)
-{
-  Value *val = node->getKey();
-  // FIXME: may not be necessary for our purpose
-  // if there are any other uses of this value,
-  // just replace them with undef
-  val->replaceAllUsesWith(UndefValue::get(val->getType()));
-
-  Instruction *Inst = dyn_cast<Instruction>(val);
-  if (Inst) {
-    Inst->eraseFromParent();
-  } else {
-    GlobalVariable *GV = dyn_cast<GlobalVariable>(val);
-    if (GV) GV->eraseFromParent();
-  }
-  return true;
 }

@@ -87,7 +87,7 @@ class DgWalkAndMark : public DgWalkBFS {
 
   struct DgWalkData {
     DgWalkData(uint32_t si, DgWalkAndMark *wm,
-             std::set<DgBasicBlock *> *mb = nullptr)
+               std::set<DgBasicBlock *> *mb = nullptr)
         : slice_id(si), analysis(wm), markedBlocks(mb) {}
     uint32_t slice_id;
     DgWalkAndMark *analysis;
