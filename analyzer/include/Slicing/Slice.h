@@ -9,15 +9,13 @@
 #ifndef _SLICING_SLICE_H_
 #define _SLICING_SLICE_H_
 
+#include <map>
 #include <vector>
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/LLVMNode.h"
 
 namespace llvm {
 namespace slicing {
@@ -38,7 +36,7 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
   }
 }
 
-class DgSlice {
+class Slice {
  public:
   typedef llvm::SmallVector<llvm::Value *, 20> DependentValueList;
 
@@ -51,7 +49,7 @@ class DgSlice {
   SlicePersistence persistence;
   DependentValueList dep_values;
 
-  DgSlice(uint64_t slice_id, llvm::Value *root_val, SliceDirection dir,
+  Slice(uint64_t slice_id, llvm::Value *root_val, SliceDirection dir,
           SlicePersistence kind)
       : id(slice_id), root(root_val), direction(dir)
   {
@@ -69,15 +67,15 @@ class DgSlice {
   void dump(llvm::raw_ostream &os);
 };
 
-class DgSlices {
+class Slices {
  public:
-  typedef std::vector<DgSlice *> SliceList;
-  typedef std::map<uint64_t, DgSlice *> SliceMap;
+  typedef std::vector<Slice *> SliceList;
+  typedef std::map<uint64_t, Slice *> SliceMap;
   typedef SliceList::iterator slice_iterator;
   typedef SliceList::const_iterator slice_const_iterator;
 
-  DgSlices() {}
-  ~DgSlices();
+  Slices() {}
+  ~Slices();
 
   inline slice_iterator begin() { return slices.begin(); }
   inline slice_iterator end() { return slices.end(); }
@@ -88,7 +86,7 @@ class DgSlices {
   inline size_t size() const { return slices.size(); }
   inline bool empty() const { return slices.empty(); }
 
-  inline void add(DgSlice *slice)
+  inline void add(Slice *slice)
   { 
     sliceMap.insert(std::make_pair(slice->id, slice));
     slices.push_back(slice);

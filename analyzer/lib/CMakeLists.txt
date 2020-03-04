@@ -43,6 +43,7 @@ add_library(Slicer SHARED
   Slicing/Slice.cpp
   Slicing/SliceGraph.cpp
   Slicing/SliceCriteria.cpp
+  Slicing/DgWalk.cpp
   Slicing/Slicer.cpp
 )
 

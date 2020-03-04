@@ -18,6 +18,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include "DefUse/DefUse.h"
+#include "Slicing/DgWalk.h"
 #include "Slicing/Slicer.h"
 
 using namespace std;
@@ -25,72 +26,8 @@ using namespace llvm;
 using namespace llvm::slicing;
 using namespace llvm::pmem;
 using namespace llvm::defuse;
-using namespace dg::analysis;
 
-uint32_t DgWalkAndMark::sliceRelationOpts(SliceDirection dir)
-{
-  switch (dir) {
-    case SliceDirection::Backward:
-      return legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
-             legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
-             legacy::NODES_WALK_REV_ID;
-    case SliceDirection::Forward:
-      return legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
-             legacy::NODES_WALK_USE | legacy::NODES_WALK_ID;
-    case SliceDirection::Full:
-      // for full slicing, the bi-directional relationships need to be walked
-      return legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
-             legacy::NODES_WALK_USE | legacy::NODES_WALK_ID |
-             legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
-             legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
-             legacy::NODES_WALK_REV_ID;
-    default:
-      return 0;
-  }
-}
-
-void DgWalkAndMark::mark(const std::set<dg::LLVMNode *> &start,
-                         uint32_t slice_id, llvm::slicing::SliceGraph *sg)
-{
-  DgWalkData data(slice_id, this, (_dir != SliceDirection::Backward) 
-      ? &_markedBlocks : nullptr);
-  // FIXME: override enqueue, prepare and func to store the slice into sg
-  this->walk(start, markSlice, &data);
-}
-
-void DgWalkAndMark::markSlice(dg::LLVMNode *n, DgWalkData *data)
-{
-  uint32_t slice_id = data->slice_id;
-  n->setSlice(slice_id);
-  //llvm::errs() << "mark slice of node " << n << "\n";
-
-  // when we marked a node, we need to mark even
-  // the basic block - if there are basic blocks
-  if (DgBasicBlock *B = n->getBBlock()) {
-    B->setSlice(slice_id);
-    if (data->markedBlocks)
-      data->markedBlocks->insert(B);
-  }
-
-  // the same with dependence graph, if we keep a node from
-  // a dependence graph, we need to keep the dependence graph
-  if (dg::LLVMDependenceGraph *dg = n->getDG()) {
-    dg->setSlice(slice_id);
-    if (!data->analysis->isForward()) {
-      // and keep also all call-sites of this func (they are
-      // control dependent on the entry node)
-      // This is correct but not so precise - fix it later.
-      // Now I need the correctness...
-      dg::LLVMNode *entry = dg->getEntry();
-      assert(entry && "No entry node in dg");
-      //llvm::errs() << "this is the problem\n";
-      data->analysis->enqueue(entry);
-    }
-  }
-}
-
-bool DgSlicer::computeDependencies()
-{
+bool DgSlicer::computeDependencies() {
   if (_dependency_computed) {
     return true;
   }
@@ -112,6 +49,7 @@ bool DgSlicer::computeDependencies()
   }
   // compute both data dependencies (def-use) and control dependencies
   _dg = _builder->computeDependencies(std::move(_dg));
+  _dg->verify();
 
   const auto &stats = _builder->getStatistics();
   errs() << "[slicer] CPU time of pointer analysis: "
@@ -136,19 +74,47 @@ dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
   return dgit->second;
 }
 
-uint32_t DgSlicer::slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t sl_id) 
+uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id)
 {
-  assert(start || sl_id != 0);
+  // If a slice id is not supplied, we use the last_slice_id + 1 as the new id
+  if (slice_id == 0) slice_id = ++_last_slice_id;
+
+  // only walk the data and use dependencies
+  DgWalkAndMark wm(_direction, false);
+  wm.mark(start, slice_id);
+
+  return slice_id;
+
+  // If we are performing forward slicing, we are missing the control dependencies 
+  // now. So gather all control dependencies of the nodes that we want to have in 
+  // the slice and perform normal backward slicing w.r.t these nodes.
+  if (_direction == SliceDirection::Forward) {
+    std::set<dg::LLVMNode *> branchings;
+    for (auto *BB : wm.getMarkedBlocks()) {
+      for (auto cBB : BB->revControlDependence()) {
+        assert(cBB->successorsNum() > 1);
+        branchings.insert(cBB->getLastNode());
+      }
+    }
+    if (!branchings.empty()) {
+      DgWalkAndMark wm2(SliceDirection::Backward);
+      wm2.mark(branchings, slice_id);
+    }
+  }
+  return slice_id;
+}
+
+uint32_t DgSlicer::slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t slice_id) 
+{
+  assert(start || slice_id != 0);
   if (start) {
-    // include argument for forward_slice here
-    // FIXME: use DgWalkAndMark to store slice into sg
-    sl_id = mark(start, sl_id, _direction == SliceDirection::Forward);
+    slice_id = markSliceId(start, slice_id);
   }
   for (auto &it : *_funcDgMap) {
     dg::LLVMDependenceGraph *subdg = it.second;
-    sliceGraph(subdg, sl_id);
+    sliceGraph(subdg, slice_id);
   }
-  return sl_id;
+  return slice_id;
 }
 
 void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
@@ -156,7 +122,7 @@ void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
   // first slice away bblocks that should go away
   sliceBBlocks(graph, slice_id);
 
-  // TODO: original LLVMSlicer will adjust the bbblocks successors.
+  // NOTE: original LLVMSlicer will adjust the bbblocks successors.
   // For us, we don't really care if the graph if complete, so we skip it
 
   // now slice away instructions from BBlocks that left
@@ -174,20 +140,14 @@ void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
 
     ++statistics.nodesTotal;
 
-    // TODO: the original LLVMSlicer keeps instructions like ret or unreachable
+    // NOTE: the original LLVMSlicer keeps instructions like ret or unreachable
     // for us, we don't really care whether the slice is executable or not. 
     // so we assume it's OK to slice them away.
-
-    /*
-       if (llvm::isa<llvm::CallInst>(n->getKey()))
-       sliceCallNode(n, slice_id);
-       */
 
     if (n->getSlice() != slice_id) {
       removeNode(n);
       graph->deleteNode(n);
       ++statistics.nodesRemoved;
-      //llvm::errs() << "nodes removed in slice " << statistics.nodesRemoved << "node " <<   n << "\n";
     }
   }
 }

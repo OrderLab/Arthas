@@ -101,67 +101,41 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
 {
   // Take faulty instruction and walk through Dependency Graph to 
   // obtain slices + metadata of persistent variables
-  errs() << "Computing slice for fault instruction " << *fault_inst << "\n";
   dg::LLVMDependenceGraph *subdg = _dgSlicer->getDependenceGraph(F);
+  if (subdg == nullptr) {
+    errs() << "Failed to find dependence graph for " << F->getName() << "\n";
+    return false;
+  }
   errs() << "Got dependence graph for function " << F->getName() << "\n";
   dg::LLVMNode *node = subdg->findNode(fault_inst);
   if (node == nullptr) {
     errs() << "Failed to find LLVMNode for " << *fault_inst << ", cannot slice\n";
     return false;
   }
+  errs() << "Computing slice for fault instruction " << *fault_inst << "\n";
+  SliceGraph sg(new SliceNode(fault_inst, 0));
+  _dgSlicer->slice(node, &sg);
 
-  //Testing purposes: Using existing slicer first..
-  list<list<const Instruction *>> slice_list;
-  dg::LLVMSlicer slicer;
-  SliceGraph sg(node);
-  slicer.slice(subdg, node, 0, 0);
+  return true;
 
-  DgSlices slices;
-  sg.root->compute_slices(slices, fault_inst, SliceDirection::Backward, SlicePersistence::Mixed, 0);
-  int count = 0;
+  Slices slices;
+
   for (auto i = slices.begin(); i != slices.end(); ++i) {
-    DgSlice *slice = *i;
+    Slice *slice = *i;
     slice->setPersistence(locator.vars());
     slice->dump(*_out_stream);
-    count++;
-    if (count == 3) {
-      if (slice->persistence == SlicePersistence::Volatile){
-        errs() << "Slice is volatile, do nothing\n";
-      } else {
-        errs() << "Slice is persistent or mixed, instrument it\n";
-        // TODO: if we instrument pmem addr in the first-run, then we don't need 
-        // to instrument the program anymore in the slicing stage. Otherwise, 
-        // we will instrument the persistent points in the slice.
-      }
+    if (slice->persistence == SlicePersistence::Volatile) {
+      errs() << "Slice is volatile, do nothing\n";
+    } else {
+      errs() << "Slice is persistent or mixed, instrument it\n";
+      // TODO: if we instrument pmem addr in the first-run, then we don't need 
+      // to instrument the program anymore in the slicing stage. Otherwise, 
+      // we will instrument the persistent points in the slice.
     }
   }
-  // sg.root->dump(0);
-  errs() << "Finished slicing. Total size of slice graph: "; 
+  errs() << "Finished slicing. Total size of slice graph: ";
   errs() << sg.root->total_size(sg.root) << "\n";
   errs() << "Slices are written to " << SliceOutput << "\n";
-
-  dg::analysis::SlicerStatistics& st = slicer.getStatistics();
-  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal << " nodes\n";
-
-  // FIXME: wtf???
-  DgSlice *dgSlice = new DgSlice(0, fault_inst, SliceDirection::Backward,
-                                 SlicePersistence::NA);
-  _dgSlicer->slices.insert(dgSlice);
-
-  // Forward Slice
-  /*list<list<const Instruction *>>  slice_list2;
-  dg::LLVMDependenceGraph *subdg2 = dgSlicer->getDependenceGraph(&F);
-  dg::LLVMSlicer slicer2;
-  dg::LLVMNode *node2 = subdg2->findNode(fault_instruction);
-  errs() << "forward slice about\n";
-  SliceGraph sg2;
-  if (node2 != nullptr) slicer2.slice(subdg2, &sg2, node2, 1, 1);
-
-  errs() << "forward sliced\n";
-  dg::analysis::SlicerStatistics& st2 = slicer2.getStatistics();
-  errs() << "INFO: Sliced away " << st2.nodesRemoved << " from " <<
-  st2.nodesTotal << " nodes\n";
-  */
   return true;
 }
 
@@ -186,7 +160,7 @@ bool SlicingPass::runOnModule(Module &M) {
   _sliceDir = SliceDir;
 
   // Step 2: Compute dependence graph and slicer for the module
-  _dgSlicer = make_unique<DgSlicer>(&M);
+  _dgSlicer = make_unique<DgSlicer>(&M, SliceDirection::Backward);
   _dgSlicer->computeDependencies();  // compute the dependence graph for module M
 
   // Step 3: PMEM variable location and mapping
@@ -203,7 +177,7 @@ bool SlicingPass::runOnModule(Module &M) {
     instructionSlice(fault_inst, F, *locator);
   }
   llvm::errs() << "Done with run on module\n";
-  return true;
+  return false;
 }
 
 char SlicingPass::ID = 0;

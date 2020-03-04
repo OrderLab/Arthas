@@ -121,9 +121,9 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   return true;
 }
 
-bool PmemAddrInstrumenter::instrumentSlice(DgSlice *slice, 
+bool PmemAddrInstrumenter::instrumentSlice(Slice *slice, 
     map<Value *, Instruction *> &pmemMetadata) {
-  for(auto i = slice->begin(); i != slice->end(); ++i){
+  for (auto i = slice->begin(); i != slice->end(); ++i) {
     // For each node, check if instruction is a persistent value. If it is
     // then get definition point. The root node is also in the iterator (the
     // first one), so we don't need to specially handle it.

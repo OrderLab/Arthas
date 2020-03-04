@@ -12,7 +12,7 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
-void DgSlice::dump(raw_ostream &os)
+void Slice::dump(raw_ostream &os)
 {
   os << "Slice " << id << ":\n";
   for (auto i = begin(); i != end(); ++i) {
@@ -22,7 +22,7 @@ void DgSlice::dump(raw_ostream &os)
   os << "Slice " << id << " is " << persistence << "\n";
 }
 
-void DgSlice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
+void Slice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
   bool vol = false;
   bool persistent = false;
   for (auto si = begin(); si != end(); ++si) {
@@ -44,12 +44,12 @@ void DgSlice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
   }
 }
 
-DgSlices::~DgSlices()
+Slices::~Slices()
 {
-  // Assume DgSlices are the owner of all the slices. Therefore, it must release
+  // Assume Slices are the owner of all the slices. Therefore, it must release
   // the memory of each dynamically allocated slice in its destructor.
   for (slice_iterator si = begin(); si != end(); ++si) {
-    DgSlice *slice = *si;
+    Slice *slice = *si;
     delete slice;
   }
   slices.clear();

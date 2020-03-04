@@ -24,9 +24,8 @@
 #include "llvm/ADT/GraphTraits.h"
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "dg/llvm/LLVMNode.h"
 
 namespace llvm {
 namespace slicing {
@@ -38,24 +37,13 @@ class SliceNode {
   typedef Children::const_iterator child_const_iterator;
 
  public:
-  dg::LLVMNode *node;
+  llvm::Value *value;
   int depth;
   Children child_nodes;
-  dg::LLVMNode *prev_node;
 
-  SliceNode(dg::LLVMNode *node, int node_depth) {
-    this->node = node;
+  SliceNode(llvm::Value *val, int node_depth) {
+    value = val;
     depth = node_depth;
-  }
-
-  ~SliceNode() {
-    // FIXME: buggy, a child may get deallocated multiple times if we are not careful
-    for (child_iterator ci = child_begin(); ci != child_end(); ++ci) {
-      // the child nodes are dynamically allocated, deallocate them when
-      // a slice node is destroyed.
-      SliceNode *sn = *ci;
-      delete sn;
-    }
   }
 
   inline child_iterator child_begin() { return child_nodes.begin(); }
@@ -65,13 +53,8 @@ class SliceNode {
   }
   inline child_const_iterator child_end() const { return child_nodes.end(); }
 
-  void add_child(dg::LLVMNode *n, int depth, dg::LLVMNode *prev_node) {
-    // FIXME: memory leak
-    SliceNode *sn = new SliceNode(n, depth);
-    // llvm::errs() << "added value of " << n << "\n";
-    sn->prev_node = prev_node;
-    child_nodes.push_back(sn);
-    // llvm::errs() << "added value of " << sn << "\n";
+  void add_child(SliceNode *child) {
+    child_nodes.push_back(child);
   }
 
   int total_size(SliceNode *sn) {
@@ -82,11 +65,11 @@ class SliceNode {
     return num;
   }
 
-  SliceNode *search_children(dg::LLVMNode *n);
+  SliceNode *search_children(llvm::Value *val);
   void dump(raw_ostream &os);
   void dump(raw_ostream &os, int level);
-  void slice_node_copy(DgSlice &base, DgSlices &slices);
-  int compute_slices(DgSlices &slices, llvm::Instruction *fi, SliceDirection sd,
+  void slice_node_copy(Slice &base, Slices &slices);
+  int compute_slices(Slices &slices, llvm::Instruction *fi, SliceDirection sd,
                      SlicePersistence sp, uint64_t slice_id);
 };
 
@@ -98,7 +81,6 @@ class SliceGraph {
 
  public:
   SliceGraph(SliceNode *root_node) : root(root_node) {}
-  SliceGraph(dg::LLVMNode *rn) { root = new SliceNode(rn, 0); }
 
   ~SliceGraph();
 
@@ -110,14 +92,8 @@ class SliceGraph {
   inline node_const_iterator node_begin() const { return nodeList.begin(); }
   inline node_const_iterator node_end() const { return nodeList.end(); }
 
-  bool compute_slices() { return false; }
-
-  SliceNode *find_node(dg::LLVMNode *n) { return nullptr; }
-
-  bool add_node() { return false; }
-
  protected:
-   SliceNodeList nodeList;
+  SliceNodeList nodeList;
 };
 
 } // namespace slicing

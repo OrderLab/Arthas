@@ -14,7 +14,7 @@ using namespace llvm::slicing;
 
 void SliceNode::dump(raw_ostream &os)
 {
-  os << node << "\n";
+  os << "*" << *value << "\n";
   for (child_iterator i = child_nodes.begin(); i != child_nodes.end(); ++i) {
     SliceNode *sn = *i;
     sn->dump(os);
@@ -24,15 +24,12 @@ void SliceNode::dump(raw_ostream &os)
 void SliceNode::dump(raw_ostream &os, int level)
 {
   if (level == 0) {
-    os << "root " << node << "\n";
+    os << "root " << *value << "\n";
   }
 
   for (child_iterator i = child_nodes.begin(); i != child_nodes.end(); ++i) {
     SliceNode *sn = *i;
-    os << sn->node << " depth of " << level << ", prev is " << node << "\n";
-    if (node != sn->prev_node) {
-      errs() << "Warning: inconsistent prev node " << sn->prev_node << "\n";
-    }
+    os << "depth " << level << " " << *sn->value << "\n";
   }
   int new_level = level + 1;
   for (child_iterator i = child_nodes.begin(); i != child_nodes.end(); ++i) {
@@ -41,25 +38,25 @@ void SliceNode::dump(raw_ostream &os, int level)
   }
 }
 
-SliceNode *SliceNode::search_children(dg::LLVMNode *n) 
+SliceNode *SliceNode::search_children(Value *val) 
 {
-  if (node == n) return this;
+  if (value == val) return this;
   for (auto i = child_nodes.begin(); i != child_nodes.end(); ++i) {
     SliceNode *sn = *i;
-    if (sn->node == n) return sn;
-    SliceNode *out = sn->search_children(n);
+    if (sn->value == val) return sn;
+    SliceNode *out = sn->search_children(val);
     if (out != nullptr) return out;
   }
   return nullptr;
 }
 
-void SliceNode::slice_node_copy(DgSlice &base, DgSlices &slices)
+void SliceNode::slice_node_copy(Slice &base, Slices &slices)
 {
-  DgSlice *s;
+  Slice *s;
   for (auto i = slices.begin(); i != slices.end(); ++i) {
     s = *i;
     // if(this->prev_node == s->highest_node || slices.size() == 1){
-    if (node->getValue() == s->root || slices.size() == 1) {
+    if (value == s->root || slices.size() == 1) {
       // errs() << "prev node is " << this->prev_node << "current node
       // is " << this->n << "\n";
       // errs() << "s highest nodes is " << s->highest_node << "\n";
@@ -72,24 +69,24 @@ void SliceNode::slice_node_copy(DgSlice &base, DgSlices &slices)
   }
 }
 
-int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
+int SliceNode::compute_slices(Slices &slices, llvm::Instruction *fi,
                               SliceDirection sd, SlicePersistence sp,
                               uint64_t slice_id) {
   uint64_t slice_num = slice_id;
   // Base Case: Adding in a slice of just the root node of the graph
   if (slices.empty()) {
-    DgSlice *slice = new DgSlice(slice_id, fi, sd, sp);
+    Slice *slice = new Slice(slice_id, fi, sd, sp);
     slices.add(slice);
     slice_num++;
   }
 
   // Creating base slice to copy, need to change slice_id and highest_node
   // DGSlice base = DGSlice(fi, sd, sp, slice_num, this->n);
-  DgSlice *s;
+  Slice *s;
   for (auto i = slices.begin(); i != slices.end(); ++i) {
     s = *i;
     // if (this->prev_node == s->highest_node || slices.size() == 1){
-    if (node->getValue() == s->root || slices.size() == 1) {
+    if (value == s->root || slices.size() == 1) {
       // errs() << "prev node is " << this->prev_node << "current node
       // is " << this->n << "\n";
       // errs() << "s highest nodes is " << s->highest_node << "\n";
@@ -118,12 +115,12 @@ int SliceNode::compute_slices(DgSlices &slices, llvm::Instruction *fi,
     // errs() << children_num << "\n";
     if (child_count == children_num) {
       // errs() << "pushing to existing branch\n";
-      s->add(sn->node->getValue());
+      s->add(sn->value);
       //TODO: what's this for?
-      s->root = sn->node->getValue();
+      s->root = sn->value;
       // errs() << "number of slices is " << slices.size() << "\n";
     } else {
-      DgSlice *base = new DgSlice(slice_num, fi, sd, sp);
+      Slice *base = new Slice(slice_num, fi, sd, sp);
       this->slice_node_copy(*base, slices);
       // errs() << "new slice old highest is " << base.highest_node << "\n";
       // errs() << "base nodes size is " << base.nodes.size() << "\n";

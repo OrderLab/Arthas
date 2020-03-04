@@ -58,7 +58,7 @@ class PmemAddrInstrumenter {
   bool initHookFuncs(Module &M);
 
   // instrument the persistent points in a slice
-  bool instrumentSlice(llvm::slicing::DgSlice *slice,
+  bool instrumentSlice(llvm::slicing::Slice *slice,
                        std::map<Value *, Instruction *> &pmemMetadata);
 
   // instrument a call to hook func before an instruction.

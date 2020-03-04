@@ -125,7 +125,6 @@ class Slicer : legacy::Analysis<NodeT>
     uint32_t options;
     uint32_t slice_id;
     int direction;
-    std::set<llvm::Value *>pmem_values;
     std::set<DependenceGraph<NodeT> *> sliced_graphs;
 
     // slice nodes from the graph; do it recursively for call-nodes
