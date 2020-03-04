@@ -93,7 +93,12 @@ void write_hello_string(char *buf, char *path){
 }
 
 void read_hello_string(char *buf){
-
+  printf("Trying to open pmem file %s\n", buf);
+  PMEMobjpool *pop = pmemobj_open(buf, LAYOUT);
+  if(pop == NULL){
+    perror(buf);
+    exit(1);
+  }
 }
 int main(int argc, char *argv[])
 {
