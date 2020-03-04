@@ -11,7 +11,6 @@
 
 #include "PMem/Extractor.h"
 #include "Slicing/Slice.h"
-#include "Slicing/Slicer.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"

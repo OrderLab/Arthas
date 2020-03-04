@@ -136,8 +136,6 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
       // we will instrument the persistent points in the slice.
     }
   }
-  errs() << "Finished slicing. Total size of slice graph: ";
-  errs() << sg.root->total_size(sg.root) << "\n";
   errs() << "Slices are written to " << SliceOutput << "\n";
   return true;
 }
