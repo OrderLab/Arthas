@@ -189,6 +189,35 @@ address: 0x7ffd58998d1c
 
 ```
 
+## Slicing a program given a fault instruction
+```
+$ cd build
+$ opt -load analyzer/lib/libLLVMSlicer.so -slicer -slice-crit hello_libpmem.c:64 -slice-inst '%14 = load i8*, i8** %5, align 8, !dbg !37' < ../test/pmem/hello_libpmem.bc > /dev/null
+
+Begin instruction slice
+Found slice instruction %14 = load i8*, i8** %5, align 8, !dbg !37
+...
+[slicer] CPU time of pointer analysis: 4.780000e-03 s
+[slicer] CPU time of reaching definitions analysis: 4.470000e-03 s
+[slicer] CPU time of control dependence analysis: 1.490000e-04 s
+UseDefMap size is 12
+Got dependence graph for function write_hello_string
+Computing slice for fault instruction   %14 = load i8*, i8** %5, align 8, !dbg !37
+setting node   %14 = load i8*, i8** %5, align 8, !dbg !37 to slice 1
+setting node   store i8* %10, i8** %5, align 8, !dbg !31 to slice 1
+setting node   %5 = alloca i8*, align 8 to slice 1
+setting node   %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30 to slice 1
+setting node   %6 = alloca i64, align 8 to slice 1
+setting node   %7 = alloca i32, align 4 to slice 1
+setting node   %9 = load i8*, i8** %4, align 8, !dbg !28 to slice 1
+setting node   store i8* %1, i8** %4, align 8 to slice 1
+setting node   %4 = alloca i8*, align 8 to slice 1
+setting node i8* %1 to slice 1
+setting node   %19 = load i8*, i8** %6, align 8, !dbg !35 to slice 1
+INFO: Sliced away 102 from 111 nodes
+Done with run on module
+```
+
 # Code Style
 
 ### Command-Line
