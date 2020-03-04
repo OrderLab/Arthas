@@ -68,14 +68,14 @@ void write_hello_string(char *buf, char *path){
 		//pmemobj_tx_abort(-1);
         }TX_END
 
-        /*TX_BEGIN(pop){
+        TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
                *pmem_double_ptr = 11;
                 pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
 		*pmem_int_ptr2 = 4;
         }TX_END
 
-	TX_BEGIN(pop){
+	/*TX_BEGIN(pop){
                 pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
                *pmem_double_ptr = 8;
 	}TX_END
@@ -93,7 +93,12 @@ void write_hello_string(char *buf, char *path){
 }
 
 void read_hello_string(char *buf){
-
+  printf("Trying to open pmem file %s\n", buf);
+  PMEMobjpool *pop = pmemobj_open(buf, LAYOUT);
+  if(pop == NULL){
+    perror(buf);
+    exit(1);
+  }
 }
 int main(int argc, char *argv[])
 {

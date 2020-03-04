@@ -42,8 +42,6 @@ struct checkpoint_log * reconstruct_checkpoint(){
 
 int main (int argc, char *argv[]){
 
-  //Step 1: Opening Checkpoint Component PMEM File
-  struct checkpoint_log *c_log = reconstruct_checkpoint();
 
   //Step 2: Read printed out file
   ifstream file (argv[1]);
@@ -59,14 +57,40 @@ int main (int argc, char *argv[]){
 
   while(getline(file, line)){
     if(line.substr(0,8) == "address:"){
+      addresses[num_data] = line.substr(9);
       //strcpy(addresses[num_data], line.substr(9));
       num_data++;
     }
     else if(line.substr(0,4) == "POOL"){
+      pool_address = line.substr(14);
       //strcpy(pool_address, line.substr(14));
     }
   }
   
+  long long_addresses[MAX_DATA];
+  void * ptr_addresses[MAX_DATA];
+  long long_pool_address;
+  void * ptr_pool_address;
+
+  for(int i = 0; i < num_data; i++){
+    long_addresses[i] = stol(addresses[i], nullptr, 16);
+    ptr_addresses[i] = (void *)long_addresses[i];
+    cout << "ptr address is " << ptr_addresses[i] << "\n";
+  }
+  long_pool_address = stol(pool_address, nullptr, 16);
+  ptr_pool_address = (void *)long_pool_address;
+  cout << "pool address is " << ptr_pool_address << "\n";
+
+  //Step 3: Calculating offsets from pointers
+  uint64_t offsets[MAX_DATA];
+  for(int i = 0; i < num_data; i++){
+    offsets[i] = (uint64_t)ptr_addresses[i] - (uint64_t)ptr_pool_address;
+    cout << "offset is " << offsets[i] << "\n";
+  }
+
+  //Step 1: Opening Checkpoint Component PMEM File
+  struct checkpoint_log *c_log = reconstruct_checkpoint();
+
   //Step 3: For each address, convert from string to void *,
   //then subtract from the pool_address to get the offset of
   //each data structure.
