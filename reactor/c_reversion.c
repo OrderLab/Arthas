@@ -112,11 +112,12 @@ int main(int argc, char *argv[]){
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
-   
+
   //Step 5: Fine-grain reversion
 
   //Step 6: Coarse-grain reversion
   //TODO: Print data type in instrumentation
+  //To be deleted: This will be unnecessary once data types are printed 
   int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
     printf("coarse address is %p\n", c_log->c_data[i].address);
@@ -129,6 +130,7 @@ int main(int argc, char *argv[]){
     }
   }
 
+  //Actual reversion, argv[4] represents what version to revert to
   int ind = -1;
   for(int i = 0; i < num_data; i++){
     size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
