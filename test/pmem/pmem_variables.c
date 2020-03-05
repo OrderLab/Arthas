@@ -41,14 +41,14 @@ void write_hello_string(char *buf, char *path){
 		pmem_double_ptr = pmemobj_direct(oid);
 		printf("address of pmem double is %p %ld\n", pmem_double_ptr, (uint64_t)pmem_double_ptr);
 		*pmem_double_ptr = 3;
-		oid2 = pmemobj_tx_zalloc(sizeof(int), 1);
+		oid2 = pmemobj_tx_zalloc(sizeof(int), 2);
 		pmem_int_ptr2 = pmemobj_direct(oid2);
 		*pmem_int_ptr2 = 12;
 		printf("address of pmemint2 is %p %ld\n", pmem_int_ptr2, (uint64_t)pmem_int_ptr2);
 
                 PMEMoid oid3;
                 for(int i = 0; i < 5; i++){
-                  oid3 = pmemobj_tx_zalloc(sizeof(int), 1);
+                  oid3 = pmemobj_tx_zalloc(sizeof(int), 2);
                   pmem_int_ptrs[i] = pmemobj_direct(oid3);
                   *pmem_int_ptrs[i] = i+1;
                 }
@@ -99,6 +99,23 @@ void read_hello_string(char *buf){
     perror(buf);
     exit(1);
   }
+  //Doubles are of type 1, Ints are type 2.
+  PMEMoid oid = POBJ_FIRST_TYPE_NUM(pop, 1);
+  double *d;
+  while(oid.off){
+    d = pmemobj_direct(oid);
+    printf("value of double is %f\n", *d);
+    oid = POBJ_NEXT_TYPE_NUM(oid);
+  }
+
+  oid = POBJ_FIRST_TYPE_NUM(pop,2);
+  int *i;
+  while(oid.off){
+    i = pmemobj_direct(oid);
+    printf("value of int is %d\n", *i);
+    oid = POBJ_NEXT_TYPE_NUM(oid);
+  }
+
 }
 int main(int argc, char *argv[])
 {
