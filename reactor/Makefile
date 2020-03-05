@@ -17,8 +17,10 @@ RM = rm
 
 all: $(EXES)
 
-c_reversion.o: c_reversion.c
+c_reversion.o: c_reversion.c 
 	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
 
 c_reversion: c_reversion.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
+
+

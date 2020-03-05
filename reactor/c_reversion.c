@@ -116,18 +116,23 @@ int main(int argc, char *argv[]){
   //Step 5: Fine-grain reversion
 
   //Step 6: Coarse-grain reversion
+  //TODO: Print data type in instrumentation
+  int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
     printf("coarse address is %p\n", c_log->c_data[i].address);
     for(int j = 0; j < num_data; j++){
-      if(addresses[i] == c_log->c_data[i].address){
-        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
-        *((int *)pmem_addresses[i]));
+      if(addresses[j] == c_log->c_data[i].address){
+        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[j]),
+        *((int *)pmem_addresses[j]));
+        c_data_indices[j] = i;
       }
     }
-    /*printf("coarse value is %f or %d\n", *((double *)c_log->c_data[i].address),
-      *((int *)c_log->c_data[i].address));*/
   }
+
+  int ind = -1;
   for(int i = 0; i < num_data; i++){
-    
+    size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
+    ind = search_for_address(addresses[i], size, c_log);
+    printf("ind is %d for %p\n", ind, addresses[i]);
   }
 }
