@@ -35,6 +35,44 @@ bool SliceNode::connect(SliceNode *node, SliceEdge::EdgeKind kind) {
   return false;
 }
 
+raw_ostream &operator<<(raw_ostream &os, const SliceEdge::EdgeKind &kind)
+{
+  switch (kind) {
+    case SliceEdge::EdgeKind::Unknown: os << "n/a"; return os;
+    case SliceEdge::EdgeKind::RegisterDefUse: os << "reg-def-use"; return os;
+    case SliceEdge::EdgeKind::MemoryDependence: os << "memory-dep"; return os;
+    case SliceEdge::EdgeKind::ControlDependence: os << "control-dep"; return os;
+    case SliceEdge::EdgeKind::InterfereDependence: os << "interfere-dep"; return os;
+    default: os << "unknown"; return os;
+  }
+  return os;
+}
+
+raw_ostream &operator<<(raw_ostream &os, const SliceEdge &edge)
+{
+  os << "----[" << edge.getKind() << "] to " << *edge.getTargetNode()->getValue() << "\n";
+  return os;
+}
+
+raw_ostream &operator<<(raw_ostream &os, const SliceNode &node)
+{
+  os << "* node: " << *node.getValue() << "\n";
+  for (auto ei = node.edge_begin(); ei != node.edge_end(); ++ei) {
+    SliceEdge *edge = *ei;
+    os << *edge;
+  }
+  return os;
+}
+
+raw_ostream &operator<<(raw_ostream &os, const SliceGraph &graph)
+{
+  for (auto ni = graph.node_begin(); ni != graph.node_end(); ++ni) {
+    SliceNode *node = *ni;
+    os << *node;
+  }
+  return os;
+}
+
 bool SliceGraph::addNode(SliceNode *node) 
 {
   if (findNode(node) != _nodes.end()) return false;
@@ -89,7 +127,6 @@ bool SliceGraph::removeNode(SliceNode *node)
   node->clearEdges();
   _nodes.erase(ni);
   return true;
-
 }
 
 SliceGraph::~SliceGraph()
@@ -101,4 +138,10 @@ SliceGraph::~SliceGraph()
     }
     delete node;
   }
+}
+
+bool SliceGraph::computeSlices(Slices &slices)
+{
+  // TODO: iterate over all paths
+  return true;
 }

@@ -114,11 +114,13 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   errs() << "Computing slice for fault instruction " << *fault_inst << "\n";
   SliceGraph *sg;
   _dgSlicer->slice(node, 0, SlicingApproachKind::Storing, &sg);
-  auto& st = _dgSlicer->getStatistics();
-
+  auto &st = _dgSlicer->getStatistics();
+  unique_ptr<SliceGraph> slice_graph(sg);
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
-  errs() << "INFO: Slice graph has " << sg->size() << " node(s)\n";
+  errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+  *_out_stream << *slice_graph.get() << "\n";
+  errs() << "Slice graph is written to " << SliceOutput << "\n";
   return true;
 
   Slices slices;
@@ -136,7 +138,6 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
       // we will instrument the persistent points in the slice.
     }
   }
-  errs() << "Slices are written to " << SliceOutput << "\n";
   return true;
 }
 
@@ -177,7 +178,6 @@ bool SlicingPass::runOnModule(Module &M) {
     locator->findDefinitionPoints();
     instructionSlice(fault_inst, F, locator);
   }
-  llvm::errs() << "Done with run on module\n";
   return false;
 }
 

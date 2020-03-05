@@ -50,9 +50,8 @@ class Slice {
   DependentValueList dep_values;
 
   Slice(uint64_t slice_id, llvm::Value *root_val, SliceDirection dir,
-          SlicePersistence kind)
-      : id(slice_id), root(root_val), direction(dir)
-  {
+        SlicePersistence kind = SlicePersistence::NA)
+      : id(slice_id), root(root_val), direction(dir), persistence(kind) {
     dep_values.push_back(root_val);  // root val depends on itself
   }
 

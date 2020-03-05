@@ -55,7 +55,7 @@ class SliceEdge {
     return *this;
   }
 
-  SliceNode* getTargetNode() { return target_node; }
+  SliceNode* getTargetNode() const { return target_node; }
 
   EdgeKind getKind() const { return kind; };
   bool isDefUse() const { return kind == EdgeKind::RegisterDefUse; }
@@ -98,8 +98,6 @@ class SliceNode {
   bool hasEdgeTo(SliceNode *node);
   void clearEdges() { _edges.clear(); }
 
-  void dump(raw_ostream &os);
-
  protected:
   EdgeListTy _edges;
   ValueTy _value;
@@ -137,6 +135,8 @@ class SliceGraph {
 
   size_t size() const { return _nodes.size(); }
 
+  bool computeSlices(Slices &slices);
+
  protected:
   NodeListTy _nodes;
   SliceNode *_root;
@@ -146,5 +146,14 @@ class SliceGraph {
 
 } // namespace slicing
 } // namespace llvm
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const llvm::slicing::SliceEdge::EdgeKind &kind);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const llvm::slicing::SliceEdge &edge);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const llvm::slicing::SliceNode &node);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const llvm::slicing::SliceGraph &graph);
 
 #endif
