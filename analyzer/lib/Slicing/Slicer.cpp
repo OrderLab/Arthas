@@ -76,9 +76,6 @@ dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
 
 uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id)
 {
-  // If a slice id is not supplied, we use the last_slice_id + 1 as the new id
-  if (slice_id == 0) slice_id = ++_last_slice_id;
-
   // only walk the data and use dependencies
   DgWalkAndMark wm(_direction, false);
   wm.mark(start, slice_id);
@@ -104,21 +101,39 @@ uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id)
   return slice_id;
 }
 
-uint32_t DgSlicer::slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t slice_id) 
+SliceGraph *DgSlicer::buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id)
 {
-  assert(start || slice_id != 0);
-  if (start) {
-    slice_id = markSliceId(start, slice_id);
+  DgWalkAndBuildSliceGraph wb(_direction, false);
+  return wb.build(start, slice_id);
+}
+
+uint32_t DgSlicer::slice(dg::LLVMNode *start, uint32_t slice_id,
+                         SlicingApproachKind kind, SliceGraph **result)
+{
+  // If a slice id is not supplied, we use the last_slice_id + 1 as the new id
+  if (slice_id == 0) slice_id = ++_last_slice_id;
+
+  switch (kind) {
+    case SlicingApproachKind::Storing:
+      if (result != nullptr) {
+        *result = buildSliceGraph(start, slice_id);
+      }
+      break;
+    case SlicingApproachKind::Marking:
+      markSliceId(start, slice_id);
+      break;
+    default:
+      return 0;
   }
   for (auto &it : *_funcDgMap) {
     dg::LLVMDependenceGraph *subdg = it.second;
-    sliceGraph(subdg, slice_id);
+    updateStatsSliceId(subdg, slice_id);
   }
   return slice_id;
 }
 
-void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
-{
+void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,
+                                  uint32_t slice_id) {
   // NOTE: original dg slicer will do a bunch of fix-ups in the slice graph 
   // function, such as adjusting the bbblocks successors. Its purpose is
   // to make the sliced graph still executable. For us, we don't really
@@ -138,9 +153,69 @@ void DgSlicer::sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id)
   auto &blocks = graph->getBlocks();
   for (auto& it : blocks) {
     auto blk = it.second;
+    ++_statistics.blocksTotal;
     // if an entire basic block is not marked slice id, it's not in the slice
     if (blk->getSlice() != slice_id) {
       ++_statistics.blocksRemoved;
     }
+  }
+  ++_statistics.funcsTotal;
+  if (graph->getSlice() != slice_id) {
+    ++_statistics.funcsRemoved;
+  }
+}
+
+void DgSlicer::walkSliceId(uint32_t slice_id, dg::LLVMDependenceGraph *graph,
+    NodeSliceFunc nodeFunc, BasicBlockSliceFunc bbFunc, FunctionSliceFunc fnFunc)
+{
+  if (graph) {
+    if (nodeFunc)
+      walkNodeSliceId(graph, slice_id, nodeFunc);
+    if (bbFunc)
+      walkBasicBlockSliceId(graph, slice_id, bbFunc);
+    if (fnFunc)
+      walkFunctionSliceId(graph, slice_id, fnFunc);
+  } else {
+    for (auto &it : *_funcDgMap) {
+      dg::LLVMDependenceGraph *subdg = it.second;
+      if (nodeFunc)
+        walkNodeSliceId(subdg, slice_id, nodeFunc);
+      if (bbFunc)
+        walkBasicBlockSliceId(subdg, slice_id, bbFunc);
+      if (fnFunc)
+        walkFunctionSliceId(subdg, slice_id, fnFunc);
+    }
+  }
+}
+
+void DgSlicer::walkNodeSliceId(dg::LLVMDependenceGraph *graph,
+    uint32_t slice_id, NodeSliceFunc func)
+{
+  for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
+    dg::LLVMNode *node = I->second;
+    if (node == graph->getExit()) continue;
+    if (node->getSlice() == slice_id) {
+      func(node);
+    }
+  }
+}
+
+void DgSlicer::walkBasicBlockSliceId(dg::LLVMDependenceGraph *graph, 
+        uint32_t slice_id, BasicBlockSliceFunc func)
+{
+  auto &blocks = graph->getBlocks();
+  for (auto& it : blocks) {
+    auto blk = it.second;
+    if (blk->getSlice() == slice_id) {
+      func(blk);
+    }
+  }
+}
+
+void DgSlicer::walkFunctionSliceId(dg::LLVMDependenceGraph *graph,
+                                   uint32_t slice_id, FunctionSliceFunc func)
+{
+  if (graph->getSlice() == slice_id) {
+    func(graph);
   }
 }

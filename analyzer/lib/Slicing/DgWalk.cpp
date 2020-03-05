@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include "Slicing/SliceGraph.h"
 #include "Slicing/DgWalk.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
@@ -69,7 +70,6 @@ void DgWalkAndMark::markSlice(dg::LLVMNode *n, DgWalkData *data)
 {
   uint32_t slice_id = data->slice_id;
   n->setSlice(slice_id);
-  errs() << "setting node " << *n->getValue() << " to slice " << slice_id << "\n";
 
   // when we marked a node, we need to mark even
   // the basic block - if there are basic blocks
@@ -83,4 +83,77 @@ void DgWalkAndMark::markSlice(dg::LLVMNode *n, DgWalkData *data)
   if (dg::LLVMDependenceGraph *dg = n->getDG()) {
     dg->setSlice(slice_id);
   }
+}
+
+void DgWalkAndBuildSliceGraph::mark(dg::LLVMNode *n, uint32_t slice_id)
+{
+  n->setSlice(slice_id);
+  if (DgBasicBlock *B = n->getBBlock()) {
+    B->setSlice(slice_id);
+  }
+  if (dg::LLVMDependenceGraph *dg = n->getDG()) {
+    dg->setSlice(slice_id);
+  }
+}
+
+SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
+                                            uint32_t slice_id) {
+  errs() << "Building a graph for slice " << slice_id << "\n";
+  SliceGraph *sg = new SliceGraph(new SliceNode(start->getValue(), 0), _dir);
+  // run_id is used to indicate whether a node has been visited or not
+  // we should ensure it's unique by incrementing the global run counter
+  run_id = ++walk_run_counter;
+  enqueue(start);
+
+  SliceNode *sn_curr;
+  dg::LLVMNode *dn_curr;
+  while (!queue.empty()) {
+    dn_curr = queue.pop();
+    if (options == 0) continue;
+    // we also mark the node and bb with slice id for counting the statistics
+    mark(dn_curr, slice_id);
+    sn_curr = sg->getOrCreateNode(dn_curr->getValue());
+    if (options & legacy::NODES_WALK_CD) {
+      processSliceEdges(sg, sn_curr, dn_curr,
+                        SliceEdge::EdgeKind::ControlDependence,
+                        dn_curr->control_begin(), dn_curr->control_end());
+    }
+    if (options & legacy::NODES_WALK_REV_CD) {
+      processSliceEdges(
+          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
+          dn_curr->rev_control_begin(), dn_curr->rev_control_end());
+    }
+    if (options & legacy::NODES_WALK_DD) {
+      processSliceEdges(sg, sn_curr, dn_curr,
+                        SliceEdge::EdgeKind::MemoryDependence,
+                        dn_curr->data_begin(), dn_curr->data_end());
+    }
+    if (options & legacy::NODES_WALK_REV_DD) {
+      processSliceEdges(sg, sn_curr, dn_curr,
+                        SliceEdge::EdgeKind::MemoryDependence,
+                        dn_curr->rev_data_begin(), dn_curr->rev_data_end());
+    }
+    if (options & legacy::NODES_WALK_USE) {
+      processSliceEdges(sg, sn_curr, dn_curr,
+                        SliceEdge::EdgeKind::RegisterDefUse,
+                        dn_curr->use_begin(), dn_curr->use_end());
+    }
+    if (options & legacy::NODES_WALK_USER) {
+      processSliceEdges(sg, sn_curr, dn_curr,
+                        SliceEdge::EdgeKind::RegisterDefUse,
+                        dn_curr->user_begin(), dn_curr->user_end());
+    }
+    if (options & legacy::NODES_WALK_ID) {
+      processSliceEdges(
+          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
+          dn_curr->interference_begin(), dn_curr->interference_end());
+    }
+    if (options & legacy::NODES_WALK_REV_ID) {
+      processSliceEdges(
+          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
+          dn_curr->rev_interference_begin(), dn_curr->rev_interference_end());
+    }
+  }
+  errs() << "Slice graph " << slice_id << " is constructed\n";
+  return sg;
 }

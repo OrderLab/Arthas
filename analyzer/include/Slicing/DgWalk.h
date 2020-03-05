@@ -10,6 +10,7 @@
 #define _SLICING_DGWALK_H_
 
 #include "Slicing/Slice.h"
+#include "Slicing/SliceGraph.h"
 
 #include "dg/analysis/legacy/Analysis.h"
 #include "dg/analysis/legacy/BFS.h"
@@ -101,10 +102,28 @@ class DgWalkAndMark : public DgWalkBFS {
 // it will directly construct slices as it walks the graph, which can preserve
 // the ordering of walking. The ordering of dependencies can be useful, e.g., to
 // determine heuristics of which slice to use first.
-class DgWalkAndBuildSlices: public DgWalkDFS {
-  public:
-   DgWalkAndBuildSlices(SliceDirection dir, bool full_depdencies = false)
-       : DgWalkDFS(dir, full_depdencies) {}
+class DgWalkAndBuildSliceGraph: public DgWalkDFS {
+ public:
+  DgWalkAndBuildSliceGraph(SliceDirection dir, bool full_depdencies = false)
+      : DgWalkDFS(dir, full_depdencies) {}
+
+  SliceGraph *build(dg::LLVMNode *start, uint32_t slice_id);
+
+ protected:
+  template <typename EdgeIterT>
+  void processSliceEdges(SliceGraph *sg, SliceNode *sn_curr,
+                         dg::LLVMNode *dn_curr, SliceEdge::EdgeKind kind,
+                         EdgeIterT begin, EdgeIterT end) {
+    for (EdgeIterT ei = begin; ei != end; ++ei) {
+      auto dn_next = *ei;
+      auto sn_next = sg->getOrCreateNode(dn_next->getValue());
+      sn_curr->connect(sn_next, kind);
+      enqueue(dn_next);
+    }
+  }
+
+ protected:
+  static void mark(dg::LLVMNode *n, uint32_t slice_id);
 };
 
 } // namespace slicing

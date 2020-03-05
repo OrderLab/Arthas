@@ -31,9 +31,28 @@
 namespace llvm {
 namespace slicing {
 
+// We support two kinds of slicing approach:
+//   1) storing: walk the dependency graph and storing the result into a 
+//      SliceGraph data structure. The original dependency graph is intact.
+//      This approach incurs some additional memory overhead, but is very
+//      efficient to use and query the slices. It also preserves the ordering
+//      of the dependencies among the slice elements.
+//   2) marking: walk the dependency graph and mark elements (nodes, basic
+//      blocks, functions) along the way. The result is embedded in the graph
+//      and no additional SliceGraph is created. To retrieve the result, 
+//      one has to walk the dependency graph again to check if an element
+//      has been marked or not. This approach saves some memory overhead, but
+//      it is inefficient to use and query the slices. It also loses the
+//      ordering of dependencies, which can be useful.
+enum class SlicingApproachKind { Storing, Marking };
+
 // Slicer based on dependency graph
 class DgSlicer {
+ public:
   typedef const std::map<llvm::Value *, dg::LLVMDependenceGraph *> FunctionDgMap;
+  typedef void (*NodeSliceFunc) (dg::LLVMNode *);
+  typedef void (*BasicBlockSliceFunc) (dg::BBlock<dg::LLVMNode> *);
+  typedef void (*FunctionSliceFunc) (dg::LLVMDependenceGraph *);
 
  public:
   DgSlicer(llvm::Module *m, SliceDirection d)
@@ -43,18 +62,36 @@ class DgSlicer {
   bool computeDependencies();
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 
-  uint32_t markSliceId(dg::LLVMNode *start, uint32_t slice_id = 0);
-  uint32_t slice(dg::LLVMNode *start, SliceGraph *sg, uint32_t slice_id = 0);
+  uint32_t slice(dg::LLVMNode *start, uint32_t slice_id,
+                 SlicingApproachKind kind, SliceGraph **result);
 
-  inline uint32_t lastSliceId() { return _last_slice_id; }
-  inline dg::analysis::SlicerStatistics &getStatistics() { return _statistics; }
-  inline const dg::analysis::SlicerStatistics &getStatistics() const
+  SliceGraph *buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id);
+
+  // functions for the marking approach -- only slide id is set on the
+  // dependency graph node, no additional graph is constructed.
+  uint32_t markSliceId(dg::LLVMNode *start, uint32_t slice_id);
+  void walkSliceId(uint32_t slice_id, dg::LLVMDependenceGraph *graph = nullptr,
+                   NodeSliceFunc nodeFunc = nullptr,
+                   BasicBlockSliceFunc bbFunc = nullptr,
+                   FunctionSliceFunc fnFunc = nullptr);
+  uint32_t lastSliceId() { return _last_slice_id; }
+
+  dg::analysis::SlicerStatistics &getStatistics() { return _statistics; }
+  const dg::analysis::SlicerStatistics &getStatistics() const
   {
     return _statistics;
   }
+  SliceDirection getSliceDirection() const { return _direction; }
 
  protected:
-  void sliceGraph(dg::LLVMDependenceGraph *graph, uint32_t slice_id);
+
+  void walkNodeSliceId(dg::LLVMDependenceGraph *graph, uint32_t slice_id,
+                       NodeSliceFunc func);
+  void walkBasicBlockSliceId(dg::LLVMDependenceGraph *graph, uint32_t slice_id,
+                             BasicBlockSliceFunc func);
+  void walkFunctionSliceId(dg::LLVMDependenceGraph *graph, uint32_t slice_id,
+                           FunctionSliceFunc func);
+  void updateStatsSliceId(dg::LLVMDependenceGraph *graph, uint32_t slice_id);
 
  protected:
   llvm::Module *_module;

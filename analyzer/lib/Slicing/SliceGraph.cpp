@@ -27,12 +27,33 @@ bool SliceNode::hasEdgeTo(SliceNode *node) {
   return false;
 }
 
+bool SliceNode::connect(SliceNode *node, SliceEdge::EdgeKind kind) {
+  if (!hasEdgeTo(node)) {
+    _edges.insert(new SliceEdge(node, kind));
+    return true;
+  }
+  return false;
+}
+
 bool SliceGraph::addNode(SliceNode *node) 
 {
-  if (findNode(node) != _nodes.end())
-    return false;
+  if (findNode(node) != _nodes.end()) return false;
   _nodes.push_back(node);
+  _node_map.emplace(node->getValue(), node);
   return true;
+}
+
+SliceNode *SliceGraph::getOrCreateNode(SliceNode::ValueTy val)
+{
+  auto it = _node_map.find(val);
+  if (it == _node_map.end()) {
+    SliceNode *node = new SliceNode(val);
+    _node_map.emplace(val, node);
+    // also should insert this node into the node list
+    _nodes.push_back(node);
+    return node;
+  }
+  return it->second;
 }
 
 SliceGraph::node_iterator SliceGraph::findNode(SliceNode *node)

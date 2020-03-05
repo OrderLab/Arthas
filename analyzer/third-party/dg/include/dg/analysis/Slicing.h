@@ -107,16 +107,22 @@ public:
 
 struct SlicerStatistics
 {
-    SlicerStatistics()
-        : nodesTotal(0), nodesRemoved(0), blocksRemoved(0) {}
+  SlicerStatistics() : nodesTotal(0), nodesRemoved(0), blocksTotal(0),
+        blocksRemoved(0), funcsTotal(0), funcsRemoved(0) {}
 
-    // total number of nodes that were checked for removing
-    uint64_t nodesTotal;
-    // total number of nodes actually removed (including the
-    // ones removed in blocks)
-    uint64_t nodesRemoved;
-    // number of whole blocks removed
-    uint32_t blocksRemoved;
+  // total number of nodes that were checked for removing
+  uint64_t nodesTotal;
+  // total number of nodes actually removed (including the
+  // ones removed in blocks)
+  uint64_t nodesRemoved;
+  // total number of blocks that were checked for removing
+  uint32_t blocksTotal;
+  // number of whole blocks removed
+  uint32_t blocksRemoved;
+  // total number of functions that were checked for removing
+  uint32_t funcsTotal;
+  // number of whole functions removed
+  uint32_t funcsRemoved;
 };
 
 template <typename NodeT>

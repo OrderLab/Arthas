@@ -10,6 +10,7 @@
 #define _SLICING_SLICEGRAPH_H_
 
 #include <queue>
+#include <map>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -34,20 +35,50 @@ namespace slicing {
 class SliceNode;
 class SliceEdge;
 
+class SliceEdge {
+ public:
+  enum class EdgeKind {
+    Unknown,
+    RegisterDefUse,
+    MemoryDependence,
+    ControlDependence,
+    InterfereDependence,
+  };
+
+ public:
+  SliceEdge(SliceNode *n, EdgeKind k = EdgeKind::Unknown)
+      : target_node(n), kind(k) {}
+  SliceEdge(const SliceEdge &e) : target_node(e.target_node), kind(e.kind) {}
+
+  SliceEdge &operator=(const SliceEdge &e) {
+    target_node = e.target_node;
+    return *this;
+  }
+
+  SliceNode* getTargetNode() { return target_node; }
+
+  EdgeKind getKind() const { return kind; };
+  bool isDefUse() const { return kind == EdgeKind::RegisterDefUse; }
+  bool isMemoryDependence() const { return kind == EdgeKind::MemoryDependence; }
+  bool isControlDependence() const { return kind == EdgeKind::ControlDependence; }
+
+ protected:
+  SliceNode *target_node;
+  EdgeKind kind;
+};
+
 class SliceNode {
  public:
+  using ValueTy = llvm::Value *;
   using EdgeListTy = SetVector<SliceEdge *>;
   using iterator = typename EdgeListTy::iterator;
   using const_iterator = typename EdgeListTy::const_iterator;
 
  public:
-  llvm::Value *value;
-  int depth;
+  SliceNode(llvm::Value *val, uint32_t dep = 0): _value(val), _depth(dep) {}
 
-  SliceNode(llvm::Value *val, int dep = 0) {
-    value = val;
-    depth = dep;
-  }
+  ValueTy getValue() const { return _value; }
+  uint32_t getDepth() const { return _depth; }
 
   inline const_iterator edge_begin() const { return _edges.begin(); }
   inline const_iterator edge_end() const { return _edges.end(); }
@@ -59,6 +90,7 @@ class SliceNode {
   SliceEdge &edge_back() { return *_edges.back(); }
   EdgeListTy &edges() { return _edges; }
 
+  bool connect(SliceNode *node, SliceEdge::EdgeKind kind);
   bool addEdge(SliceEdge *e) { return _edges.insert(e); }
   void removeEdge(SliceEdge *e) { _edges.remove(e); }
   // allows two nodes to have multiple edges
@@ -70,28 +102,15 @@ class SliceNode {
 
  protected:
   EdgeListTy _edges;
-};
-
-class SliceEdge {
- public:
-  SliceEdge(SliceNode *n) : target_node(n) {}
-  SliceEdge(const SliceEdge &e) : target_node(e.target_node) {}
-
-  SliceEdge &operator=(const SliceEdge &e) {
-    target_node = e.target_node;
-    return *this;
-  }
-
-  SliceNode* getTargetNode() { return target_node; }
-
- protected:
-  SliceNode *target_node;
+  ValueTy _value;
+  unsigned _depth;
 };
 
 class SliceGraph {
  public:
   using NodeListTy = SmallVector<SliceNode *, 10>;
   using EdgeListTy = SmallVector<SliceEdge *, 10>;
+  using NodeMapTy = std::map<SliceNode::ValueTy, SliceNode *>;
 
   using node_iterator = typename NodeListTy::iterator;
   using const_node_iterator = typename NodeListTy::const_iterator;
@@ -99,23 +118,30 @@ class SliceGraph {
   using const_edge_iterator = typename EdgeListTy::const_iterator;
 
  public:
-  SliceGraph(SliceNode *root_node) : _root(root_node) { addNode(root_node); }
+  SliceGraph(SliceNode *root_node, SliceDirection dir)
+      : _root(root_node), _direction(dir) { addNode(root_node); }
+
   ~SliceGraph();
 
-  inline node_iterator node_begin() { return _nodes.begin(); }
-  inline node_iterator node_end() { return _nodes.end(); }
-  inline const_node_iterator node_begin() const { return _nodes.begin(); }
-  inline const_node_iterator node_end() const { return _nodes.end(); }
-  inline SliceNode * getRoot() { return _root; }
+  node_iterator node_begin() { return _nodes.begin(); }
+  node_iterator node_end() { return _nodes.end(); }
+  const_node_iterator node_begin() const { return _nodes.begin(); }
+  const_node_iterator node_end() const { return _nodes.end(); }
 
+  SliceNode *getRoot() { return _root; }
   node_iterator findNode(SliceNode *node);
   const_node_iterator findNode(SliceNode *node) const;
   bool addNode(SliceNode *node);
   bool removeNode(SliceNode *node);
+  SliceNode *getOrCreateNode(SliceNode::ValueTy val);
+
+  size_t size() const { return _nodes.size(); }
 
  protected:
   NodeListTy _nodes;
   SliceNode *_root;
+  SliceDirection _direction;
+  NodeMapTy _node_map;
 };
 
 } // namespace slicing

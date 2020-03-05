@@ -112,13 +112,13 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
     return false;
   }
   errs() << "Computing slice for fault instruction " << *fault_inst << "\n";
-  SliceGraph sg(new SliceNode(fault_inst, 0));
-  _dgSlicer->slice(node, &sg);
-
+  SliceGraph *sg;
+  _dgSlicer->slice(node, 0, SlicingApproachKind::Storing, &sg);
   auto& st = _dgSlicer->getStatistics();
+
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
-
+  errs() << "INFO: Slice graph has " << sg->size() << " node(s)\n";
   return true;
 
   Slices slices;

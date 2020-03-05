@@ -55,8 +55,7 @@ template <typename NodeT, typename QueueT>
 class NodesWalk : public NodesWalkBase<NodeT>
 {
 public:
-    NodesWalk<NodeT, QueueT>(uint32_t opts = 0, bool add_sentinel=false)
-        : options(opts), insert_sentinel(add_sentinel) {}
+    NodesWalk<NodeT, QueueT>(uint32_t opts = 0) : options(opts){}
     int enqueue_num = 0;
 
     template <typename FuncT, typename DataT>
@@ -78,9 +77,6 @@ public:
 
         prepare(n);
         func(n, data);
-
-        // if we inserted a sentinel node, the consumer has been notified, continue
-        if (insert_sentinel && n == nullptr) continue;
 
         // do not try to process edges if we know
         // we should not
@@ -163,18 +159,12 @@ protected:
         (void) n;
     }
 
-private:
+protected:
     template <typename IT>
     void processEdges(IT begin, IT end)
     {
-      bool is_leaf = true;
       for (IT I = begin; I != end; ++I) {
-        is_leaf = false;
         enqueue(*I);
-      }
-      if (is_leaf && insert_sentinel) {
-        // use nullptr as a sentinel
-        enqueue(nullptr);
       }
     }
 
@@ -240,10 +230,6 @@ private:
     // id of particular nodes walk
     unsigned int run_id;
     uint32_t options;
-
-    // whether to insert a sentinel node or not to help consumer recognizes
-    // the exploration paths or the levels
-    bool insert_sentinel; 
 };
 
 enum BBlockWalkFlags {
