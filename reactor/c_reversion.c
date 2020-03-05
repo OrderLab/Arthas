@@ -134,5 +134,8 @@ int main(int argc, char *argv[]){
     size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
     ind = search_for_address(addresses[i], size, c_log);
     printf("ind is %d for %p\n", ind, addresses[i]);
+    revert_by_address(addresses[i], pmem_addresses[i], ind, atoi(argv[4]), 0, size, c_log );
+    printf("AFTER REVERSION coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
+        *((int *)pmem_addresses[i]));
   }
 }
