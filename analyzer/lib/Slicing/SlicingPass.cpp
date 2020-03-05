@@ -119,25 +119,29 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+  *_out_stream << "=================Slice graph " << slice_graph->slice_id();
+  *_out_stream << "=================\n";
   *_out_stream << *slice_graph.get() << "\n";
   errs() << "Slice graph is written to " << SliceOutput << "\n";
-  return true;
-
   Slices slices;
 
+  slice_graph->computeSlices(slices);
+  *_out_stream << "=================Slice list " << slice_graph->slice_id();
+  *_out_stream << "=================\n";
   for (auto i = slices.begin(); i != slices.end(); ++i) {
     Slice *slice = *i;
     slice->setPersistence(locator->vars());
     slice->dump(*_out_stream);
     if (slice->persistence == SlicePersistence::Volatile) {
-      errs() << "Slice is volatile, do nothing\n";
+      errs() << "Slice " << slice->id << " is volatile, do nothing\n";
     } else {
-      errs() << "Slice is persistent or mixed, instrument it\n";
+      errs() << "Slice " << slice->id << " is persistent or mixed, instrument it\n";
       // TODO: if we instrument pmem addr in the first-run, then we don't need 
       // to instrument the program anymore in the slicing stage. Otherwise, 
       // we will instrument the persistent points in the slice.
     }
   }
+  errs() << "The list of slices are written to " << SliceOutput << "\n";
   return true;
 }
 

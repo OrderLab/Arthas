@@ -55,6 +55,8 @@ class Slice {
     dep_values.push_back(root_val);  // root val depends on itself
   }
 
+  Slice *fork();
+
   inline void add(llvm::Value *val) { dep_values.push_back(val); }
 
   inline dep_iterator begin() { return dep_values.begin(); }
@@ -85,10 +87,23 @@ class Slices {
   inline size_t size() const { return slices.size(); }
   inline bool empty() const { return slices.empty(); }
 
+  Slice *get(uint64_t slice_id)
+  {
+    auto si = sliceMap.find(slice_id);
+    if (si == sliceMap.end())
+      return nullptr;
+    return si->second;
+  }
+
   inline void add(Slice *slice)
   { 
     sliceMap.insert(std::make_pair(slice->id, slice));
     slices.push_back(slice);
+  }
+
+  bool has(uint64_t slice_id)
+  {
+    return sliceMap.find(slice_id) != sliceMap.end();
   }
 
  protected:

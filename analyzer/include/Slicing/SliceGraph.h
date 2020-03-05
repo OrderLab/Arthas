@@ -89,6 +89,8 @@ class SliceNode {
   const SliceEdge &edge_back() const { return *_edges.back(); }
   SliceEdge &edge_back() { return *_edges.back(); }
   EdgeListTy &edges() { return _edges; }
+  size_t edge_size() const { return _edges.size(); }
+  bool empty_edges() const { return _edges.empty(); }
 
   bool connect(SliceNode *node, SliceEdge::EdgeKind kind);
   bool addEdge(SliceEdge *e) { return _edges.insert(e); }
@@ -116,8 +118,11 @@ class SliceGraph {
   using const_edge_iterator = typename EdgeListTy::const_iterator;
 
  public:
-  SliceGraph(SliceNode *root_node, SliceDirection dir)
-      : _root(root_node), _direction(dir) { addNode(root_node); }
+  SliceGraph(SliceNode *root_node, SliceDirection dir, uint32_t slice_id)
+      : _root(root_node), _direction(dir), _slice_id(slice_id)
+  {
+    addNode(root_node);
+  }
 
   ~SliceGraph();
 
@@ -134,7 +139,10 @@ class SliceGraph {
   SliceNode *getOrCreateNode(SliceNode::ValueTy val);
 
   size_t size() const { return _nodes.size(); }
+  uint32_t slice_id() const { return _slice_id; }
 
+  // convert the slice graph into a list of slices, each slice representing one
+  // path in the slice graph.
   bool computeSlices(Slices &slices);
 
  protected:
@@ -142,6 +150,7 @@ class SliceGraph {
   SliceNode *_root;
   SliceDirection _direction;
   NodeMapTy _node_map;
+  uint32_t _slice_id;
 };
 
 } // namespace slicing

@@ -99,7 +99,8 @@ void DgWalkAndBuildSliceGraph::mark(dg::LLVMNode *n, uint32_t slice_id)
 SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
                                             uint32_t slice_id) {
   errs() << "Building a graph for slice " << slice_id << "\n";
-  SliceGraph *sg = new SliceGraph(new SliceNode(start->getValue(), 0), _dir);
+  SliceNode *root = new SliceNode(start->getValue(), 0);
+  SliceGraph *sg = new SliceGraph(root, _dir, slice_id);
   // run_id is used to indicate whether a node has been visited or not
   // we should ensure it's unique by incrementing the global run counter
   run_id = ++walk_run_counter;

@@ -22,6 +22,17 @@ void Slice::dump(raw_ostream &os)
   os << "Slice " << id << " is " << persistence << "\n";
 }
 
+Slice *Slice::fork() {
+  Slice *copy = new Slice(id, root, direction, persistence);
+  for (Value *dep : *this) {
+    // root has been inserted in the dep_values, skip it
+    if (dep == root)
+      continue;
+    copy->add(dep);
+  }
+  return copy;
+}
+
 void Slice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
   bool vol = false;
   bool persistent = false;
