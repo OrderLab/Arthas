@@ -39,6 +39,8 @@ using namespace llvm::defuse;
 
 #define DEBUG_TYPE "pmem-extractor"
 
+#undef DEBUG_EXTRACTOR
+
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_persist",          "pmem_msync",   "pmemobj_create",
     "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
@@ -62,6 +64,13 @@ const map<std::string, unsigned int> PMemVariableLocator::memkindCreationPMEMMap
 const map<std::string, unsigned int> PMemVariableLocator::memkindCreationGeneralMapping{
   {"memkind_create_kind", 4}};
 
+bool PMemVariableLocator::callReturnsPmemVar(const char *func_name) 
+{
+  // FIXME: incomplete
+  return pmdkPMEMVariableReturnSet.find(func_name) !=
+         pmdkPMEMVariableReturnSet.end();
+}
+
 bool PMemVariableLocator::runOnModule(Module &M) 
 {
   bool modified = false;
@@ -78,7 +87,9 @@ bool PMemVariableLocator::runOnFunction(Function &F)
   if (F.isDeclaration()) {
     return false;
   }
-  DEBUG(dbgs() << "[" << F.getName() << "]\n");
+#ifdef  DEBUG_EXTRACTOR
+  errs() << "[" << F.getName() << "]\n";
+#endif
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     Instruction *inst = &*I;
     if (!isa<CallInst>(inst)) continue;
@@ -89,12 +100,15 @@ bool PMemVariableLocator::runOnFunction(Function &F)
   for (Value *def : varList) {
     processDefinitionPoint(def);
   }
+  
+#ifdef  DEBUG_EXTRACTOR
   for (auto &entry : useDefMap) {
     errs() << "Definition point for '" << *entry.first << "':\n";
     for (Value *def : entry.second) {
       errs() << "-->'" << *def << "'\n";
     }
   }
+#endif
   return false;
 }
 

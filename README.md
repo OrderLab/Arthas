@@ -243,6 +243,58 @@ INFO: Sliced away 102 from 111 nodes
 Done with run on module
 ```
 
+## Slicing given a fault instruction + instrumenting the persistent slice
+
+```
+$ cd build
+$ opt -load analyzer/lib/libLLVMSlicer.so -slicer -slice-crit hello_libpmem.c:64 -slice-inst '%14 = load i8*, i8** %5, align 8, !dbg !37' -instrument-pmem-slice ../test/pmem/hello_libpmem.bc -o hello_libpmem-instrumented.bc
+
+...
+Instrumented call to __arthas_addr_tracker_init in main
+Instrumented call to __arthas_addr_tracker_finish in main
+Got dependence graph for function write_hello_string
+Computing slice for fault instruction   %14 = load i8*, i8** %5, align 8, !dbg !37
+Building a graph for slice 1
+Slice graph 1 is constructed
+INFO: Sliced away 102 from 111 nodes
+INFO: Slice graph has 11 node(s)
+Slice graph is written to slices.log
+The list of slices are written to slices.log
+Destructing slice graph 1
+Slice 1 is persistent or mixed, instrument it
+Slice 2 is persistent or mixed, instrument it
+Slice 3 is persistent or mixed, instrument it
+Slice 4 is persistent or mixed, instrument it
+Slice 5 is persistent or mixed, instrument it
+Instrumented 1 pmem instructions in total
+```
+
+This will produce the instrumented bitcode for the test program `hello_libpmem`. 
+To turn this instrumented bitcode into an executable:
+
+```
+$ llc -O0 -disable-fp-elim -filetype=asm -o hello_libpmem-instrumented.s hello_libpmem-instrumented.bc
+$ gcc -no-pie -O0 -fno-inline -o hello_libpmem-instrumented hello_libpmem-instrumented.s -L analyzer/runtime -l:libAddrTracker.a -lpmem
+```
+
+Note that we linked the assembly with both our tracking lib and the PMDK library.
+
+Run the instrumented pmem test case.
+
+```
+$ ./hello_libpmem-instrumented -w /mnt/mem/hello_libpmem-instrumented.pm
+openning address tracker output file pmem_addr_pid_25647.dat
+...
+```
+
+Content of the tracing file and guid map file:
+
+```
+0x7eff4d000000,200
+
+200##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##58##  %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
+```
+
 # Code Style
 
 ### Command-Line
