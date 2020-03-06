@@ -13,15 +13,17 @@ function display_usage()
 Usage:
   $0 [options] SOURCE_BC_FILE
 
-  -h, --help:     display this message
+  -h, --help:       display this message
 
-      --plugin:   path to libInstrument.so, default is build/analyzer/lib
+      --plugin:     path to libInstrument.so, default is build/analyzer/lib
 
-  -r, --runtime:  path to libAddrTracker.a/.so runtime 
+      --load-store: instrument regular load/store instructions
 
-      --dry-run:  dry run, do not
+  -r, --runtime:    path to libAddrTracker.a/.so runtime 
 
-  -o, --output:   output file name
+      --dry-run:    dry run, do not
+
+  -o, --output:     output file name
 EOF
 }
 
@@ -38,6 +40,10 @@ function parse_args()
       --plugin)
         plugin_path="$2"
         shift 2
+        ;;
+      --load-store)
+        load_store=1
+        shift 1
         ;;
       --dry-run)
         maybe=echo
@@ -65,6 +71,8 @@ output=
 plugin_path=
 maybe=
 runtime_path=
+load_store=0
+plugin_args=""
 
 parse_args "$@"
 set -- "${args[@]}"
@@ -111,7 +119,11 @@ else
   output_exe=${output}
 fi
 
-$maybe opt -load $plugin_path -instr $source_bc_file -o $output_bc
+if [ $load_store -ne 0 ]; then
+  plugin_args="$plugin_args -regular-load-store"
+fi
+
+$maybe opt -load $plugin_path -instr $plugin_args $source_bc_file -o $output_bc
 $maybe llc -O0 -disable-fp-elim -filetype=asm -o $output_asm $output_bc
 $maybe llvm-dis $output_bc
 # linking with shared runtime lib, flexible but slower

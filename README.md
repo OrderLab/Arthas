@@ -165,28 +165,53 @@ Matched function <write_hello_string>()@test/pmem/hello_libpmem.c:51,75
 ## Instrumented program to print address
 ```
 $ cd build
-$ ../scripts/instrument-compile.sh --output loop1-instrumented ../test/loop1.bc
+$ ../scripts/instrument-compile.sh --load-store --output loop1-instrumented ../test/loop1.bc
+Instrumented call to __arthas_addr_tracker_init in main
+Instrumented call to __arthas_addr_tracker_finish in main
+Instrumented 76 regular load/store instructions in total
 
 $ ./loop1-instrumented
-
-openning address tracker output file pmem_addr_pid_8224.dat
-address: 0x7ffd58998d1c
-address: 0x7ffd58998d18
-address: 0x7ffd58998d10
-address: 0x7ffd58998d18
+openning address tracker output file pmem_addr_pid_16062.dat
 Enter input: 30
-...
-address: 0x7ffd58998c3c
-address: 0x7ffd58998c3c
-address: 0x7ffd58998c3c
-address: 0x7ffd58998c4c
-address: 0x7ffd58998c40
-address: 0x7ffd58998d00
-address: 0x7ffd58998d0c
-address: 0x7ffd58998d00
 result for input 30 is 362880
-address: 0x7ffd58998d1c
+```
 
+Note that since `loop1.c` is not a pmem test case, we added the flag `-load-store`
+to instrument the regular load/store instructions for testing purpose. For
+a pmem test case, you should remove the `-load-store` command line flag.
+
+The tracing result file is `pmem_addr_pid_16062.dat`, where `16062` in the pid 
+of a particular run of the instrumented program. A sample content in the 
+tracing result file:
+
+```
+0x7fffc57f636c,260
+0x7fffc57f6368,261
+0x7fffc57f6360,262
+0x7fffc57f6368,263
+0x7fffc57f635c,267
+0x7fffc57f62d8,227
+...
+```
+
+Note that the second column represents a GUID of the instrumented LLVM instruction 
+that causes this dynamic address to be printed. Using GUID instead of the
+actual instruction makes the tracing efficient. The introduced indirection, 
+however, means that we need to look up what instruction this GUID represents.
+The mapping is generated during the **static instrumentation** phase, written
+into a file that by default is `hook_guid.dat`. This file records detailed
+information (<file, function, line number, instruction full string representation>) 
+to locate a corresponding instruction. A sample content in the guid mapping file:
+
+```
+227##/home/ryan/project/Arthas/test##loop1.c##add##20##  store i32 %0, i32* %3, align 4
+...
+260##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 0, i32* %3, align 4
+261##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 %0, i32* %4, align 4
+262##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i8** %1, i8*** %5, align 8
+263##/home/ryan/project/Arthas/test##loop1.c##main##55##  %12 = load i32, i32* %4, align 4, !dbg !25
+264##/home/ryan/project/Arthas/test##loop1.c##main##56##  %16 = load i8**, i8*** %5, align 8, !dbg !29
+265##/home/ryan/project/Arthas/test##loop1.c##main##56##  %19 = load i8*, i8** %18, align 8, !dbg !29
 ```
 
 ## Slicing a program given a fault instruction

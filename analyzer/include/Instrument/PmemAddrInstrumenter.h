@@ -52,7 +52,7 @@ inline StringRef getTrackHookFinishName() {
 
 class PmemAddrInstrumenter {
  public:
-  PmemAddrInstrumenter() : initialized(false) {}
+  PmemAddrInstrumenter() : _initialized(false), _instrument_cnt(0) {}
 
   bool initHookFuncs(Module &M);
 
@@ -64,25 +64,24 @@ class PmemAddrInstrumenter {
   // address back to the LLVM instruction
   void writeGuidHookPointMap(std::string fileName);
 
+  uint32_t getInstrumentedCnt() { return _instrument_cnt; }
+
  protected:
-  bool initialized;
+  bool _initialized;
+  uint32_t _instrument_cnt;
 
-  Function *main;
+  Function *_main;
+  Function *_track_addr_func;
+  Function *_tracker_init_func;
+  Function *_tracker_dump_func;
+  Function *_tracker_finish_func;
+  Function *_printf_func;
 
-  Function *trackAddrFunc;
-  Function *trackerInitFunc;
-  Function *trackerDumpFunc;
-  Function *trackerFinishFunc;
+  std::map<uint64_t, Instruction *> _guid_hook_point_map;
+  std::map<Instruction *, uint64_t> _hook_point_guid_map;
 
-  Function *printfFunc;
-
-  IntegerType *I32Ty;
-  PointerType *I8PtrTy;
-  Value *pool_addr;
-  int count;
-
-  std::map<uint64_t, Instruction *> guidHookPointMap;
-  std::map<Instruction *, uint64_t> hookPointGuidMap;
+  IntegerType *_I32Ty;
+  PointerType *_I8PtrTy;
 };
 
 } // namespace llvm
