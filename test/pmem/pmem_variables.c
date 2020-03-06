@@ -15,7 +15,7 @@ struct my_root {
         char buf[MAX_BUF_LEN];
 };
 
-void handle_behavior(char *path){
+int handle_behavior(char *path){
   PMEMobjpool *pop;
   double *pmem_double_ptr;
   int *pmem_int_ptr2;
@@ -106,9 +106,15 @@ void handle_behavior(char *path){
     }
   }
   //Now we will do calculations with variables:
-  /*int a = 4 - *pmem_int_ptr2;
-  int b= 30/a;;
-  printf("FINISHED!!! b is %d\n", b);*/
+  int a ;
+  if(*pmem_int_ptr2 == 4)
+    a = 4 - *pmem_int_ptr2;
+  else
+    a = 13 - *pmem_int_ptr2;
+  printf("before divide by 0 \n");
+  int b = 30/a;;
+  printf("FINISHED!!! b is %d\n", b);
+  return 1;
 }
 
 void write_hello_string(char *buf, char *path){
@@ -220,7 +226,7 @@ int main(int argc, char *argv[])
 
         // Create the string to save to persistent memory
         //char buf[MAX_BUF_LEN] = "Hello Persistent Memory";
-        handle_behavior(path);
+        return handle_behavior(path);
 
         /*if (strcmp (argv[1], "-w") == 0) {
 
