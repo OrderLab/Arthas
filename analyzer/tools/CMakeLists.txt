@@ -3,6 +3,7 @@ add_executable(sample sample/main.cpp)
 target_link_libraries(sample PRIVATE Utils)
 target_link_libraries(sample 
   PRIVATE ${llvm_irreader}
+  PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
 )
 
@@ -13,6 +14,7 @@ target_link_libraries(locator
 )
 target_link_libraries(locator
   PRIVATE ${llvm_irreader}
+  PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
 )
 
@@ -25,5 +27,6 @@ target_link_libraries(instrumentor
 )
 target_link_libraries(instrumentor
   PRIVATE ${llvm_irreader}
+  PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
 )

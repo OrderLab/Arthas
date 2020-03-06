@@ -8,6 +8,10 @@ add_library(Utils SHARED
   Utils/LLVM.cpp
 )
 
+target_link_libraries(Utils
+  PRIVATE ${llvm_irreader}
+)
+
 add_library(Matcher SHARED
   Matcher/Scope.cpp
   Matcher/Matcher.cpp
@@ -21,6 +25,7 @@ add_library(Instrument SHARED
 target_link_libraries(Instrument
   PUBLIC PMem
   PRIVATE AddrTracker
+  PRIVATE ${llvm_transformutils}
 )
 
 add_library(PMem SHARED
@@ -50,10 +55,10 @@ add_library(Slicer SHARED
 target_link_libraries(Slicer
   PUBLIC DefUse
   PUBLIC Matcher
-  PUBLIC Utils
   PUBLIC PMem
   PUBLIC Instrument
-  PRIVATE LLVMdg
+  PUBLIC Utils
+  PUBLIC LLVMdg
 )
 
 add_library(LLVMSlicer MODULE
@@ -84,12 +89,10 @@ if (APPLE)
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_core})
   target_link_libraries(Matcher
-        PRIVATE Utils
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_core})
   target_link_libraries(LLVMSlicer
-        PRIVATE LLVMdg
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_core})
   target_link_libraries(Instrument

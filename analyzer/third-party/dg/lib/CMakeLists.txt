@@ -139,5 +139,6 @@ else()
 				PUBLIC LLVMrd
 				PUBLIC dgThreadRegions
 				PUBLIC dgControlDependence
+				PRIVATE ${llvm_analysis}
         )
 endif(APPLE)
