@@ -52,7 +52,12 @@ inline StringRef getTrackHookFinishName() {
 
 class PmemAddrInstrumenter {
  public:
-  PmemAddrInstrumenter() : _initialized(false), _instrument_cnt(0) {}
+  // by default we will use our lightweight runtime library for tracking
+  // setting use_printf to true will use printf for tracking
+  PmemAddrInstrumenter(bool use_printf = false)
+      : _initialized(false),
+        _instrument_cnt(0),
+        _track_with_printf(use_printf) {}
 
   bool initHookFuncs(Module &M);
 
@@ -69,6 +74,8 @@ class PmemAddrInstrumenter {
  protected:
   bool _initialized;
   uint32_t _instrument_cnt;
+  // instrument printf to track addresses, slow but useful for testing
+  bool _track_with_printf; 
 
   Function *_main;
   Function *_track_addr_func;

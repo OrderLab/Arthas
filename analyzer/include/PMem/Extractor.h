@@ -38,7 +38,7 @@ class PMemVariableLocator {
  public:
   typedef llvm::SmallVectorImpl<llvm::CallInst *> ApiCallListImpl;
   typedef llvm::SmallVectorImpl<llvm::Value *> VariableListImpl;
-  typedef llvm::SmallVector<llvm::CallInst*, 5> ApiCallList;
+  typedef llvm::SmallVector<llvm::CallInst *, 5> ApiCallList;
   typedef llvm::SmallVector<llvm::Value *, 20> VariableList;
 
   typedef std::multimap<llvm::Value *, llvm::Value *> RegionList;
@@ -50,11 +50,11 @@ class PMemVariableLocator {
   typedef ApiCallListImpl::iterator api_iterator;
   typedef ApiCallListImpl::const_iterator api_const_iterator;
   typedef VariableListImpl::iterator var_iterator;
-  typedef VariableListImpl::const_iterator var_const_iterator;
+  typedef VariableListImpl::const_iterator const_var_iterator;
   typedef RegionList::iterator region_iterator;
-  typedef RegionList::const_iterator region_const_iterator;
+  typedef RegionList::const_iterator const_region_iterator;
   typedef UseDefMap::iterator def_iterator;
-  typedef UseDefMap::const_iterator def_const_iterator;
+  typedef UseDefMap::const_iterator const_def_iterator;
 
  public:
   PMemVariableLocator() {}
@@ -74,23 +74,30 @@ class PMemVariableLocator {
   inline var_iterator var_end() { return varList.end(); }
   inline VariableListImpl & vars() { return varList; }
 
-  inline var_const_iterator var_begin() const { return varList.begin(); }
-  inline var_const_iterator var_end() const { return varList.end(); }
+  inline const_var_iterator var_begin() const { return varList.begin(); }
+  inline const_var_iterator var_end() const { return varList.end(); }
   inline size_t var_size() const { return varList.size(); }
 
   inline region_iterator region_begin() { return regionList.begin(); }
   inline region_iterator region_end() { return regionList.end(); }
 
-  inline region_const_iterator region_begin() const { return regionList.begin(); }
-  inline region_const_iterator region_end() const { return regionList.end(); }
+  inline const_region_iterator region_begin() const { return regionList.begin(); }
+  inline const_region_iterator region_end() const { return regionList.end(); }
   inline size_t region_size() const { return regionList.size(); }
 
   inline def_iterator def_begin() { return useDefMap.begin(); }
   inline def_iterator def_end() { return useDefMap.end(); }
 
-  inline def_const_iterator def_begin() const { return useDefMap.begin(); }
-  inline def_const_iterator def_end() const { return useDefMap.end(); }
+  inline const_def_iterator def_begin() const { return useDefMap.begin(); }
+  inline const_def_iterator def_end() const { return useDefMap.end(); }
   inline size_t def_size() const { return useDefMap.size(); }
+
+  def_iterator find_def(llvm::Instruction *inst) { return useDefMap.find(inst); }
+  const_def_iterator find_def(llvm::Instruction *inst) const {
+    return useDefMap.find(inst);
+  }
+
+  static bool callReturnsPmemVar(const char *func_name);
 
  protected:
   void handleMemKindCall(llvm::CallInst *callInst);

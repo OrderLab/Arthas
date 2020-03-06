@@ -178,8 +178,8 @@ bool SliceGraph::computeSlices(Slices &slices)
           forked_slice = curr_slice->fork();
           ++curr_slice_id;
           forked_slice->id = curr_slice_id;
-          errs() << "Forked slice " << curr_slice->id << " to slice "
-                 << forked_slice->id << "\n";
+          DEBUG(dbgs() << "Forked slice " << curr_slice->id << " to slice "
+                       << forked_slice->id << "\n");
           slices.add(forked_slice);
         }
       }

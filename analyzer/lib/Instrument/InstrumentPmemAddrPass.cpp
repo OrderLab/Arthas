@@ -34,7 +34,9 @@ void InstrumentPmemAddrPass::getAnalysisUsage(AnalysisUsage &AU) const {
 bool InstrumentPmemAddrPass::runOnModule(Module &M) {
   bool modified = false;
   _instrumenter = make_unique<PmemAddrInstrumenter>();
-  if (!_instrumenter->initHookFuncs(M)) return false;
+  if (!_instrumenter->initHookFuncs(M)) {
+    return false;
+  }
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
     if (!F.isDeclaration()) {

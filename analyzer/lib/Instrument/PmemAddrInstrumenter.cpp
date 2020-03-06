@@ -108,14 +108,18 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     DEBUG(dbgs() << "found printf\n");
   }
 
-  // insert call to __arthas_addr_tracker_init at the beginning of main function
-  IRBuilder<> builder(cast<Instruction>(_main->front().getFirstInsertionPt()));
-  builder.CreateCall(_tracker_init_func);
-  errs() << "Instrumented call to " << getRuntimeHookInitName() << " in main\n";
+  // Only insert the tracker init and finish function if we choose to instrument
+  // using the runtime library. For printf-based tracking, it is not needed.
+  if (!_track_with_printf) {
+    // insert call to __arthas_addr_tracker_init at the beginning of main function
+    IRBuilder<> builder(cast<Instruction>(_main->front().getFirstInsertionPt()));
+    builder.CreateCall(_tracker_init_func);
+    errs() << "Instrumented call to " << getRuntimeHookInitName() << " in main\n";
 
-  // insert call to __arthas_addr_tracker_finish at program exit
-  appendToGlobalDtors(M, _tracker_finish_func, 1);
-  errs() << "Instrumented call to " << getTrackHookFinishName() << " in main\n";
+    // insert call to __arthas_addr_tracker_finish at program exit
+    appendToGlobalDtors(M, _tracker_finish_func, 1);
+    errs() << "Instrumented call to " << getTrackHookFinishName() << " in main\n";
+  }
 
   _initialized = true;
   return true;
@@ -124,8 +128,8 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   // first check if this instruction has been instrumented before
   if (_hook_point_guid_map.find(instr) != _hook_point_guid_map.end()) {
-    errs() << "Skip instrumenting instruction (" << *instr
-           << ") as it has been instrumented before\n";
+    DEBUG(errs() << "Skip instrumenting instruction (" << *instr
+                 << ") as it has been instrumented before\n");
     return false;
   }
 
@@ -143,6 +147,8 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     if(callee->getName().compare("pmemobj_create") == 0){
       pool = true;
       addr = ci;
+    } else if (PMemVariableLocator::callReturnsPmemVar(callee->getName().data())) {
+      addr = ci;
     } else {
       return false;
     }
@@ -155,29 +161,27 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   IRBuilder <> builder(instr);
   builder.SetInsertPoint(instr->getNextNode());
 
-  // FIXME: use the address tracker runtime lib tracing API instead of printf
-
-  // insert a printf call
-  Value *str;
-  if (pool) {
-    str = builder.CreateGlobalStringPtr("POOL address: %p\n");
+  if (_track_with_printf) {
+    Value *str;
+    if (pool) {
+      str = builder.CreateGlobalStringPtr("POOL address: %p\n");
+    } else {
+      str = builder.CreateGlobalStringPtr("address: %p\n");
+    }
+    std::vector<llvm::Value *> params;
+    params.push_back(str);
+    params.push_back(addr);
+    builder.CreateCall(_printf_func, params);
   } else {
-    str = builder.CreateGlobalStringPtr("address: %p\n");
+    // insert an __arthas_track_addr call
+    // need to explicitly cast the address, which could be i32* or i64*, to i8*
+    _hook_point_guid_map[instr] = PmemVarCurrentGuid;
+    _guid_hook_point_map[PmemVarCurrentGuid] = instr;
+    auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+    auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
+    builder.CreateCall(_track_addr_func, {i8addr, guid});
+    PmemVarCurrentGuid++;
   }
-  std::vector<llvm::Value *> params;
-  params.push_back(str);
-  params.push_back(addr);
-  // builder.CreateCall(printfFunc, params);
-
-  // insert an __arthas_track_addr call
-  // need to explicitly cast the address, which could be i32* or i64*, to i8*
-
-  _hook_point_guid_map[instr] = PmemVarCurrentGuid;
-  _guid_hook_point_map[PmemVarCurrentGuid] = instr;
-  auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
-  auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
-  builder.CreateCall(_track_addr_func, {i8addr, guid});
-  PmemVarCurrentGuid++;
   _instrument_cnt++;
   return true;
 }
