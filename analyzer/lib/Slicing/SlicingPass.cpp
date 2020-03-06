@@ -26,6 +26,7 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 using namespace llvm::pmem;
+using namespace llvm::instrument;
 using namespace llvm::defuse;
 
 #define DEBUG_TYPE "slicing-pass"
@@ -58,6 +59,10 @@ static cl::opt<string> SliceFileLines(
     "slice-crit", cl::desc("Comma separated list of slicing criterion"),
     cl::value_desc("file1:line1,file2:line2,..."));
 
+static cl::opt<bool> InstrumentPmemSlice(
+    "instrument-pmem-slice",
+    cl::desc("Whether to instrument the pmem variable in a slice"));
+
 namespace {
 class SlicingPass : public ModulePass {
  public:
@@ -70,6 +75,9 @@ class SlicingPass : public ModulePass {
 
   bool instructionSlice(Instruction *fault_inst, Function *F,
                         PMemVariableLocator *locator);
+
+  bool instrumentSlice(PmemAddrInstrumenter &instrumenter, Slice &slice,
+                       map<Value *, Instruction *> &pmem_def_point_map);
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     AU.setPreservesAll();
@@ -145,6 +153,23 @@ bool SlicingPass::instructionSlice(Instruction *fault_inst, Function *F,
   return true;
 }
 
+bool SlicingPass::instrumentSlice(PmemAddrInstrumenter &instrumenter, 
+    Slice &slice, map<Value *, Instruction *> &pmem_def_point_map)
+{
+  for (auto i = slice.begin(); i != slice.end(); ++i) {
+    // For each node, check if instruction is a persistent value. If it is
+    // then get definition point. The root node is also in the iterator (the
+    // first one), so we don't need to specially handle it.
+    Value *val  = *i;
+    auto pmi = pmem_def_point_map.find(val);
+    if (pmi != pmem_def_point_map.end()) {
+      // found element
+      instrumenter.instrumentInstr(pmi->second);
+    }
+  }
+  return false;
+}
+
 bool SlicingPass::runOnModule(Module &M) {
   if (!SliceOutput.empty()) {
     std::error_code ec;
@@ -179,7 +204,6 @@ bool SlicingPass::runOnModule(Module &M) {
     }
     PMemVariableLocator *locator = locatorMap[F].get();
     locator->runOnFunction(*F);
-    locator->findDefinitionPoints();
     instructionSlice(fault_inst, F, locator);
   }
   return false;

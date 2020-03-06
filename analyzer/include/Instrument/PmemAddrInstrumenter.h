@@ -10,7 +10,6 @@
 #define __INSTRUMENT_PMEMADDR_H_
 
 #include "PMem/Extractor.h"
-#include "Slicing/Slice.h"
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -26,6 +25,7 @@
 #include "llvm/Transforms/Instrumentation.h"
 
 #include <map>
+#include <set>
 #include <string>
 
 namespace llvm {
@@ -56,17 +56,13 @@ class PmemAddrInstrumenter {
 
   bool initHookFuncs(Module &M);
 
-  // instrument the persistent points in a slice
-  bool instrumentSlice(llvm::slicing::Slice *slice,
-                       std::map<Value *, Instruction *> &pmemMetadata);
-
   // instrument a call to hook func before an instruction.
   // this instruction must be a LoadInst or StoreInst
   bool instrumentInstr(Instruction * instr);
 
   // dump the guid to instruction map to file so that we can later connect the
   // address back to the LLVM instruction
-  void dumpHookGuidMapToFile(std::string fileName);
+  void writeGuidHookPointMap(std::string fileName);
 
  protected:
   bool initialized;
@@ -85,7 +81,8 @@ class PmemAddrInstrumenter {
   Value *pool_addr;
   int count;
 
-  std::map<unsigned int, Instruction *> hookPointGuidMap;
+  std::map<uint64_t, Instruction *> guidHookPointMap;
+  std::map<Instruction *, uint64_t> hookPointGuidMap;
 };
 
 } // namespace llvm

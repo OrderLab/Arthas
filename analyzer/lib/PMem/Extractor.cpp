@@ -86,6 +86,15 @@ bool PMemVariableLocator::runOnFunction(Function &F)
     handlePmdkCall(callInst);
     handleMemKindCall(callInst);
   }
+  for (Value *def : varList) {
+    processDefinitionPoint(def);
+  }
+  for (auto &entry : useDefMap) {
+    errs() << "Definition point for '" << *entry.first << "':\n";
+    for (Value *def : entry.second) {
+      errs() << "-->'" << *def << "'\n";
+    }
+  }
   return false;
 }
 
@@ -175,19 +184,43 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
   }
 }
 
-bool PMemVariableLocator::findDefinitionPoints()
-{
-  for (auto vi = var_begin(); vi != var_end(); ++vi) {
-    Value *def = *vi;
-    UserGraph g(def);
-    for (auto ui = g.begin(); ui != g.end(); ++ui) {
-      Value *u = ui->first;
-      if (Instruction *inst = dyn_cast<Instruction>(u)) {
-        DEBUG(dbgs() << "Definition point for " << *inst << ": " << *def << "\n");
-        useDefMap.insert(UserDefPoint(inst, def));
+bool PMemVariableLocator::processDefinitionPoint(llvm::Value *def) {
+  if (processedUses.find(def) != processedUses.end()) {
+    errs() << "Definition point " << *def << " was processed before\n";
+    return false;
+  }
+
+  // FIXME: make the reaching definition more accurate.
+  //
+  // the user graph stores transitive closure of uses, but we need
+  // the *reaching* definition for a user. the definition points we get can
+  // contain superfluous loads or killed definitions.
+  //
+  // For example, consider the 'strcpy' call instruction in the
+  // write_hello_string function of the hello_libpmem.c test case, i.e.,
+  //
+  //    %16 = call i8* @strcpy(i8* %14, i8* %15) #8, !dbg !39
+  //
+  // The identified definition points for this instruction consists of two Values:
+  //
+  //    %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30'
+  //    %14 = load i8*, i8** %5, align 8, !dbg !37
+  //
+  // Ideally, we want the first one. The second one is unnecessary as the memory
+  // content pointed by %5 comes from (stored) %10.
+  
+  UserGraph g(def);
+  for (auto ui = g.begin(); ui != g.end(); ++ui) {
+    Value *u = ui->first;
+    if (Instruction *inst = dyn_cast<Instruction>(u)) {
+      auto di = useDefMap.find(inst);
+      if (di == useDefMap.end()) {
+        useDefMap.emplace(inst, DefinitionPoints{def});
+      } else {
+        di->second.insert(def);
       }
     }
   }
-  errs() << "UseDefMap size is " << useDefMap.size() << "\n";
+  processedUses.insert(def);
   return true;
 }

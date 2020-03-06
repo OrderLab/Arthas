@@ -43,8 +43,9 @@ class PMemVariableLocator {
 
   typedef std::multimap<llvm::Value *, llvm::Value *> RegionList;
   typedef std::pair<llvm::Value *, llvm::Value *> RegionInfo;
-  typedef std::map<llvm::Instruction *, llvm::Value *> UseDefMap;
-  typedef std::pair<llvm::Instruction *, llvm::Value *> UserDefPoint;
+  typedef std::map<llvm::Instruction *, std::set<llvm::Value *>> UseDefMap;
+  typedef std::set<llvm::Value *> DefinitionPoints;
+  typedef std::set<llvm::Value *> ProcessedUses;
 
   typedef ApiCallListImpl::iterator api_iterator;
   typedef ApiCallListImpl::const_iterator api_const_iterator;
@@ -91,17 +92,17 @@ class PMemVariableLocator {
   inline def_const_iterator def_end() const { return useDefMap.end(); }
   inline size_t def_size() const { return useDefMap.size(); }
 
-  bool findDefinitionPoints();
-
  protected:
   void handleMemKindCall(llvm::CallInst *callInst);
   void handlePmdkCall(llvm::CallInst *callInst);
+  bool processDefinitionPoint(llvm::Value *def);
 
  private:
   ApiCallList callList;
   VariableList varList;
   RegionList regionList;
   UseDefMap useDefMap;
+  ProcessedUses processedUses;
 
   static const std::set<std::string> pmdkApiSet;
   static const std::set<std::string> pmdkPMEMVariableReturnSet;

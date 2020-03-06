@@ -38,7 +38,7 @@ bool InstrumentPmemAddrPass::runOnModule(Module &M) {
         modified |= runOnFunction(F);
     }
   }
-  instrumenter->dumpHookGuidMapToFile(HookGuidFile);
+  instrumenter->writeGuidHookPointMap(HookGuidFile);
   errs() << "Instrumented " << instrumented << " pmem instructions in total\n";
   return modified;
 }

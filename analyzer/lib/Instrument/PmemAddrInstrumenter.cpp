@@ -22,7 +22,6 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
-using namespace llvm::slicing;
 
 unsigned int llvm::instrument::PmemVarGuidStart = 200;
 const char *llvm::instrument::PmemVarGuidFileFieldSep = "##";
@@ -121,24 +120,14 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   return true;
 }
 
-bool PmemAddrInstrumenter::instrumentSlice(Slice *slice, 
-    map<Value *, Instruction *> &pmemMetadata) {
-  for (auto i = slice->begin(); i != slice->end(); ++i) {
-    // For each node, check if instruction is a persistent value. If it is
-    // then get definition point. The root node is also in the iterator (the
-    // first one), so we don't need to specially handle it.
-    Value *val  = *i;
-    auto pmi = pmemMetadata.find(val);
-    if (pmi != pmemMetadata.end()) {
-      // found element
-      instrumentInstr(pmi->second);
-    }
+bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
+  // first check if this instruction has been instrumented before
+  if (hookPointGuidMap.find(instr) != hookPointGuidMap.end()) {
+    errs() << "Skip instrumenting instruction (" << *instr
+           << ") as it has been instrumented before\n";
+    return false;
   }
-  return false;
-}
 
-bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr)
-{
   Value *addr;
   bool pool = false;
   if (isa<LoadInst>(instr)) {
@@ -151,8 +140,8 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr)
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
     if(callee->getName().compare("pmemobj_create") == 0){
-      // FIXME: variable 'addr' is used uninitialized!
       pool = true;
+      addr = ci;
     } else {
       return false;
     }
@@ -183,7 +172,8 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr)
   // insert an __arthas_track_addr call
   // need to explicitly cast the address, which could be i32* or i64*, to i8*
 
-  hookPointGuidMap[PmemVarCurrentGuid] = instr;
+  hookPointGuidMap[instr] = PmemVarCurrentGuid;
+  guidHookPointMap[PmemVarCurrentGuid] = instr;
   auto i8addr = builder.CreateBitCast(addr, I8PtrTy);
   auto guid = ConstantInt::get(I32Ty, PmemVarCurrentGuid, false);
   builder.CreateCall(trackAddrFunc, {i8addr, guid});
@@ -191,14 +181,14 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr)
   return true;
 }
 
-void PmemAddrInstrumenter::dumpHookGuidMapToFile(std::string fileName) 
+void PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName)
 {
   std::ofstream guidfile(fileName);
   if (!guidfile.is_open()) {
     errs() << "Failed to open " << fileName << " for writing guid map\n";
     return;
   }
-  for (auto gi = hookPointGuidMap.begin(); gi != hookPointGuidMap.end(); ++gi) {
+  for (auto gi = guidHookPointMap.begin(); gi != guidHookPointMap.end(); ++gi) {
     unsigned int guid = gi->first;
     Instruction *instr = gi->second;
     auto &Loc = instr->getDebugLoc();
@@ -223,7 +213,8 @@ void PmemAddrInstrumenter::dumpHookGuidMapToFile(std::string fileName)
     // The more information we record in this map, the better it helps with 
     // precisely locating the instruction. If, for example, we only record the
     // file name and line number, there could be multiple LLVM instructions.
-    guidfile << guid << PmemVarGuidFileFieldSep << SP->getDirectory().data() << PmemVarGuidFileFieldSep;
+    guidfile << guid << PmemVarGuidFileFieldSep << SP->getDirectory().data()
+             << PmemVarGuidFileFieldSep;
     guidfile << SP->getFilename().data() << PmemVarGuidFileFieldSep;
     guidfile << func->getName().data() << PmemVarGuidFileFieldSep;
     guidfile << line << PmemVarGuidFileFieldSep << instr_str << "\n";
