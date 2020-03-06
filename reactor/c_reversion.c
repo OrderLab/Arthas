@@ -20,12 +20,12 @@ struct checkpoint_log * reconstruct_checkpoint(){
   }
   PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
   uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
-  printf("old pool is %p\n", (void *)*old_pool);
+  //printf("old pool is %p\n", (void *)*old_pool);
   //cout << "old pool " << *old_pool << "\n";
   struct checkpoint_log *c_log;
   PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
   c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
-  printf("c log variables is %d\n", c_log->variable_count);
+  //printf("c log variables is %d\n", c_log->variable_count);
   //cout << "c log c data " << c_log->c_data[0].version << "\n";
 
   uint64_t offset;
@@ -34,18 +34,23 @@ struct checkpoint_log * reconstruct_checkpoint(){
   for(int i = 0; i < variable_count; i++){
     for(int j = 0; j <= c_log->c_data[i].version; j++){
       offset = (uint64_t)c_log->c_data[i].data[j] - *old_pool;
-      printf("offset is %ld\n", offset);
+      //printf("offset is %ld\n", offset);
       c_log->c_data[i].data[j] = (void *)((uint64_t)pop + offset);
     }
   }
 
+  printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
   for(int i =0; i < variable_count; i++){
     printf("address is %p\n", c_log->c_data[i].address);
-    printf("version is %d\n", c_log->c_data[i].version);
+    //printf("version is %d\n", c_log->c_data[i].version);
     int data_index = c_log->c_data[i].version;
     for(int j = 0; j <= data_index; j++){
-      printf("version is %d, value is %f or %d\n", j, *((double *)c_log->c_data[i].data[j]),
-      *((int *)c_log->c_data[i].data[j]));
+      printf("version is %d ", j);
+        if(c_log->c_data[i].size[0] == 4)
+          printf("value is %d\n", *((int *)c_log->c_data[i].data[j]));
+        else
+          printf("value is %f\n", *((double *)c_log->c_data[i].data[j]));
+      //printf("version is %d, value is %f or %d\n", j, *((double *)c_log->c_data[i].data[j]),*((int *)c_log->c_data[i].data[j]));
     }
   }
   *old_pool = (uint64_t)pop;
@@ -56,11 +61,14 @@ void coarse_grain_reversion(void ** addresses, struct checkpoint_log *c_log,
 void **pmem_addresses, int version_num, int num_data){
   int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
-    printf("coarse address is %p\n", c_log->c_data[i].address);
+    //printf("address is %p\n", c_log->c_data[i].address);
     for(int j = 0; j < num_data; j++){
       if(addresses[j] == c_log->c_data[i].address){
-        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[j]),
-        *((int *)pmem_addresses[j]));
+        if(c_log->c_data[i].size[0] == 4)
+          printf("current value is %d\n", *((int *)pmem_addresses[j]));
+        else
+          printf("current value is %f\n", *((double *)pmem_addresses[j]));
+        //printf("current value is %f or %d\n", *((double *)pmem_addresses[j]),*((int *)pmem_addresses[j]));
         c_data_indices[j] = i;
       }
     }
@@ -71,10 +79,14 @@ void **pmem_addresses, int version_num, int num_data){
   for(int i = 0; i < num_data; i++){
     size_t size = c_log->c_data[c_data_indices[i]].size[version_num];
     ind = search_for_address(addresses[i], size, c_log);
-    printf("ind is %d for %p\n", ind, addresses[i]);
+    //printf("ind is %d for %p\n", ind, addresses[i]);
     revert_by_address(addresses[i], pmem_addresses[i], ind, version_num, 0, size, c_log );
-    printf("AFTER REVERSION coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
-        *((int *)pmem_addresses[i]));
+    if(size == 4)
+      printf("AFTER REVERSION value is %d\n", *((int *)pmem_addresses[i]));
+    else
+      printf("AFTER REVERSION value is %f\n", *((double *)pmem_addresses[i]));
+    //printf("AFTER REVERSION value is %f or %d\n", *((double *)pmem_addresses[i]),
+    //    *((int *)pmem_addresses[i]));
   }
   coarse_grained_tries++;
 
@@ -102,8 +114,8 @@ char * path, char * layout, uint64_t *offsets){
   int reexecute_flag = 0;
   for(int i = 0; i < line_counter; i++){
     ret_val = system(reexecution_lines[i]);
-    printf( "********************\n");
-    printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
+    //printf( "********************\n");
+    //printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
     if(WIFEXITED(ret_val)){
       printf("WEXITSTATUS OS %d\n", WEXITSTATUS(ret_val));
       if(WEXITSTATUS(ret_val) < 0 || WEXITSTATUS(ret_val) > 1){
@@ -117,11 +129,14 @@ char * path, char * layout, uint64_t *offsets){
    }
   //Try again if we need to re-execute
   if(reexecute_flag){
-    printf("try reversion again\n");
+    printf("Reversion attempt %d\n", coarse_grained_tries + 1);
+    printf("\n");
     PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
     pmem_addresses, offsets);
     coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num - 1, num_data);
     pmemobj_close(pop);
+    printf("Reexecution %d: \n", coarse_grained_tries);
+    printf("\n");
     re_execute(reexecution_lines, version_num - 1, line_counter, addresses,
     c_log, pmem_addresses, num_data, path, layout, offsets);
   }
@@ -132,7 +147,7 @@ int main(int argc, char *argv[]){
   
   //Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log = reconstruct_checkpoint();
-  printf("finished checkpoint reconstruction\n");
+  //printf("finished checkpoint reconstruction\n");
 
   //Step 2: Read printed out file
   FILE *fp;
@@ -218,6 +233,8 @@ int main(int argc, char *argv[]){
     printf("AFTER REVERSION coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
         *((int *)pmem_addresses[i]));
   }*/
+  printf("Reversion attempt %d\n", coarse_grained_tries + 1);
+  printf("\n");
   coarse_grain_reversion(addresses, c_log, pmem_addresses, atoi(argv[4]), num_data);
 
   //Step 7: re-execution
@@ -233,7 +250,7 @@ int main(int argc, char *argv[]){
   int reexecute = 0;
   int line_counter = 0;
   while(fgets(line, 100, fp) != NULL){
-    printf("before reexecution\n");
+    //printf("Retry attempt number %d\n", coarse_grained_tries);
     reexecution_lines[line_counter] = malloc(strlen(line) + 1);
     strcpy(reexecution_lines[line_counter], line);
     /*ret_val = system(line);
@@ -245,6 +262,8 @@ int main(int argc, char *argv[]){
    line_counter++;
   }
 
+  printf("Reexecution %d: \n", coarse_grained_tries);
+  printf("\n");
   re_execute(reexecution_lines, atoi(argv[4]), line_counter,
   addresses, c_log, pmem_addresses, num_data, argv[2], argv[3], offsets);
 

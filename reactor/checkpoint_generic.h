@@ -35,9 +35,9 @@ int search_for_address(const void * address, size_t size, struct checkpoint_log 
     uint64_t clog_address = (uint64_t)c_log->c_data[i].address;
     //Get size of first checkpointed data structure, should I iterate through each size?
     clog_upper_bound = (uint64_t)clog_address + (uint64_t)c_log->c_data[i].size[0];
-    printf("size is %ld\n", (uint64_t)c_log->c_data[i].size[0]);
-    printf("uint_address %ld, clog_address %ld, search_upper_bound %ld, clog_upper_bound %ld\n",
-    uint_address, clog_address, search_upper_bound, clog_upper_bound );
+    //printf("size is %ld\n", (uint64_t)c_log->c_data[i].size[0]);
+    //printf("uint_address %ld, clog_address %ld, search_upper_bound %ld, clog_upper_bound %ld\n",
+    //uint_address, clog_address, search_upper_bound, clog_upper_bound );
     if(uint_address >= clog_address && search_upper_bound <= clog_upper_bound){
       return i;
     }
