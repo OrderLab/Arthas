@@ -29,12 +29,12 @@ const char *llvm::instrument::PmemVarGuidFileFieldSep = "##";
 static unsigned int PmemVarCurrentGuid = llvm::instrument::PmemVarGuidStart;
 
 bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
-  if (initialized) {
+  if (_initialized) {
     errs() << "already initialized\n";
     return true;
   }
-  Function *main = M.getFunction("main");
-  if (!main) {
+  _main = M.getFunction("main");
+  if (!_main) {
     errs() << "Failed to find main function\n";
     return false;
   }
@@ -43,10 +43,10 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   auto I1Ty = Type::getInt1Ty(llvm_context);
   auto VoidTy = Type::getVoidTy(llvm_context);
 
-  I32Ty = Type::getInt32Ty(llvm_context);
+  _I32Ty = Type::getInt32Ty(llvm_context);
 
   // need i8* for later arthas_track_addr call
-  I8PtrTy = Type::getInt8PtrTy(llvm_context);
+  _I8PtrTy = Type::getInt8PtrTy(llvm_context);
 
   // Add the external address tracker function declarations.
   //
@@ -58,26 +58,26 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   // runtime/addr_tracker.h
 
   StringRef funcName = getRuntimeHookInitName();
-  trackerInitFunc = cast<Function>(M.getOrInsertFunction(funcName, VoidTy, nullptr));
-  if (!trackerInitFunc) {
+  _tracker_init_func = cast<Function>(M.getOrInsertFunction(funcName, VoidTy, nullptr));
+  if (!_tracker_init_func) {
     errs() << "could not find function " << funcName << "\n";
     return false;
-  }
-  else {
+  } else {
     DEBUG(dbgs() << "found tracker initialization function " << funcName << "\n");
   }
 
-  trackAddrFunc = cast<Function>(M.getOrInsertFunction(
-      getRuntimeHookName(), VoidTy, I8PtrTy, I32Ty, nullptr));
-  if (!trackAddrFunc) {
+  _track_addr_func = cast<Function>(M.getOrInsertFunction(
+      getRuntimeHookName(), VoidTy, _I8PtrTy, _I32Ty, nullptr));
+  if (!_track_addr_func) {
     errs() << "could not find function " << getRuntimeHookName() << "\n";
     return false;
   } else {
     DEBUG(dbgs() << "found track address function " << getRuntimeHookName() << "\n");
   }
 
-  trackerDumpFunc = cast<Function>(M.getOrInsertFunction(getTrackDumpHookName(), I1Ty, nullptr));
-  if (!trackerDumpFunc) {
+  _tracker_dump_func = cast<Function>(
+      M.getOrInsertFunction(getTrackDumpHookName(), I1Ty, nullptr));
+  if (!_tracker_dump_func) {
     errs() << "could not find function " << getTrackDumpHookName() << "\n";
     return false;
   }
@@ -85,8 +85,9 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     DEBUG(dbgs() << "found track dump function " << getTrackDumpHookName() << "\n");
   }
 
-  trackerFinishFunc = cast<Function>(M.getOrInsertFunction(getTrackHookFinishName(), VoidTy, nullptr));
-  if (!trackerFinishFunc) {
+  _tracker_finish_func = cast<Function>(
+      M.getOrInsertFunction(getTrackHookFinishName(), VoidTy, nullptr));
+  if (!_tracker_finish_func) {
     errs() << "could not find function " << getTrackHookFinishName() << "\n";
     return false;
   } else {
@@ -96,10 +97,10 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   // get or create printf function declaration:
   //    int printf(const char * format, ...);
   vector<Type *> printfArgsTypes;
-  printfArgsTypes.push_back(I8PtrTy); 
-  FunctionType *printfType = FunctionType::get(I32Ty, printfArgsTypes, true);
-  printfFunc = cast<Function>(M.getOrInsertFunction("printf", printfType));
-  if (!printfFunc) {
+  printfArgsTypes.push_back(_I8PtrTy); 
+  FunctionType *printfType = FunctionType::get(_I32Ty, printfArgsTypes, true);
+  _printf_func = cast<Function>(M.getOrInsertFunction("printf", printfType));
+  if (!_printf_func) {
     errs() << "could not find printf\n";
     return false;
   }
@@ -108,21 +109,21 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   }
 
   // insert call to __arthas_addr_tracker_init at the beginning of main function
-  IRBuilder<> builder(cast<Instruction>(main->front().getFirstInsertionPt()));
-  builder.CreateCall(trackerInitFunc);
+  IRBuilder<> builder(cast<Instruction>(_main->front().getFirstInsertionPt()));
+  builder.CreateCall(_tracker_init_func);
   errs() << "Instrumented call to " << getRuntimeHookInitName() << " in main\n";
 
   // insert call to __arthas_addr_tracker_finish at program exit
-  appendToGlobalDtors(M, trackerFinishFunc, 1);
+  appendToGlobalDtors(M, _tracker_finish_func, 1);
   errs() << "Instrumented call to " << getTrackHookFinishName() << " in main\n";
 
-  initialized = true;
+  _initialized = true;
   return true;
 }
 
 bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   // first check if this instruction has been instrumented before
-  if (hookPointGuidMap.find(instr) != hookPointGuidMap.end()) {
+  if (_hook_point_guid_map.find(instr) != _hook_point_guid_map.end()) {
     errs() << "Skip instrumenting instruction (" << *instr
            << ") as it has been instrumented before\n";
     return false;
@@ -160,7 +161,6 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   Value *str;
   if (pool) {
     str = builder.CreateGlobalStringPtr("POOL address: %p\n");
-    pool_addr = addr;
   } else {
     str = builder.CreateGlobalStringPtr("address: %p\n");
   }
@@ -172,12 +172,13 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   // insert an __arthas_track_addr call
   // need to explicitly cast the address, which could be i32* or i64*, to i8*
 
-  hookPointGuidMap[instr] = PmemVarCurrentGuid;
-  guidHookPointMap[PmemVarCurrentGuid] = instr;
-  auto i8addr = builder.CreateBitCast(addr, I8PtrTy);
-  auto guid = ConstantInt::get(I32Ty, PmemVarCurrentGuid, false);
-  builder.CreateCall(trackAddrFunc, {i8addr, guid});
+  _hook_point_guid_map[instr] = PmemVarCurrentGuid;
+  _guid_hook_point_map[PmemVarCurrentGuid] = instr;
+  auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+  auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
+  builder.CreateCall(_track_addr_func, {i8addr, guid});
   PmemVarCurrentGuid++;
+  _instrument_cnt++;
   return true;
 }
 
@@ -188,7 +189,8 @@ void PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName)
     errs() << "Failed to open " << fileName << " for writing guid map\n";
     return;
   }
-  for (auto gi = guidHookPointMap.begin(); gi != guidHookPointMap.end(); ++gi) {
+  for (auto gi = _guid_hook_point_map.begin(); 
+        gi != _guid_hook_point_map.end(); ++gi) {
     unsigned int guid = gi->first;
     Instruction *instr = gi->second;
     auto &Loc = instr->getDebugLoc();

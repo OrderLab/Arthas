@@ -21,7 +21,7 @@ namespace llvm {
 class InstrumentPmemAddrPass: public ModulePass {
  public:
   static char ID;
-  InstrumentPmemAddrPass() : ModulePass(ID), instrumented(0) {}
+  InstrumentPmemAddrPass() : ModulePass(ID) {}
 
   bool runOnModule(Module &M) override;
   void getAnalysisUsage(AnalysisUsage &AU) const override;
@@ -30,8 +30,7 @@ class InstrumentPmemAddrPass: public ModulePass {
   bool runOnFunction(Function &F);
 
  protected:
-  std::unique_ptr<instrument::PmemAddrInstrumenter> instrumenter;
-  unsigned instrumented;
+  std::unique_ptr<instrument::PmemAddrInstrumenter> _instrumenter;
 };
 
 } // end of namespace llvm
