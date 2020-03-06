@@ -5,7 +5,10 @@
 
 //C Implementation of Reverter because libpmemobj in c++
 //expected dated pmem file version. Unable to backwards convert
+int coarse_grained_tries = 0;
+int fine_grained_tries = 0;
 
+#define MAX_COARSE_ATTEMPTS 5
 #define MAX_DATA 1000
 
 struct checkpoint_log * reconstruct_checkpoint(){
@@ -51,7 +54,6 @@ struct checkpoint_log * reconstruct_checkpoint(){
 
 void coarse_grain_reversion(void ** addresses, struct checkpoint_log *c_log,
 void **pmem_addresses, int version_num, int num_data){
-
   int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
     printf("coarse address is %p\n", c_log->c_data[i].address);
@@ -74,6 +76,7 @@ void **pmem_addresses, int version_num, int num_data){
     printf("AFTER REVERSION coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
         *((int *)pmem_addresses[i]));
   }
+  coarse_grained_tries++;
 
 }
 
@@ -94,7 +97,7 @@ void **pmem_addresses, uint64_t * offsets){
 
 void re_execute(char **reexecution_lines, int version_num, int line_counter,
 void ** addresses, struct checkpoint_log *c_log, void **pmem_addresses, int num_data,
-char * path, char * layout, uint64_t *offsets){
+char * path, char * layout, uint64_t *offsets){ 
   int ret_val;
   int reexecute_flag = 0;
   for(int i = 0; i < line_counter; i++){
@@ -109,7 +112,9 @@ char * path, char * layout, uint64_t *offsets){
       }
     }
   } 
-
+  if(coarse_grained_tries == MAX_COARSE_ATTEMPTS){
+     return;
+   }
   //Try again if we need to re-execute
   if(reexecute_flag){
     printf("try reversion again\n");
