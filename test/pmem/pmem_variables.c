@@ -24,6 +24,7 @@ void handle_behavior(char *path){
   if(access(path, F_OK != 0)){
     //File does not exist
     pop = pmemobj_create(path, LAYOUT, PMEMOBJ_MIN_POOL, 0666);
+    printf("POOL address:%p\n", pop);
     if(pop == NULL){
       perror(path);
       exit(1);
@@ -70,6 +71,13 @@ void handle_behavior(char *path){
       perror(path);
       exit(1);
     }
+    PMEMoid oid3;
+    /*TX_BEGIN(pop){
+     for(int i = 0; i < 5; i++){
+        oid3 = pmemobj_tx_zalloc(sizeof(int), 2);
+        pmem_int_ptrs[i] = pmemobj_direct(oid3);
+     }
+    }TX_END*/
 
     //Recover data variablesDoubles are of type 1, Ints are type 2.
     PMEMoid oid = POBJ_FIRST_TYPE_NUM(pop, 1);
@@ -83,13 +91,15 @@ void handle_behavior(char *path){
     int *i;
     int count = 0;
     while(oid.off){
-      i = pmemobj_direct(oid);
-      printf("value of int is %d\n", *i);
+      //i = pmemobj_direct(oid);
+      //printf("value of int is %d\n", *i);
       if(count == 0){
-        *pmem_int_ptr2 = *i; 
+	pmem_int_ptr2 = pmemobj_direct(oid);
+        printf("value of int is %d\n", *pmem_int_ptr2);
       }
       else{
-        *pmem_int_ptrs[count - 1] = *i;
+        pmem_int_ptrs[count - 1]  = pmemobj_direct(oid);
+        printf("value of int is %d\n", *pmem_int_ptrs[count - 1]);
       }
       count++;
       oid = POBJ_NEXT_TYPE_NUM(oid);

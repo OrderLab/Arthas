@@ -1,0 +1,311 @@
+init checkpoint in create
+init checkpoint log
+next
+pmem_persist is 0x7f2ba795c000 with len 4096 and value PMEMOBJ or value 1296387408
+0
+variable count in search is 0
+variable index is 0
+open pm_pool
+can not insert
+print begin
+flush clwb no log is 0x7f2ba795c000 with len 4096 and value PMEMOBJ or value 1296387408
+pmem_persist is 0x7f2ba6602000 with len 3145728 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6602000 with len 3145728 and value  or value 0
+pmem_persist is 0x7f2ba6902000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+1
+flush clwb no log is 0x7f2ba6902000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+flush clwb no log is 0x7f2ba6902440 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba6601820 with len 8 and value  or value 5234688
+1
+flush clwb no log is 0x7f2ba6601820 with len 8 and value  or value 5234688
+pmem_persist is 0x7f2ba6601000 with len 2048 and value checkpoint or value 1667590243
+1
+flush clwb no log is 0x7f2ba6601000 with len 2048 and value checkpoint or value 1667590243
+pmem_persist is 0x7f2ba6601808 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6601808 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba6601800 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6601800 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba6601810 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6601810 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba6601818 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6601818 with len 8 and value  or value 0
+flush clwb no log is 0x7f2ba6601830 with len 16 and value  or value 0
+pmem_persist is 0x7f2ba6601808 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6601808 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6601818 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba6601818 with len 8 and value  or value 0
+PMEM CREATE POP 0x7f2ba6600000
+created file 0x7f2ba6600000
+0x7f2ba6600000
+pmem_persist is 0x7f2ba6902440 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902440 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6902400 with len 64 and value Ò¢ðÃ or value -1007639854
+1
+flush clwb no log is 0x7f2ba6902400 with len 64 and value Ò¢ðÃ or value -1007639854
+pmem_persist is 0x7f2ba6902440 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902440 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6902448 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902448 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6902440 with len 8 and value  or value 65538
+1
+flush clwb no log is 0x7f2ba6902440 with len 8 and value  or value 65538
+flush clwb no log is 0x7f2ba6982400 with len 320 and value € or value 128
+pmem_persist is 0x7f2ba6902448 with len 0 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902448 with len 0 and value  or value 2
+pmem_persist is 0x7f2ba6902440 with len 8 and value  or value 589828
+1
+flush clwb no log is 0x7f2ba6902440 with len 8 and value  or value 589828
+flush clwb no log is 0x7f2ba69c0550 with len 48 and value  or value 0
+flush clwb no log is 0x7f2ba6601810 with len 8 and value  or value 8
+flush clwb no log is 0x7f2ba6601800 with len 8 and value P< or value 3933520
+flush clwb no log is 0x7f2ba6982508 with len 8 and value  or value 1
+pmem_persist is 0x7f2ba6902448 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902448 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6902490 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba6902490 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba6902448 with len 8 and value  or value 65538
+1
+flush clwb no log is 0x7f2ba6902448 with len 8 and value  or value 65538
+flush clwb no log is 0x7f2ba69c2400 with len 64 and value  or value 12032
+pmem_persist is 0x7f2ba6902450 with len 64 and value  or value 5
+1
+flush clwb no log is 0x7f2ba6902450 with len 64 and value  or value 5
+pmem_persist is 0x7f2ba6902448 with len 8 and value  or value 589828
+1
+flush clwb no log is 0x7f2ba6902448 with len 8 and value  or value 589828
+flush clwb no log is 0x7f2ba69c2450 with len 72176 and value  or value 0
+pmem_persist is 0x7f2ba69c2410 with len 8 and value ? or value 63
+1
+flush clwb no log is 0x7f2ba69c2410 with len 8 and value ? or value 63
+pmem_persist is 0x7f2ba795c000 with len 4096 and value PMEMOBJ or value 1296387408
+1
+flush clwb no log is 0x7f2ba795c000 with len 4096 and value PMEMOBJ or value 1296387408
+pmem_persist is 0x7f2ba4202000 with len 3145728 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4202000 with len 3145728 and value  or value 0
+pmem_persist is 0x7f2ba4502000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+1
+flush clwb no log is 0x7f2ba4502000 with len 1024 and value MEMORY_HEAP_HDR or value 1330464077
+flush clwb no log is 0x7f2ba4502440 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba4201820 with len 8 and value  or value 5234688
+1
+flush clwb no log is 0x7f2ba4201820 with len 8 and value  or value 5234688
+pmem_persist is 0x7f2ba4201000 with len 2048 and value hello_layout or value 1819043176
+1
+flush clwb no log is 0x7f2ba4201000 with len 2048 and value hello_layout or value 1819043176
+pmem_persist is 0x7f2ba4201808 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4201808 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba4201800 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4201800 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba4201810 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4201810 with len 8 and value  or value 0
+pmem_persist is 0x7f2ba4201818 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4201818 with len 8 and value  or value 0
+flush clwb no log is 0x7f2ba4201830 with len 16 and value  or value 0
+pmem_persist is 0x7f2ba4201808 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba4201808 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba4201818 with len 8 and value  or value 0
+1
+flush clwb no log is 0x7f2ba4201818 with len 8 and value  or value 0
+PMEM CREATE POP 0x7f2ba4200000
+POOL address:0x7f2ba4200000
+pmem_persist is 0x7f2ba4502440 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba4502440 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba4502400 with len 64 and value Ò¢ðÃ or value -1007639854
+1
+flush clwb no log is 0x7f2ba4502400 with len 64 and value Ò¢ðÃ or value -1007639854
+pmem_persist is 0x7f2ba4502440 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba4502440 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba4502448 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba4502448 with len 8 and value  or value 2
+pmem_persist is 0x7f2ba4502440 with len 8 and value  or value 65538
+1
+flush clwb no log is 0x7f2ba4502440 with len 8 and value  or value 65538
+flush clwb no log is 0x7f2ba4582400 with len 320 and value € or value 128
+pmem_persist is 0x7f2ba4502448 with len 0 and value  or value 2
+1
+flush clwb no log is 0x7f2ba4502448 with len 0 and value  or value 2
+pmem_persist is 0x7f2ba4502440 with len 8 and value  or value 589828
+1
+flush clwb no log is 0x7f2ba4502440 with len 8 and value  or value 589828
+address of pmem double is 0x7f2ba45c0550 139825417815376
+address of pmemint2 is 0x7f2ba45c05d0 139825417815504
+flush clwb no log is 0x7f2ba45c0550 with len 112 and value  or value 0
+flush clwb no log is 0x7f2ba45c05d0 with len 112 and value  or value 12
+flush clwb no log is 0x7f2ba45c0650 with len 112 and value  or value 1
+flush clwb no log is 0x7f2ba45c06d0 with len 112 and value  or value 2
+flush clwb no log is 0x7f2ba45c0750 with len 112 and value  or value 3
+flush clwb no log is 0x7f2ba45c07d0 with len 112 and value  or value 4
+flush clwb no log is 0x7f2ba45c0850 with len 112 and value  or value 5
+pmem_persist is 0x7f2ba4582508 with len 8 and value  or value 127
+1
+flush clwb no log is 0x7f2ba4582508 with len 8 and value  or value 127
+op add buffer 0x7f2ba45c0550 0x7f2ba45c0550 8
+op add buffer 0x7f2ba45c0550 0x7f2ba45c0550 8
+op add buffer 0x7f2ba45c05d0 0x7f2ba45c05d0 4
+op add buffer 0x7f2ba45c05d0 0x7f2ba45c05d0 4
+op add buffer 0x7f2ba45c0650 0x7f2ba45c0650 20
+op add buffer 0x7f2ba45c0650 0x7f2ba45c0650 20
+correct case statement
+going in copy checkpoint
+undo here is 0x7f2ba4202418 and 3.000000 0x7f2ba45c0550 8 10.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f2ba4200000, offset should be 9240
+src is 0x7f2ba4202418, txr->begin is 0x7f2ba45c0550, src off is 9240, txr->begin is 3933520
+before insert value
+open pm_pool
+0x7f2ba6600000
+here we go
+before data access
+before data access2
+before data access3
+before data access4
+before memcpy variable count is 1
+flush clwb no log is 0x7f2ba69c05d0 with len 48 and value  or value 0
+pmem_persist is 0x7f2ba6982508 with len 8 and value  or value 3
+1
+flush clwb no log is 0x7f2ba6982508 with len 8 and value  or value 3
+after insert value
+print begin
+address is 0x7f2ba45c0550
+offset is 3933648
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 3933520
+correct case statement
+going in copy checkpoint
+undo here is 0x7f2ba4202458 and 0.000000 0x7f2ba45c05d0 4 0.000000
+undo value is 13 or 12 size is 4
+pop is 0x7f2ba4200000, offset should be 9304
+src is 0x7f2ba4202458, txr->begin is 0x7f2ba45c05d0, src off is 9304, txr->begin is 3933648
+before insert value
+open pm_pool
+0x7f2ba6600000
+here we go
+flush clwb no log is 0x7f2ba69c0650 with len 48 and value  or value 0
+pmem_persist is 0x7f2ba6982508 with len 8 and value  or value 7
+1
+flush clwb no log is 0x7f2ba6982508 with len 8 and value  or value 7
+after insert value
+print begin
+address is 0x7f2ba45c0550
+offset is 3933648
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 3933520
+address is 0x7f2ba45c05d0
+offset is 3933776
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 3933648
+correct case statement
+going in copy checkpoint
+undo here is 0x7f2ba4202498 and 0.000000 0x7f2ba45c0650 20 0.000000
+undo value is 1 or 1 size is 20
+pop is 0x7f2ba4200000, offset should be 9368
+src is 0x7f2ba4202498, txr->begin is 0x7f2ba45c0650, src off is 9368, txr->begin is 3933776
+before insert value
+open pm_pool
+0x7f2ba6600000
+here we go
+flush clwb no log is 0x7f2ba69c06d0 with len 48 and value  or value 0
+pmem_persist is 0x7f2ba6982508 with len 8 and value  or value 15
+1
+flush clwb no log is 0x7f2ba6982508 with len 8 and value  or value 15
+after insert value
+print begin
+address is 0x7f2ba45c0550
+offset is 3933648
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 3933520
+address is 0x7f2ba45c05d0
+offset is 3933776
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 3933648
+address is 0x7f2ba45c0650
+offset is 3933904
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 3933776
+flush clwb no log is 0x7f2ba45c0550 with len 8 and value  or value 0
+flush clwb no log is 0x7f2ba45c05d0 with len 4 and value  or value 13
+flush clwb no log is 0x7f2ba45c0650 with len 20 and value  or value 1
+pmem_persist is 0x7f2ba42023d8 with len 8 and value  or value 1
+1
+flush clwb no log is 0x7f2ba42023d8 with len 8 and value  or value 1
+op add buffer 0x7f2ba45c0550 0x7f2ba45c0550 8
+op add buffer 0x7f2ba45c0550 0x7f2ba45c0550 8
+op add buffer 0x7f2ba45c05d0 0x7f2ba45c05d0 4
+op add buffer 0x7f2ba45c05d0 0x7f2ba45c05d0 4
+correct case statement
+going in copy checkpoint
+undo here is 0x7f2ba4202418 and 10.000000 0x7f2ba45c0550 8 11.000000
+undo value is 0 or 0 size is 8
+pop is 0x7f2ba4200000, offset should be 9240
+src is 0x7f2ba4202418, txr->begin is 0x7f2ba45c0550, src off is 9240, txr->begin is 3933520
+before insert value
+open pm_pool
+0x7f2ba6600000
+here we go
+flush clwb no log is 0x7f2ba69c0750 with len 48 and value  or value 0
+pmem_persist is 0x7f2ba6982508 with len 8 and value  or value 31
+1
+flush clwb no log is 0x7f2ba6982508 with len 8 and value  or value 31
+after insert value
+print begin
+address is 0x7f2ba45c0550
+offset is 3933648
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 3933520
+offset is 3934032
+version is 1 size is 8 value is  or 10.000000 or 0 offset us 3933520
+address is 0x7f2ba45c05d0
+offset is 3933776
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 3933648
+address is 0x7f2ba45c0650
+offset is 3933904
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 3933776
+correct case statement
+going in copy checkpoint
+undo here is 0x7f2ba4202458 and 0.000000 0x7f2ba45c05d0 4 0.000000
+undo value is 4 or 13 size is 4
+pop is 0x7f2ba4200000, offset should be 9304
+src is 0x7f2ba4202458, txr->begin is 0x7f2ba45c05d0, src off is 9304, txr->begin is 3933648
+before insert value
+open pm_pool
+0x7f2ba6600000
+here we go
+flush clwb no log is 0x7f2ba69c07d0 with len 48 and value  or value 0
+pmem_persist is 0x7f2ba6982508 with len 8 and value ? or value 63
+1
+flush clwb no log is 0x7f2ba6982508 with len 8 and value ? or value 63
+after insert value
+print begin
+address is 0x7f2ba45c0550
+offset is 3933648
+version is 0 size is 8 value is  or 3.000000 or 0 offset us 3933520
+offset is 3934032
+version is 1 size is 8 value is  or 10.000000 or 0 offset us 3933520
+address is 0x7f2ba45c05d0
+offset is 3933776
+version is 0 size is 4 value is  or 0.000000 or 12 offset us 3933648
+offset is 3934160
+version is 1 size is 4 value is  or 0.000000 or 13 offset us 3933648
+address is 0x7f2ba45c0650
+offset is 3933904
+version is 0 size is 20 value is  or 0.000000 or 1 offset us 3933776
+flush clwb no log is 0x7f2ba45c0550 with len 8 and value  or value 0
+flush clwb no log is 0x7f2ba45c05d0 with len 4 and value  or value 4
+pmem_persist is 0x7f2ba42023d8 with len 8 and value  or value 2
+1
+flush clwb no log is 0x7f2ba42023d8 with len 8 and value  or value 2
