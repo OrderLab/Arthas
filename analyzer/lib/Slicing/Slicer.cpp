@@ -107,29 +107,47 @@ SliceGraph *DgSlicer::buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id)
   return wb.build(start, slice_id);
 }
 
-uint32_t DgSlicer::slice(dg::LLVMNode *start, uint32_t slice_id,
-                         SlicingApproachKind kind, SliceGraph **result)
+SliceGraph *DgSlicer::slice(dg::LLVMNode *start, uint32_t &slice_id,
+                            SlicingApproachKind kind) 
 {
   // If a slice id is not supplied, we use the last_slice_id + 1 as the new id
   if (slice_id == 0) slice_id = ++_last_slice_id;
 
+  SliceGraph *result = nullptr;
   switch (kind) {
     case SlicingApproachKind::Storing:
-      if (result != nullptr) {
-        *result = buildSliceGraph(start, slice_id);
-      }
+      result = buildSliceGraph(start, slice_id);
       break;
     case SlicingApproachKind::Marking:
       markSliceId(start, slice_id);
       break;
     default:
-      return 0;
+      return nullptr;
   }
   for (auto &it : *_funcDgMap) {
     dg::LLVMDependenceGraph *subdg = it.second;
     updateStatsSliceId(subdg, slice_id);
   }
-  return slice_id;
+  return result;
+}
+
+SliceGraph *DgSlicer::slice(llvm::Instruction *start, uint32_t &slice_id,
+                            SlicingApproachKind kind)
+{
+  Function *F = start->getFunction();
+  dg::LLVMDependenceGraph *subdg = getDependenceGraph(F);
+  if (subdg == nullptr) {
+    errs() << "Failed to find dependence graph for " << F->getName() << "\n";
+    return nullptr;
+  }
+  errs() << "Got dependence graph for function " << F->getName() << "\n";
+  dg::LLVMNode *node = subdg->findNode(start);
+  if (node == nullptr) {
+    errs() << "Failed to find LLVMNode for " << *start << ", cannot slice\n";
+    return nullptr;
+  }
+  errs() << "Computing slice for fault instruction " << *start << "\n";
+  return slice(node, slice_id, kind);
 }
 
 void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,

@@ -92,6 +92,8 @@ class PMemVariableLocator {
   inline const_def_iterator def_end() const { return useDefMap.end(); }
   inline size_t def_size() const { return useDefMap.size(); }
 
+  UseDefMap &def_map() { return useDefMap; }
+
   def_iterator find_def(llvm::Instruction *inst) { return useDefMap.find(inst); }
   const_def_iterator find_def(llvm::Instruction *inst) const {
     return useDefMap.find(inst);

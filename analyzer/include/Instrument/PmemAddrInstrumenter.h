@@ -29,8 +29,12 @@
 #include <string>
 
 namespace llvm {
-namespace instrument {
 
+namespace slicing {
+  class Slice;
+}
+
+namespace instrument {
 extern unsigned int PmemVarGuidStart;
 extern const char *PmemVarGuidFileFieldSep;
 
@@ -64,6 +68,9 @@ class PmemAddrInstrumenter {
   // instrument a call to hook func before an instruction.
   // this instruction must be a LoadInst or StoreInst
   bool instrumentInstr(Instruction * instr);
+
+  bool instrumentSlice(slicing::Slice *slice, std::map<llvm::Instruction *, 
+      std::set<llvm::Value *>> &useDefMap);
 
   // dump the guid to instruction map to file so that we can later connect the
   // address back to the LLVM instruction

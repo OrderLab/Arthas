@@ -114,4 +114,10 @@ class Slices {
 } // namespace slicing
 } // namespace llvm
 
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
+    const llvm::slicing::SlicePersistence & persistence);
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
+    const llvm::slicing::SliceDirection & direction);
+
 #endif /* _SLICING_SLICE_H_ */

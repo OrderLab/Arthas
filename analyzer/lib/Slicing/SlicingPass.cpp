@@ -52,8 +52,8 @@ static cl::opt<SliceDirection> SliceDir(
     cl::values(
         clEnumValN(SliceDirection::Backward, "backward", "Backward slicing"),
         clEnumValN(SliceDirection::Forward, "forward", "Forward slicing"),
-        clEnumValN(SliceDirection::Full, "full", "Full slicing"),
-        clEnumValEnd));
+        clEnumValN(SliceDirection::Full, "full", "Full slicing"), clEnumValEnd),
+    cl::init(SliceDirection::Backward));
 
 static cl::opt<string> SliceFileLines(
     "slice-crit", cl::desc("Comma separated list of slicing criterion"),
@@ -77,7 +77,7 @@ class SlicingPass : public ModulePass {
 
   virtual bool runOnModule(Module &M) override;
 
-  unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst, Function &F,
+  unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
                        PMemVariableLocator &locator, Slices &slices);
 
   bool instrumentSlice(Slice &slice, PmemAddrInstrumenter &instrumenter,
@@ -110,23 +110,12 @@ SlicingPass::~SlicingPass()
 }
 
 unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst, 
-    Function &F, PMemVariableLocator &locator, Slices &slices) {
+    PMemVariableLocator &locator, Slices &slices) {
   // Take faulty instruction and walk through Dependency Graph to 
   // obtain slices + metadata of persistent variables
-  dg::LLVMDependenceGraph *subdg = _dgSlicer->getDependenceGraph(&F);
-  if (subdg == nullptr) {
-    errs() << "Failed to find dependence graph for " << F.getName() << "\n";
-    return nullptr;
-  }
-  errs() << "Got dependence graph for function " << F.getName() << "\n";
-  dg::LLVMNode *node = subdg->findNode(fault_inst);
-  if (node == nullptr) {
-    errs() << "Failed to find LLVMNode for " << *fault_inst << ", cannot slice\n";
-    return nullptr;
-  }
-  errs() << "Computing slice for fault instruction " << *fault_inst << "\n";
-  SliceGraph *sg;
-  _dgSlicer->slice(node, 0, SlicingApproachKind::Storing, &sg);
+  uint32_t slice_id = 0;
+  SliceGraph *sg =
+      _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
   auto &st = _dgSlicer->getStatistics();
   unique_ptr<SliceGraph> slice_graph(sg);
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
@@ -146,32 +135,6 @@ unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst,
   }
   errs() << "The list of slices are written to " << SliceOutput << "\n";
   return slice_graph;
-}
-
-bool SlicingPass::instrumentSlice(Slice &slice,
-      PmemAddrInstrumenter &instrumenter, PMemVariableLocator &locator) {
-  bool instrumented = false;
-
-  for (auto i = slice.begin(); i != slice.end(); ++i) {
-    // For each node, check if instruction is a persistent value. If it is
-    // then get definition point. The root node is also in the iterator (the
-    // first one), so we don't need to specially handle it.
-    if (Instruction *inst = dyn_cast<Instruction>(*i)) {
-      auto pmi = locator.find_def(inst);
-      if (pmi != locator.def_end()) {
-        DEBUG(errs() << "Found definition point for " << *inst << ":\n");
-        for (Value *val : pmi->second) {
-          DEBUG(errs() << "---->" << *val<< "\n");
-          if (Instruction *def_inst = dyn_cast<Instruction>(val)) {
-            instrumented |= instrumenter.instrumentInstr(def_inst);
-          }
-        }
-      } else {
-        DEBUG(errs() << "Cannot find definition point for " << *inst << "\n");
-      }
-    }
-  }
-  return instrumented;
 }
 
 bool SlicingPass::runOnModule(Module &M) {
@@ -194,8 +157,9 @@ bool SlicingPass::runOnModule(Module &M) {
   }
   _sliceDir = SliceDir;
 
+  errs() << "Slice direction is " << _sliceDir << "\n";
   // Step 2: Compute dependence graph and slicer for the module
-  _dgSlicer = make_unique<DgSlicer>(&M, SliceDirection::Backward);
+  _dgSlicer = make_unique<DgSlicer>(&M, _sliceDir);
   _dgSlicer->computeDependencies();  // compute the dependence graph for module M
 
   // Step 3: Extract slices for the starting instructions (fault instruction)
@@ -217,7 +181,7 @@ bool SlicingPass::runOnModule(Module &M) {
     PMemVariableLocator *locator = locatorMap[F].get();
     locator->runOnFunction(*F);
     Slices slices;
-    instructionSlice(fault_inst, *F, *locator, slices);
+    instructionSlice(fault_inst, *locator, slices);
 
     // If we have instrumented pmem addr in the first-run, then we don't need
     // to instrument the program anymore in the slicing stage. Otherwise,
@@ -229,7 +193,7 @@ bool SlicingPass::runOnModule(Module &M) {
           errs() << "Slice " << slice->id << " is volatile, do nothing\n";
         } else {
           errs() << "Slice " << slice->id << " is persistent or mixed, instrument it\n";
-          instrumented |= instrumentSlice(*slice, *_instrumenter, *locator);
+          instrumented |= _instrumenter->instrumentSlice(slice, locator->def_map());
         }
       }
     }

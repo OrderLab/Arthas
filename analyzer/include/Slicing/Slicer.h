@@ -62,8 +62,11 @@ class DgSlicer {
   bool computeDependencies();
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 
-  uint32_t slice(dg::LLVMNode *start, uint32_t slice_id,
-                 SlicingApproachKind kind, SliceGraph **result);
+  SliceGraph *slice(dg::LLVMNode *start, uint32_t &slice_id,
+                    SlicingApproachKind kind);
+
+  SliceGraph *slice(llvm::Instruction *start, uint32_t &slice_id,
+                    SlicingApproachKind kind);
 
   SliceGraph *buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id);
 

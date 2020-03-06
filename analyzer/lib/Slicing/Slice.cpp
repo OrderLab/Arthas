@@ -12,6 +12,28 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
+
+raw_ostream &operator<<(raw_ostream &os, const SlicePersistence & persistence)
+{
+  switch(persistence) {
+    case SlicePersistence::NA: os << "n/a"; return os;
+    case SlicePersistence::Persistent: os << "persistent"; return os;
+    case SlicePersistence::Volatile: os << "volatile"; return os;
+    case SlicePersistence::Mixed: os << "mixed"; return os;
+    default: os << "unknown"; return os;
+  }
+}
+
+raw_ostream &operator<<(raw_ostream &os, const SliceDirection & direction)
+{
+  switch(direction) {
+    case SliceDirection::Backward: os << "backward"; return os;
+    case SliceDirection::Forward: os << "forward"; return os;
+    case SliceDirection::Full: os << "backward+forward"; return os;
+    default: os << "unknown"; return os;
+  }
+}
+
 void Slice::dump(raw_ostream &os)
 {
   os << "Slice " << id << ":\n";

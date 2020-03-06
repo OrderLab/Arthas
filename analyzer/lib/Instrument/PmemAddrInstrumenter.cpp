@@ -7,6 +7,7 @@
 //
 
 #include "Instrument/PmemAddrInstrumenter.h"
+#include "Slicing/Slice.h"
 
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfo.h"
@@ -21,6 +22,7 @@
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
+using namespace llvm::slicing;
 using namespace llvm::instrument;
 
 unsigned int llvm::instrument::PmemVarGuidStart = 200;
@@ -184,6 +186,32 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   }
   _instrument_cnt++;
   return true;
+}
+
+bool PmemAddrInstrumenter::instrumentSlice(
+    Slice *slice, map<Instruction *, set<Value *>> &useDefMap)
+{
+  bool instrumented = false;
+  for (auto i = slice->begin(); i != slice->end(); ++i) {
+    // For each node, check if instruction is a persistent value. If it is
+    // then get definition point. The root node is also in the iterator (the
+    // first one), so we don't need to specially handle it.
+    if (Instruction *inst = dyn_cast<Instruction>(*i)) {
+      auto pmi = useDefMap.find(inst);
+      if (pmi != useDefMap.end()) {
+        DEBUG(errs() << "Found definition point for " << *inst << ":\n");
+        for (Value *val : pmi->second) {
+          DEBUG(errs() << "---->" << *val<< "\n");
+          if (Instruction *def_inst = dyn_cast<Instruction>(val)) {
+            instrumented |= instrumentInstr(def_inst);
+          }
+        }
+      } else {
+        DEBUG(errs() << "Cannot find definition point for " << *inst << "\n");
+      }
+    }
+  }
+  return instrumented;
 }
 
 void PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName)
