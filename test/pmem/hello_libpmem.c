@@ -43,7 +43,7 @@ SPDX-License-Identifier: BSD-3-Clause
 #define PMEM_LEN 1024
 
 // Maximum length of our buffer
-#define MAX_BUF_LEN 30
+#define MAX_BUF_LEN 64
 
 /****************************
  * This function writes the "Hello..." string to persistent-memory.
@@ -62,16 +62,17 @@ void write_hello_string (char *buf, char *path)
 	}
 	/* store a string to the persistent memory */
 	strcpy(pmemaddr, buf);
+	printf("Write the (%s) string to persistent memory.\n", pmemaddr);	
 	/* flush above strcpy to persistence */
 	if (is_pmem)
 		pmem_persist(pmemaddr, mapped_len);
 	else
 		pmem_msync(pmemaddr, mapped_len);
 
-        char new_buf[MAX_BUF_LEN] = "Second String NEW VALUE HER!!\n";
-        pmem_memcpy_persist(pmemaddr, new_buf, sizeof(new_buf));
+  char new_buf[MAX_BUF_LEN] = "Second String NEW VALUE HERE!!!";
+  pmem_memcpy_persist(pmemaddr, new_buf, strlen(new_buf) + 1);
 	/* output a string from the persistent memory to console */
-	printf("\nWrite the (%s) string to persistent memory.\n",pmemaddr);	
+	printf("Write the (%s) string to persistent memory.\n", pmemaddr);	
 			
 	return;	
 }
