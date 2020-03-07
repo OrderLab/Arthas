@@ -19,6 +19,8 @@ Usage:
 
       --load-store: instrument regular load/store instructions
 
+  -l, --link:       additional link libraries to pass to GCC
+
   -r, --runtime:    path to libAddrTracker.a/.so runtime 
 
       --dry-run:    dry run, do not
@@ -44,6 +46,10 @@ function parse_args()
       --load-store)
         load_store=1
         shift 1
+        ;;
+      -l|--link)
+        link_libs="$2"
+        shift 2
         ;;
       --dry-run)
         maybe=echo
@@ -71,8 +77,10 @@ output=
 plugin_path=
 maybe=
 runtime_path=
+link_libs=
 load_store=0
 plugin_args=""
+link_flags=""
 
 parse_args "$@"
 set -- "${args[@]}"
@@ -123,10 +131,15 @@ if [ $load_store -ne 0 ]; then
   plugin_args="$plugin_args -regular-load-store"
 fi
 
+if [ -z "$link_libs" ]; then
+  # FIXME: support multiple link libs
+  link_libs="$link_flags -l$link_libs"
+fi
+
 $maybe opt -load $plugin_path -instr $plugin_args $source_bc_file -o $output_bc
 $maybe llc -O0 -disable-fp-elim -filetype=asm -o $output_asm $output_bc
 $maybe llvm-dis $output_bc
 # linking with shared runtime lib, flexible but slower
 # $maybe gcc -no-pie -O0 -fno-inline -o $output_exe $output_asm -L $runtime_path -lAddrTracker
 # linking with static runtime lib, less flexible but faster
-$maybe gcc -no-pie -O0 -fno-inline -o $output_exe $output_asm -L $runtime_path -l:libAddrTracker.a
+$maybe gcc -no-pie -O0 -fno-inline -o $output_exe $output_asm -L $runtime_path -l:libAddrTracker.a $link_libs
