@@ -1,3 +1,0 @@
-gcc -c -std=c99 -o c_reversion.o c_reversion.c
-g++ -c -std=c++0x -o reversion.o reversion.cpp
-g++ -o reversion c_reversion.o reversion.o -lpmem -lpmemobj
