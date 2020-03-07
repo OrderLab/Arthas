@@ -80,7 +80,10 @@ Matched function <write_hello_string>()@test/pmem/hello_libpmem.c:51,75
 - matched instruction:   %15 = call i8* @strcpy(i8* %13, i8* %14) #8, !dbg !39
 ```
 
-## Instrumented program to print address
+## Instrumenting program to print address
+
+### Instrumenting regular memory load/store
+
 ```
 $ cd build
 $ ../scripts/instrument-compile.sh --load-store --output loop1-instrumented ../test/loop1.bc
@@ -94,7 +97,7 @@ Enter input: 30
 result for input 30 is 362880
 ```
 
-Note that since `loop1.c` is not a pmem test case, we added the flag `-load-store`
+Note that since `loop1.c` is not a pmem test case, we added the flag **`-load-store`**
 to instrument the regular load/store instructions for testing purpose. For
 a pmem test case, you should remove the `-load-store` command line flag.
 
@@ -130,6 +133,68 @@ to locate a corresponding instruction. A sample content in the guid mapping file
 263##/home/ryan/project/Arthas/test##loop1.c##main##55##  %12 = load i32, i32* %4, align 4, !dbg !25
 264##/home/ryan/project/Arthas/test##loop1.c##main##56##  %16 = load i8**, i8*** %5, align 8, !dbg !29
 265##/home/ryan/project/Arthas/test##loop1.c##main##56##  %19 = load i8*, i8** %18, align 8, !dbg !29
+```
+
+### Instrumenting persistent memory accesses
+
+For instrumenting a persistent memory program, we should *not* use the `-load-store` 
+command line flag. In addition, we need to pass the correct link flag such
+as linking with `libpmem` or `libpmemobj` to GCC to produce the instrumented
+executable. Without the flag, we'll encounter `undefined reference to XXX`
+issue. The link flag can be passed to the instrumentation script with 
+`--link "<flags"`.
+
+```
+$ cd build
+$ ../scripts/instrument-compile.sh --link "-lpmem" --output hello_libpmem-instrumented ../test/pmem/hello_libpmem.bc
+
+Instrumented call to __arthas_addr_tracker_init in main
+Instrumented call to __arthas_addr_tracker_finish in main
+Instrumented 9 pmem instructions in total
+```
+
+For convenience, we'll automatically add "-lpmem" flag if the `-load-store` 
+is not specified and `--link` option is empty. Therefore, you can omit the 
+`--link` option above:
+
+```
+$ ../scripts/instrument-compile.sh --output hello_libpmem-instrumented ../test/pmem/hello_libpmem.bc
+```
+
+If the to-be-instrumented program needs to be linked with another library, e.g.,
+the `libpmemobj`, you still need to specify the link flag:
+
+```
+$ ../scripts/instrument-compile.sh --link "-lpmemobj" --output hello_libpmemobj-instrumented ../test/pmem/hello_libpmemobj.bc
+```
+
+After instrumentation, when you run the instrumented program, similar as the
+regular program, a tracing file `pmem_addr_pid_XXXX.dat` will be generated:
+
+```
+$ ./hello_libpmem-instrumented -w /mnt/mem/hello_libpmem.pm
+openning address tracker output file pmem_addr_pid_9682.dat
+Write the (Hello Persistent Memory!!!) string to persistent memory.
+Write the (Second String NEW VALUE HERE!!!) string to persistent memory.
+
+$ cat pmem_addr_pid_9682.dat
+0x7f89e9000000,200
+0x7ffd495ed498,201
+0x7ffd495ed498,202
+0x7ffd495ed498,203
+0x7ffd495ed498,205
+0x7ffd495ed498,206
+
+$ cat hook_guids.dat
+200##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##58##  %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
+201##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##64##  %14 = load i8*, i8** %5, align 8, !dbg !37
+202##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##65##  %18 = load i8*, i8** %5, align 8, !dbg !40
+203##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##68##  %24 = load i8*, i8** %5, align 8, !dbg !45
+204##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##70##  %28 = load i8*, i8** %5, align 8, !dbg !48
+205##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##73##  %34 = load i8*, i8** %5, align 8, !dbg !56
+206##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##75##  %41 = load i8*, i8** %5, align 8, !dbg !63
+207##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##read_hello_string##90##  %7 = call i8* @pmem_map_file(i8* %6, i64 1024, i32 1, i32 438, i64* %4, i32* %5), !dbg !28
+208##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##read_hello_string##96##  %11 = load i8*, i8** %3, align 8, !dbg !35
 ```
 
 ## Slicing a program given a fault instruction
