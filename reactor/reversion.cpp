@@ -1,9 +1,8 @@
+#include <pthread.h>
 #include <fstream>
 #include <iostream>
-#include "libpmemobj.h"
-#include <pthread.h>
 #include <string>
-#include "checkpoint_generic.h"
+#include "libpmemobj.h"
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
 
@@ -14,40 +13,18 @@ using namespace llvm;
 using namespace llvm::slicing;
 
 extern "C" {
-PMEMobjpool *pmemobj_open(const char *path, const char *layout);
+#include "c_reversion.h"
 }
 
-struct checkpoint_log * reconstruct_checkpoint(){
-  PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
-  if(!pop){
-   cout << "pool not found\n";
-   cout << pmemobj_errormsg();
-   return NULL;
-  }
-  PMEMoid oid = pmemobj_root(pop, sizeof(uint64_t));
-  uint64_t *old_pool = (uint64_t *) pmemobj_direct(oid);
-  cout << "old pool " << *old_pool << "\n";
-  struct checkpoint_log *c_log;
-  PMEMoid clog_oid = POBJ_FIRST_TYPE_NUM(pop, 0);
-  c_log = (struct checkpoint_log *) pmemobj_direct(clog_oid);
-  cout << "c log c data " << c_log->c_data[0].version << "\n";
-  
-  uint64_t offset;
-  offset = (uint64_t)c_log->c_data - *old_pool;
-  int variable_count = c_log->variable_count;
-  for(int i = 0; i < variable_count; i++){
-    for(int j = 0; j < c_log->c_data[i].version; j++){
-      offset = (uint64_t)c_log->c_data[i].data[j] - *old_pool;
-      c_log->c_data[i].data[j] = (void *)((uint64_t)c_log->c_data[i].data[j] + offset);
-    }
-  }
+#define MAX_DATA 1000
+#define FINE_GRAIN_ATTEMPTS 10
 
-}
+using namespace std;
 
 int main (int argc, char *argv[]){
+  // main_func(argc, argv);
 
-
-  //Step 2: Read printed out file
+  // Step 2: Read printed out file
   ifstream file (argv[1]);
   string line;
   string addresses[MAX_DATA];
@@ -72,7 +49,7 @@ int main (int argc, char *argv[]){
   }
   
   long long_addresses[MAX_DATA];
-  void * ptr_addresses[MAX_DATA];
+  void *ptr_addresses[MAX_DATA];
   long long_pool_address;
   void * ptr_pool_address;
 
@@ -93,7 +70,7 @@ int main (int argc, char *argv[]){
   }
 
   //Step 1: Opening Checkpoint Component PMEM File
-  struct checkpoint_log *c_log = reconstruct_checkpoint();
+  // struct checkpoint_log *c_log = reconstruct_checkpoint();
 
   //Step 3: For each address, convert from string to void *,
   //then subtract from the pool_address to get the offset of
@@ -120,6 +97,7 @@ int main (int argc, char *argv[]){
       c_log.c_data[variable_index].size);
     }
   }
+  */
 
   //Try coarse-grained control, revert everything to a version
   //that is passed by an argument
@@ -133,20 +111,3 @@ int main (int argc, char *argv[]){
   //a different version or different slices.
   //Need to identify different slices for reversion
 }
-
-
-/*uint64_t search_for_fine_address(llvm::SmallVector<const llvm::Instruction *> instructions, int index, llvm::SmallVector<const llvm::Instruction *> dep_instrs, string *addresses){
-  int count = 0;
-  int iteration = 0;
-  for(auto i = instructions.begin(); i != instructions.end(); i++){
-    llvm::instruction *inst = *i;
-    if(inst == i){
-      if(count < num)
-        count++;
-      else{
-        return addresses[iteration];
-      }
-    }
-    iteration++;
-  }
-}*/

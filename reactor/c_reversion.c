@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include "libpmemobj.h"
-#include <stdlib.h>
-#include "checkpoint_generic.h"
+#include "c_reversion.h"
 
 //C Implementation of Reverter because libpmemobj in c++
 //expected dated pmem file version. Unable to backwards convert
@@ -10,6 +7,41 @@ int fine_grained_tries = 0;
 
 #define MAX_COARSE_ATTEMPTS 5
 #define MAX_DATA 1000
+
+int search_for_address(const void * address, size_t size, struct checkpoint_log * c_log){
+  uint64_t uint_address = (uint64_t)address;
+  uint64_t search_upper_bound  = uint_address + size;
+  uint64_t clog_upper_bound;
+  for(int i = 0; i < c_log->variable_count; i++){
+    uint64_t clog_address = (uint64_t)c_log->c_data[i].address;
+    //Get size of first checkpointed data structure, should I iterate through each size?
+    clog_upper_bound = (uint64_t)clog_address + (uint64_t)c_log->c_data[i].size[0];
+    //printf("size is %ld\n", (uint64_t)c_log->c_data[i].size[0]);
+    //printf("uint_address %ld, clog_address %ld, search_upper_bound %ld, clog_upper_bound %ld\n",
+    //uint_address, clog_address, search_upper_bound, clog_upper_bound );
+    if(uint_address >= clog_address && search_upper_bound <= clog_upper_bound){
+      return i;
+    }
+    /*if(c_log->c_data[i].address == address){
+      return i;
+    }*/
+  }
+  return -1;
+}
+
+void revert_by_address(const void *search_address, const void *address, int variable_index, int version, int type, size_t size, struct checkpoint_log * c_log){
+  void *dest = (void *)address;
+  if(search_address == c_log->c_data[variable_index].address){
+    memcpy(dest, c_log->c_data[variable_index].data[version], c_log->c_data[variable_index].size[version]);
+  }
+  else{
+    uint64_t uint_address = (uint64_t)search_address;
+    uint64_t address_num = (uint64_t)c_log->c_data[variable_index].address;
+    uint64_t offset = uint_address - address_num;
+    memcpy(dest, (void *)( (uint64_t)c_log->c_data[variable_index].data[version] + offset), size);
+  }
+}
+
 
 struct checkpoint_log * reconstruct_checkpoint(){
   PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
@@ -143,7 +175,7 @@ char * path, char * layout, uint64_t *offsets){
 }
 
 
-int main(int argc, char *argv[]){
+int main_func(int argc, char *argv[]){
   
   //Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log = reconstruct_checkpoint();

@@ -34,3 +34,4 @@ instrumentScript
 pmemInstrumentScript
 usefulCommands
 reactor/c_reversion
+reactor/reversion
