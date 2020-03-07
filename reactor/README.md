@@ -6,7 +6,7 @@ the system back to a normal state.
 #Use for reversion
 
 ```
-./c_reversion instrumentation_out <pmem_file of crashed system> <pmem layout name> <version # to revert to for 1st coarse attempt> <rerun system commands>
+./reversion instrumentation_out <pmem_file of crashed system> <pmem layout name> <version # to revert to for 1st coarse attempt> <rerun system commands>
 ```
 
 This will enact coarse-grained reversion on the passed pmem file and then try and rollback changes

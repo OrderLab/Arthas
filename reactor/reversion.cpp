@@ -3,17 +3,16 @@
 #include "libpmemobj.h"
 #include <pthread.h>
 #include <string>
-#include "checkpoint_generic.h"
+extern "C" {
+  #include "c_reversion.h"
+}
+
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
 
 using namespace std;
 
-extern "C" {
-PMEMobjpool *pmemobj_open(const char *path, const char *layout);
-}
-
-struct checkpoint_log * reconstruct_checkpoint(){
+/*struct checkpoint_log * reconstruct_checkpoint(){
   PMEMobjpool *pop = pmemobj_open("/mnt/mem/checkpoint.pm", "checkpoint");
   if(!pop){
    cout << "pool not found\n";
@@ -38,13 +37,16 @@ struct checkpoint_log * reconstruct_checkpoint(){
     }
   }
 
-}
+}*/
 
 int main (int argc, char *argv[]){
 
 
+
+  main_func(argc, argv);
+
   //Step 2: Read printed out file
-  ifstream file (argv[1]);
+  /*ifstream file (argv[1]);
   string line;
   string addresses[MAX_DATA];
   int num_data = 0;
@@ -90,42 +92,34 @@ int main (int argc, char *argv[]){
 
   //Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log = reconstruct_checkpoint();
-
-  //Step 3: For each address, convert from string to void *,
-  //then subtract from the pool_address to get the offset of
-  //each data structure.
-  /*
-  void *ptr_addresses[MAX_DATA];
-  for(int i = 0; i < num_data; i++){
-    addresses[i] = addresses[i] - pool_address;
-  }
   */
-  
   //Step 4: For each printed address, revert each data structure
   //Fine-grained reversion
-  /*DgSlices slices;
-  for (auto i = slices.begin(); i != slices.end(); ++i){
-    //Link slice nodes with addresses that were collected
-    DgSlice *slice = *i;
+  /*
+  //Get mapping of llvm Instruction in Slice to printed address
+  Slice Iterator -> compare slice llvm values with printed llvm values
+  if they are the same, then add a mapping of address to llvm value
+  Output a list of mappings for the slice
+  Slices slices;
+  for(Slice *slice: slices){
+    if(slice->persistence == SlicePersistence::Volatile){
+      //Do nothing
+    } else{
+      ompare slice llvm values with printed persistent llvm values
+      if they are the same, then add a mapping of address to llvm value
+      Output a list of mappings for the slice
+      Iterate through mappings
+      revert_by_address();
+    }
+  }
     for(int j = 0; j < FINE_GRAIN_ATTEMPTS; j++){
       uint64_t fine_grain_address = search_for_fine_address(instructions, j, slice->dep_instrs, addresses);
       int variable_index = search_for_offset(pop, find_grain_address);
       revert_by_offset(fine_grain_address + pop, fine_grain_address, variable_index, argv[2], 0,
       c_log.c_data[variable_index].size);
     }
-  }
-
-  //Try coarse-grained control, revert everything to a version
-  //that is passed by an argument
-  /*for(int i = 0; i < num_data; i++){
-    //find the offset in checkpoint, need to modify for range-based
-    int variable_index = search_for_offset(pop, addresses[i]);
-    revert_by_offset(addresses[i] + pop, addresses[i], variable_index, argv[2], 0, 
-    c_log.c_data[variable_index].size);
   }*/
-  //TODO: Need to use detector to find if a run crashes to retry reversion with
-  //a different version or different slices.
-  //Need to identify different slices for reversion
+
 }
 
 
