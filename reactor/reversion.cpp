@@ -7,7 +7,11 @@
 #define MAX_DATA 1000
 #define FINE_GRAIN_ATTEMPTS 10
 
+#include "Slicing/Slice.h"
+
 using namespace std;
+using namespace llvm;
+using namespace llvm::slicing;
 
 extern "C" {
 PMEMobjpool *pmemobj_open(const char *path, const char *layout);
@@ -100,6 +104,8 @@ int main (int argc, char *argv[]){
     addresses[i] = addresses[i] - pool_address;
   }
   */
+
+  Slices slices;
   
   //Step 4: For each printed address, revert each data structure
   //Fine-grained reversion
