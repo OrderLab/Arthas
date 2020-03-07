@@ -9,29 +9,28 @@ a slice.
 
 # Usage
 
-## Extract PM variables and their slices
+## Extract persistent memory variables
 Run our LLVMPMem pass on a persistent memory test program:
 
 ```
-opt -load build/analyzer/lib/libLLVMPMem.so -pmem < test/pmem/hello_libpmem.bc > /dev/null
+$ cd build
+$ bin/extractor ../test/pmem/hello_libpmem.bc
 ```
 
 The output is:
+
 ```
-[write_hello_string]
-- this instruction creates a pmem variable:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
-- users of the pmem variable:   %13 = load i8*, i8** %5, align 8
-- users of the pmem variable:   %15 = call i8* @strcpy(i8* %13, i8* %14) #7
-- users of the pmem variable:   %19 = load i8*, i8** %5, align 8
-- users of the pmem variable:   call void @pmem_persist(i8* %19, i64 %20)
+* Identified pmdk API calls:   %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
+* Identified pmdk API calls:   call void @pmem_persist(i8* %22, i64 %23), !dbg !47
+* Identified pmdk API calls:   %27 = call i32 @pmem_msync(i8* %25, i64 %26), !dbg !50
+* Identified pmem variable instruction:   %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
+* Identified pmem variable instruction:   %14 = load i8*, i8** %5, align 8, !dbg !37
+* Identified pmem variable instruction:   %16 = call i8* @strcpy(i8* %14, i8* %15) #8, !dbg !39
 ...
-- users of the pmem variable:   br i1 %10, label %11, label %12
-* Identified pmdk API calls:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
-* Identified pmdk API calls:   call void @pmem_persist(i8* %19, i64 %20)
-* Identified pmdk API calls:   %24 = call i32 @pmem_msync(i8* %22, i64 %23)
-* Identified pmem variable instruction:   %9 = call i8* @pmem_map_file(i8* %8, i64 1024, i32 1, i32 438, i64* %6, i32* %7)
-* Identified pmem variable instruction:   %13 = load i8*, i8** %5, align 8
-...
+* Identified pmem variable instruction:   br i1 %11, label %12, label %13, !dbg !33
+* Identified pmem region [  %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30,i64 1024]
+* Identified pmdk API calls:   %7 = call i8* @pmem_map_file(i8* %6, i64 1024, i32 1, i32 438, i64* %4, i32* %5), !dbg !28
+* Identified pmem variable instruction:   %7 = call i8* @pmem_map_file(i8* %6, i64 1024, i32 1, i32 438, i64* %4, i32* %5), !dbg !28
 ...
 ```
 
@@ -39,7 +38,23 @@ You can also specify a target function to extract the pmem variables within
 that function.
 
 ```
-$ opt -load analyzer/lib/libLLVMPMem.so -pmem -target-functions write_vector < ../test/pmem/pmem_vector.bc > /dev/null
+$ cd build 
+$ bin/extractor -function write_vector ../test/pmem/pmem_vector.bc
+* Identified pmdk API calls:   %33 = call i8* @pmemobj_direct_inline(i64 %30, i64 %32), !dbg !69
+* Identified pmem variable instruction:   %33 = call i8* @pmemobj_direct_inline(i64 %30, i64 %32), !dbg !69
+* Identified pmem variable instruction:   %34 = bitcast i8* %33 to %struct.vector*, !dbg !69
+* Identified pmem variable instruction:   %35 = load %struct.vector*, %struct.vector** %10, align 8, !dbg !74
+* Identified pmem variable instruction:   %36 = getelementptr inbounds %struct.vector, %struct.vector* %35, i32 0, i32 0, !dbg !75
+...
+```
+
+Note that `bin/extractor` is a standalone executable tool. It internally 
+invokes the LLVMPMem pass we wrote. You can also invoke this pass 
+with the LLVM `opt` tool, which is slightly more cumbersome to type:
+
+```
+$ cd build
+$ opt -load analyzer/lib/libLLVMPMem.so -pmem < test/pmem/hello_libpmem.bc > /dev/null
 ```
 
 ## Locate LLVM instruction given file & line number

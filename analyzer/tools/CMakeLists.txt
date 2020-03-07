@@ -1,7 +1,10 @@
-add_executable(sample sample/main.cpp)
-
-target_link_libraries(sample PRIVATE Utils)
-target_link_libraries(sample 
+add_executable(extractor extractor/main.cpp)
+target_link_libraries(extractor
+  PUBLIC Utils
+  PUBLIC PMem
+  PUBLIC DefUse
+)
+target_link_libraries(extractor
   PRIVATE ${llvm_irreader}
   PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
