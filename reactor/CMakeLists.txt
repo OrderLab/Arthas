@@ -1,7 +1,28 @@
-project(reversion)
+if (DEFINED ENV{PMDK_HOME})
+  set(PMDK_HOME "$ENV{PMDK_HOME}")
+endif()
 
-add_executable(reversion reversion.cpp)
+if (PMDK_HOME) 
+  message(STATUS "PMDK Home: ${PMDK_HOME}")
+  set(PMEM_LIBRARY_DIRS ${PMDK_HOME}/src/nondebug)
+  set(PMEM_LIBRARIES libpmemobj libpmem)
+  set(PMEM_INCLUDE_DIRS ${PMDK_HOME}/src/include)
+else()
+  message(WARNING "PMDK HOME is not set, use system-wide PMDK")
+  find_package(PkgConfig)
+  pkg_check_modules(PMEM REQUIRED libpmemobj libpmem)
+endif()
 
-link_directories(/home/brian/a_bug_project/feb17/1.8-PMDK-Arthas/src/nondebug )
+message(STATUS "PMEM include path: ${PMEM_INCLUDE_DIRS}")
+message(STATUS "PMEM library path: ${PMEM_LIBRARY_DIRS}")
+message(STATUS "PMEM libraries: ${PMEM_LIBRARIES}")
+link_directories(${PMEM_LIBRARY_DIRS})
 
-target_link_libraries(reversion libpmemobj.a libpmem.a pthread dl)
+include_directories(${ROOT_SOURCE_DIR}/analyzer/include)
+link_directories(${ROOT_SOURCE_DIR}/analyzer/lib)
+
+include_directories(include)
+include_directories(lib)
+
+add_subdirectory(lib)
+add_subdirectory(tools)
