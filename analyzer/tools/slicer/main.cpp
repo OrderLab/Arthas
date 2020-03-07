@@ -78,6 +78,10 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
     return;
   }
   unique_ptr<SliceGraph> slice_graph(sg);
+  auto &st = slicer->getStatistics();
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
+         << " nodes\n";
+  errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
   out_stream << "=================Slice graph " << slice_graph->slice_id();
   out_stream << "=================\n";
   out_stream << *slice_graph.get() << "\n";
@@ -95,6 +99,7 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
 
 bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
+  errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
   slicer->computeDependencies();
 
@@ -134,6 +139,13 @@ bool slice(Module *M, vector<Instruction *> &startInstrs)
   if (instrumentPmemSlice) {
     instrumenter->writeGuidHookPointMap(pmemHookGuidFile);
     errs() << "Instrumented " << instrumented << " pmem instructions in total\n";
+  }
+
+  if (!instrumentOutput.empty()) {
+    ofstream ofs(instrumentOutput);
+    raw_os_ostream ostream(ofs);
+    WriteBitcodeToFile(M, ostream);
+    errs () << "Instrumented program is written into bitcode file " << instrumentOutput << "\n";
   }
   return instrumented;
 }
