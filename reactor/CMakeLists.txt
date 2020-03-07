@@ -21,10 +21,8 @@ link_directories(${PMEM_LIBRARY_DIRS})
 include_directories(${ROOT_SOURCE_DIR}/analyzer/include)
 link_directories(${ROOT_SOURCE_DIR}/analyzer/lib)
 
-add_executable(reversion reversion.cpp)
-target_link_libraries(reversion 
-  PRIVATE Slicer
-  PRIVATE ${PMEM_LIBRARIES}
-  PRIVATE pthread 
-  PRIVATE dl
-)
+include_directories(include)
+include_directories(lib)
+
+add_subdirectory(lib)
+add_subdirectory(tools)
