@@ -20,16 +20,14 @@ const char *pmem_file;
 const char *pmem_layout;
 int version_num;
 
-void usage()
-{
+void usage() {
   fprintf(stderr,
           "Usage: %s <pmem_file of crashed system> <pmem layout name> <version "
           "# to revert to for 1st coarse attempt> <rerun system commands>\n\n",
           program);
 }
 
-void parse_args(int argc, char *argv[])
-{
+void parse_args(int argc, char *argv[]) {
   program = argv[0];
   if (argc < 5) {
     usage();
@@ -46,7 +44,7 @@ void parse_args(int argc, char *argv[])
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
-  //Step 1: Opening Checkpoint Component PMEM File
+  // Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log = reconstruct_checkpoint(checkpoint_file);
   if (c_log == NULL) {
     fprintf(stderr, "abort checkpoint rollback operation\n");
@@ -55,7 +53,7 @@ int main(int argc, char *argv[]) {
 
   printf("finished checkpoint reconstruction\n");
 
-  //Step 2: Read printed out file
+  // Step 2: Read printed out file
   FILE *fp;
   char line[100];
   fp = fopen(address_file, "r");
@@ -68,55 +66,54 @@ int main(int argc, char *argv[]) {
   char *str_pool_address;
   int num_data = 0;
 
-  while(fgets(line, 100, fp) != NULL){
+  while (fgets(line, 100, fp) != NULL) {
     token = strtok(line, ":");
     if (strcmp(token, "address") == 0) {
       token = strtok(NULL, ": ");
-      str_addresses[num_data] = (char *) malloc(strlen(token) + 1);
-      strcpy(str_addresses[num_data],token);
+      str_addresses[num_data] = (char *)malloc(strlen(token) + 1);
+      strcpy(str_addresses[num_data], token);
       str_addresses[num_data][strlen(str_addresses[num_data]) - 1] = '\0';
       num_data++;
-    }
-    else if(strcmp(token, "POOL address") == 0){
+    } else if (strcmp(token, "POOL address") == 0) {
       token = strtok(NULL, ": ");
-      str_pool_address = (char *) malloc(strlen(token) + 1);
+      str_pool_address = (char *)malloc(strlen(token) + 1);
       strcpy(str_pool_address, token);
       str_pool_address[strlen(str_pool_address) - 1] = '\0';
     }
   }
   fclose(fp);
 
-  //Step 3: Convert collected string addresses to pointers and offsets
+  // Step 3: Convert collected string addresses to pointers and offsets
   long long_addresses[MAX_DATA];
-  void * addresses[MAX_DATA];
+  void *addresses[MAX_DATA];
   long long_pool_address;
-  void * pool_address;
+  void *pool_address;
 
-  for(int i = 0; i < num_data; i++){
+  for (int i = 0; i < num_data; i++) {
     long_addresses[i] = strtol(str_addresses[i], NULL, 16);
     addresses[i] = (void *)long_addresses[i];
   }
   long_pool_address = strtol(str_pool_address, NULL, 16);
   pool_address = (void *)long_pool_address;
 
-  //Step 4: Calculating offsets from pointers
+  // Step 4: Calculating offsets from pointers
   uint64_t offsets[MAX_DATA];
-  void *pmem_addresses [MAX_DATA];
+  void *pmem_addresses[MAX_DATA];
   PMEMobjpool *pop = pmemobj_open(pmem_file, pmem_layout);
   if (pop == NULL) {
     printf("could not open pop\n");
     return -1;
   }
-  for(int i = 0; i < num_data; i++){
+  for (int i = 0; i < num_data; i++) {
     offsets[i] = (uint64_t)addresses[i] - (uint64_t)pool_address;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
-  //Step 5: Fine-grain reversion
+  // Step 5: Fine-grain reversion
 
-  //Step 6: Coarse-grain reversion
-  //TODO: Print data type in instrumentation
-  //To be deleted: This will be unnecessary once data types are printed
+  // Step 6: Coarse-grain reversion
+  // TODO: Print data type in instrumentation
+  // To be deleted: This will be unnecessary once data types are printed
   /*int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
     printf("coarse address is %p\n", c_log->c_data[i].address);
@@ -134,18 +131,21 @@ int main(int argc, char *argv[]) {
     size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
     ind = search_for_address(addresses[i], size, c_log);
     printf("ind is %d for %p\n", ind, addresses[i]);
-    revert_by_address(addresses[i], pmem_addresses[i], ind, atoi(argv[4]), 0, size, c_log );
-    printf("AFTER REVERSION coarse value is %f or %d\n", *((double *)pmem_addresses[i]),
+    revert_by_address(addresses[i], pmem_addresses[i], ind, atoi(argv[4]), 0,
+  size, c_log );
+    printf("AFTER REVERSION coarse value is %f or %d\n", *((double
+  *)pmem_addresses[i]),
         *((int *)pmem_addresses[i]));
   }*/
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
-  coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num, num_data);
+  coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num,
+                         num_data);
 
-  //Step 7: re-execution
+  // Step 7: re-execution
   pmemobj_close(pop);
   fp = fopen(argv[5], "r");
-  if(fp == NULL){
+  if (fp == NULL) {
     perror("Error opening file");
     return -1;
   }
@@ -154,9 +154,9 @@ int main(int argc, char *argv[]) {
   // int ret_val;
   // int reexecute = 0;
   int line_counter = 0;
-  while(fgets(line, 100, fp) != NULL){
-    //printf("Retry attempt number %d\n", coarse_grained_tries);
-    reexecution_lines[line_counter] = (char *) malloc(strlen(line) + 1);
+  while (fgets(line, 100, fp) != NULL) {
+    // printf("Retry attempt number %d\n", coarse_grained_tries);
+    reexecution_lines[line_counter] = (char *)malloc(strlen(line) + 1);
     strcpy(reexecution_lines[line_counter], line);
     /*ret_val = system(line);
     printf("ret val of reexecution is %d\n", ret_val);
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
       reexecute = 1;
       break;
     }*/
-   line_counter++;
+    line_counter++;
   }
 
   printf("Reexecution %d: \n", coarse_grained_tries);
