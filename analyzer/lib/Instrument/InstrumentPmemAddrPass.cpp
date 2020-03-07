@@ -24,7 +24,7 @@ static cl::opt<bool> RegularLoadStore(
 
 static cl::opt<string> HookGuidFile(
     "guid-ouput", cl::desc("File to write the hook GUID map file"),
-    cl::init("hook_guids.dat"), cl::value_desc("file"));
+    cl::value_desc("file"));
 
 void InstrumentPmemAddrPass::getAnalysisUsage(AnalysisUsage &AU) const {
   AU.setPreservesAll();
@@ -43,13 +43,24 @@ bool InstrumentPmemAddrPass::runOnModule(Module &M) {
         modified |= runOnFunction(F);
     }
   }
-  _instrumenter->writeGuidHookPointMap(HookGuidFile);
+  if (HookGuidFile.empty()) {
+    auto & source_file = M.getSourceFileName();
+    size_t extindex = source_file.find_last_of(".");
+    if (extindex == string::npos) {
+      HookGuidFile = source_file + "-hook-guids.map";
+    } else {
+      HookGuidFile = source_file.substr(0, extindex) + "-hook-guids.map";
+    }
+    errs() << "Hook map to " << HookGuidFile << "\n";
+  }
   errs() << "Instrumented " << _instrumenter->getInstrumentedCnt();
   if (RegularLoadStore) {
     errs() << " regular load/store instructions in total\n";
   } else {
     errs() << " pmem instructions in total\n";
   }
+  _instrumenter->writeGuidHookPointMap(HookGuidFile);
+  errs() << "The hook GUID map is written to " << HookGuidFile << "\n";
   return modified;
 }
 

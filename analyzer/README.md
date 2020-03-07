@@ -89,23 +89,47 @@ $ cd build
 $ ../scripts/instrument-compile.sh --load-store --output loop1-instrumented ../test/loop1.bc
 Instrumented call to __arthas_addr_tracker_init in main
 Instrumented call to __arthas_addr_tracker_finish in main
+Hook map to loop1-hook-guids.map
 Instrumented 76 regular load/store instructions in total
+The hook GUID map is written to loop1-hook-guids.map
+```
 
+Note that since `loop1.c` is *not* a pmem test case, we added the flag **`-load-store`**
+to instrument the regular load/store instructions for testing purpose. For
+a pmem test case, you should remove the `-load-store` command line flag.
+
+After this step, an instrumented executable `<input_file>-instrumented` is 
+produced. In addition, a static mapping table is generated to record the 
+hook GUID and the information (<file, function, line number, instruction full 
+string representation>) to locate a corresponding instruction. This mapping table is written
+into a file that by default is `<input_file>-hook-guid.dat`.  
+
+```
+$ cat loop1-hook-guids.map
+227##/home/ryan/project/Arthas/test##loop1.c##add##20##  store i32 %0, i32* %3, align 4
+...
+260##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 0, i32* %3, align 4
+261##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 %0, i32* %4, align 4
+262##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i8** %1, i8*** %5, align 8
+263##/home/ryan/project/Arthas/test##loop1.c##main##55##  %12 = load i32, i32* %4, align 4, !dbg !25
+264##/home/ryan/project/Arthas/test##loop1.c##main##56##  %16 = load i8**, i8*** %5, align 8, !dbg !29
+265##/home/ryan/project/Arthas/test##loop1.c##main##56##  %19 = load i8*, i8** %18, align 8, !dbg !29
+```
+
+Now run the instrumented executable `loop1-instrumented`:
+
+```
 $ ./loop1-instrumented
 openning address tracker output file pmem_addr_pid_16062.dat
 Enter input: 30
 result for input 30 is 362880
 ```
 
-Note that since `loop1.c` is not a pmem test case, we added the flag **`-load-store`**
-to instrument the regular load/store instructions for testing purpose. For
-a pmem test case, you should remove the `-load-store` command line flag.
-
 The tracing result file is `pmem_addr_pid_16062.dat`, where `16062` in the pid 
-of a particular run of the instrumented program. A sample content in the 
-tracing result file:
+of a particular run of the instrumented program: 
 
 ```
+$ cat pmem_addr_pid_16062.dat
 0x7fffc57f636c,260
 0x7fffc57f6368,261
 0x7fffc57f6360,262
@@ -118,22 +142,9 @@ tracing result file:
 Note that the second column represents a GUID of the instrumented LLVM instruction 
 that causes this dynamic address to be printed. Using GUID instead of the
 actual instruction makes the tracing efficient. The introduced indirection, 
-however, means that we need to look up what instruction this GUID represents.
-The mapping is generated during the **static instrumentation** phase, written
-into a file that by default is `hook_guid.dat`. This file records detailed
-information (<file, function, line number, instruction full string representation>) 
-to locate a corresponding instruction. A sample content in the guid mapping file:
-
-```
-227##/home/ryan/project/Arthas/test##loop1.c##add##20##  store i32 %0, i32* %3, align 4
-...
-260##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 0, i32* %3, align 4
-261##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i32 %0, i32* %4, align 4
-262##/home/ryan/project/Arthas/test##loop1.c##main##51##  store i8** %1, i8*** %5, align 8
-263##/home/ryan/project/Arthas/test##loop1.c##main##55##  %12 = load i32, i32* %4, align 4, !dbg !25
-264##/home/ryan/project/Arthas/test##loop1.c##main##56##  %16 = load i8**, i8*** %5, align 8, !dbg !29
-265##/home/ryan/project/Arthas/test##loop1.c##main##56##  %19 = load i8*, i8** %18, align 8, !dbg !29
-```
+however, means that we need to look up what instruction this GUID represents
+in the static GUID mapping file that was generated in the static instrumentation
+phase.
 
 ### Instrumenting persistent memory accesses
 
@@ -151,6 +162,7 @@ $ ../scripts/instrument-compile.sh --link "-lpmem" --output hello_libpmem-instru
 Instrumented call to __arthas_addr_tracker_init in main
 Instrumented call to __arthas_addr_tracker_finish in main
 Instrumented 9 pmem instructions in total
+The hook GUID map is written to hello_libpmem-hook-guids.map
 ```
 
 For convenience, we'll automatically add "-lpmem" flag if the `-load-store` 
@@ -185,7 +197,7 @@ $ cat pmem_addr_pid_9682.dat
 0x7ffd495ed498,205
 0x7ffd495ed498,206
 
-$ cat hook_guids.dat
+$ cat hello_libpmem-hook-guids.map
 200##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##58##  %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
 201##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##64##  %14 = load i8*, i8** %5, align 8, !dbg !37
 202##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##65##  %18 = load i8*, i8** %5, align 8, !dbg !40
