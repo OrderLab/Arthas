@@ -7,6 +7,12 @@
 #
 
 cmake_minimum_required(VERSION 3.4.3)
+# Disable in-source builds to prevent source tree corruption.
+if(" ${CMAKE_SOURCE_DIR}" STREQUAL " ${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "FATAL: In-source builds are not allowed.
+  You should create a build directory for building the tool.")
+endif()
+
 project(arthas)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
