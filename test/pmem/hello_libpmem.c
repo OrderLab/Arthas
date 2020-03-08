@@ -62,7 +62,6 @@ void write_hello_string (char *buf, char *path)
 	}
 	/* store a string to the persistent memory */
 	strcpy(pmemaddr, buf);
-        printf("is_pmem %d\n", is_pmem);
 	printf("Write the (%s) string to persistent memory.\n", pmemaddr);	
 	/* flush above strcpy to persistence */
 	if (is_pmem)
