@@ -53,7 +53,6 @@ void parse_args(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
-  return 0;
 
   // Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
