@@ -21,18 +21,20 @@ const char *checkpoint_file;
 const char *pmem_file;
 const char *pmem_layout;
 const char *pmem_library;
+const char *hook_guidfile;
 int version_num;
 
 void usage() {
   fprintf(stderr,
           "Usage: %s <pmem_file of crashed system> <pmem layout name> <version "
-          "# to revert to for 1st coarse attempt> <rerun system commands> <pmem library>\n\n",
+          "# to revert to for 1st coarse attempt> <rerun system commands> <pmem library>\n\n"
+          "<hook guidfile>",
           program);
 }
 
 void parse_args(int argc, char *argv[]) {
   program = argv[0];
-  if (argc < 6) {
+  if (argc < 7) {
     usage();
     exit(1);
   }
@@ -50,6 +52,7 @@ void parse_args(int argc, char *argv[]) {
   pmem_file = argv[2];
   pmem_layout = argv[3];
   version_num = atoi(argv[4]);
+  hook_guidfile = argv[7];
 }
 
 int main(int argc, char *argv[]) {
