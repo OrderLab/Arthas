@@ -248,10 +248,6 @@ bool PmemAddrInstrumenter::fillVarGuidMapInfo(llvm::Instruction *instr,
 }
 
 bool PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName) {
-  if (access(fileName.c_str(), 0) != 0) {
-    errs() << "Failed to open " << fileName << " for writing guid map\n";
-    return false;
-  }
   PmemVarGuidMap var_map;
   for (auto gi = _guid_hook_point_map.begin(); gi != _guid_hook_point_map.end();
        ++gi) {
