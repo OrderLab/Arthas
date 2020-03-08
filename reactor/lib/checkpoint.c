@@ -38,6 +38,16 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
   }
   else if(strcmp(pmem_library, "libpmem") == 0){
     //TODO:open memory mapped file in a different manner
+    char *pmemaddr;
+    size_t mapped_len;
+    int is_pmem;
+
+    if ((pmemaddr = (char *)pmem_map_file(file_path, PMEM_LEN, PMEM_FILE_CREATE,
+    0666, &mapped_len, &is_pmem)) == NULL) {
+      perror("pmem_mapping failure\n");
+      exit(1);
+    }
+
   }
   printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
   for (int i = 0; i < variable_count; i++) {
