@@ -54,6 +54,7 @@ class PmemVarGuidMap {
 
   const_iterator begin() const { return _guidMap.begin(); }
   const_iterator end() const { return _guidMap.end(); }
+  size_t size() const { return _guidMap.size(); }
 
   iterator find(VarGuidTy guid) { return _guidMap.find(guid); }
 

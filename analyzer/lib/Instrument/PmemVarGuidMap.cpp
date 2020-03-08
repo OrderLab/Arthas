@@ -49,12 +49,14 @@ bool PmemVarGuidMap::deserialize(const char *fileName, PmemVarGuidMap &result,
     return false;
   }
   string line;
-  PmemVarGuidMap guidMap;
+  unsigned lineno = 0;
   while (getline(guidfile, line)) {
+    lineno++;
     vector<string> parts;
     splitList(line, FieldSeparator, parts);
     if (parts.size() != EntryFields) {
-      errs() << "Unrecognized line " << line << "\n";
+      errs() << "Unrecognized line " << lineno << ", expecting " << EntryFields
+             << " fields got " << parts.size() << " fields:" << line << "\n";
       if (!ignoreBadLine) return false;
       continue;
     }
@@ -65,7 +67,7 @@ bool PmemVarGuidMap::deserialize(const char *fileName, PmemVarGuidMap &result,
     entry.function = parts[3];
     entry.line = str2fmt<uint32_t>(parts[4]);
     entry.instruction = parts[5];
-    guidMap.add(entry);
+    result.add(entry);
   }
   guidfile.close();
   return true;

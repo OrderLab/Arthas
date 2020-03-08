@@ -64,6 +64,7 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
   memset(&options, 0, sizeof(options));
   int option_index = 0;
   int c;
+  char *pend;
   while ((c = getopt_long(argc, argv, REACTOR_ARGS, long_options,
                           &option_index)) != -1) {
     switch (c) {
@@ -80,10 +81,14 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
         options.pmem_library = optarg;
         break;
       case 'n':
-        options.version_num = atoi(optarg);
+        options.version_num = strtol(optarg, &pend, 10);
+        if (pend == optarg || *pend != '\0') {
+          fprintf(stderr, "version number must be an integer\n");
+          return false;
+        }
         break;
       case 'g':
-        options.hook_guidfile = optarg;
+        options.hook_guid_file = optarg;
         break;
       case 'a':
         options.address_file = optarg;
@@ -106,6 +111,43 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
     while (optind < argc) printf("%s ", argv[optind++]);
     putchar('\n');
   }
-  return true;
+  return check_options(options);
 }
 
+bool check_options(reactor_options &options) {
+  if (!options.pmem_file) {
+    fprintf(stderr,
+            "pmem file option is not set, specify it with -p or --pmem-file\n");
+    return false;
+  }
+  if (access((options.pmem_file), 0) != 0) {
+    fprintf(stderr, "pmem file %s does not exist\n", options.pmem_file);
+    return false;
+  }
+  if (!options.pmem_layout) {
+    fprintf(
+        stderr,
+        "pmem file layout is not set, specify it with -t or --pmem-layout\n");
+    return false;
+  }
+  if (!options.pmem_library) {
+    fprintf(stderr,
+            "pmem library is not set, specify it with -l or --pmem-lib\n");
+    return false;
+  }
+  if (!(strcmp(options.pmem_library, "libpmem") == 0 ||
+        strcmp(options.pmem_library, "libpmemobj") == 0)) {
+    fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
+    return false;
+  }
+  if (!options.hook_guid_file) {
+    fprintf(stderr,
+            "pmem library is not set, specify it with -g or --guid-map\n");
+    return false;
+  }
+  if (options.version_num <= 0) {
+    fprintf(stderr, "version number must be positive\n");
+    return false;
+  }
+  return true;
+}

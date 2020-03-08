@@ -60,6 +60,7 @@ int splitList(const string &str, const char *sep, vector<string> &result) {
     end = str.find(sep, start);
     n++;
   }
+  result.push_back(str.substr(start, end));
   return n;
 }
 

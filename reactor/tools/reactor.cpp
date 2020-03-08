@@ -34,12 +34,6 @@ void parse_args(int argc, char *argv[]) {
     usage();
     exit(1);
   }
-  if (!(options.pmem_file && options.pmem_layout && options.checkpoint_file &&
-        options.pmem_library && options.version_num)) {
-    fprintf(stderr, "Missing options, please specify all options\n");
-    usage();
-    exit(1);
-  }
   if (strcmp(options.pmem_library, "libpmem") == 0) {
     options.checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
   } else if (strcmp(options.pmem_library, "libpmemobj") == 0) {
@@ -54,6 +48,15 @@ void parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
+  // Step 0: Read static hook guid map file
+  PmemVarGuidMap varMap;
+  if (!varMap.deserialize(options.hook_guid_file, varMap)) {
+    fprintf(stderr, "Failed to parse hook GUID file %s\n",
+            options.hook_guid_file);
+    return 1;
+  }
+  printf("successfully parsed hook guid map with %lu entries\n", varMap.size());
+
   // Step 1: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
       reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
@@ -61,14 +64,9 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "abort checkpoint rollback operation\n");
     return 1;
   }
-
   printf("finished checkpoint reconstruction\n");
 
-  // Step 2.a: Read static hook guid map file
-  PmemVarGuidMap varMap;
-  // TODO: read the hook guid mape file using PmemVarGuidMap::deserialize
-
-  // Step 2.b: Read dynamic address trace file
+  // Step 2: Read dynamic address trace file
   FILE *fp;
   char line[100];
   fp = fopen(options.address_file, "r");
