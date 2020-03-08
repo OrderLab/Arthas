@@ -9,12 +9,14 @@
 #ifndef _UTILS_STRING_H_
 #define _UTILS_STRING_H_
 
+#include <stddef.h>
+#include <algorithm>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <stddef.h>
-#include <sstream>
-#include <cstring>
-#include <algorithm>
 
 void *xmalloc(size_t size);
 
@@ -29,8 +31,13 @@ bool splitUntilN(const std::string& str, const char* delimeters, int n,
                  std::vector<std::string>& result, size_t* last_pos);
 
 template <typename T>
-T str2fmt(const std::string& s) {
-  std::stringstream iss(s);
+T str2fmt(const std::string& s, bool hex = false) {
+  std::stringstream iss;
+  if (hex) {
+    iss << std::hex << s;
+  } else {
+    iss << s;
+  }
   T result;
   iss >> result;
   if (iss.fail()) {

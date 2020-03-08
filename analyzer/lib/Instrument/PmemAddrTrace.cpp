@@ -46,7 +46,14 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
     PmemAddrTraceItem item;
     item.addr_str = parts[0];
     // convert the hex address into a decimal uint64 value
-    item.addr = str2fmt<uint64_t>(parts[0]);
+    if (item.addr_str[0] == '0' &&
+        (item.addr_str[1] == 'x' || item.addr_str[1] == 'X')) {
+      // remove the 0x or 0X prefix in the address string
+      item.addr = str2fmt<uint64_t>(item.addr_str.substr(2), true);
+    } else {
+      // the address string is not prefixed with 0x or 0X
+      item.addr = str2fmt<uint64_t>(item.addr_str, true);
+    }
     item.guid = str2fmt<uint64_t>(parts[1]);
     if (varMap != nullptr) {
       // if the GUID map is supplied, we'll resolve the corresponding pmem
