@@ -55,3 +55,32 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path) {
   return c_log;
 }
 
+int sequence_comparator(const void *v1, const void * v2){
+
+  single_data *s1 = (single_data *)v1;
+  single_data *s2 = (single_data *)v2;
+  if (s1->sequence_number < s2->sequence_number)
+        return -1;
+  else if (s1->sequence_number > s2->sequence_number)
+        return 1;
+  else
+        return 0;
+}
+
+void order_by_sequence_num(single_data * ordered_data, size_t *total_size, struct checkpoint_log *c_log){
+  for(int i = 0; i < c_log->variable_count; i++){
+    int data_index = c_log->c_data[i].version;
+    for(int j = 0; j <= data_index; j++){
+     ordered_data[*total_size].address = c_log->c_data[i].address;
+     ordered_data[*total_size].offset = c_log->c_data[i].offset;
+     ordered_data[*total_size].data = malloc(c_log->c_data[i].size[j]);
+     memcpy(ordered_data[*total_size].data, c_log->c_data[i].data[j], c_log->c_data[i].size[j]);
+     ordered_data[*total_size].size = c_log->c_data[i].size[j];
+     ordered_data[*total_size].version = j;
+     ordered_data[*total_size].sequence_number = c_log->c_data[i].sequence_number[j];
+     *total_size = *total_size + 1;
+    }
+  }
+
+  qsort(ordered_data, *total_size, sizeof(single_data), sequence_comparator);
+}

@@ -26,7 +26,18 @@ extern "C" {
 #define STRING_CHECKPOINT 2
 #define BOOL_CHECKPOINT 3
 
-// checkpoint log entry
+//checkpoint log entry by logical sequence number
+typedef struct single_data {
+  const void *address;
+  uint64_t offset;
+  void *data;
+  size_t size;
+  int sequence_number;
+  int version;
+  int data_type;
+} single_data;
+
+// checkpoint log entry by address/offset
 typedef struct checkpoint_data {
   const void *address;
   uint64_t offset;
@@ -34,6 +45,7 @@ typedef struct checkpoint_data {
   size_t size[MAX_VERSIONS];
   int version;
   int data_type;
+  int sequence_number[MAX_VERSIONS];
 } checkpoint_data;
 
 typedef struct checkpoint_log {
@@ -42,6 +54,8 @@ typedef struct checkpoint_log {
 } checkpoint_log;
 
 struct checkpoint_log *reconstruct_checkpoint(const char *file_path);
+void order_by_sequence_num(struct single_data * ordered_data, size_t *total_size, struct checkpoint_log *c_log);
+int sequence_comparator(const void *v1, const void * v2);
 
 #ifdef __cplusplus
 }
