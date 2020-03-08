@@ -10,6 +10,7 @@
 #define _REACTOR_CHECKPOINT_H_
 
 #include <libpmemobj.h>
+#include <libpmem.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -20,6 +21,7 @@ extern "C" {
 
 #define MAX_VARIABLES 1000
 #define MAX_VERSIONS 3
+#define PMEM_LEN 200000
 
 #define INT_CHECKPOINT 0
 #define DOUBLE_CHECKPOINT 1
