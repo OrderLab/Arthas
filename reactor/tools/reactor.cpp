@@ -7,11 +7,13 @@
 #include "checkpoint.h"
 #include "rollback.h"
 
+#include "Instrument/PmemVarGuidMap.h"
 #include "Slicing/Slice.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
+using namespace llvm::instrument;
 
 const char *program;
 const char *address_file;
@@ -53,7 +55,11 @@ int main(int argc, char *argv[]) {
 
   printf("finished checkpoint reconstruction\n");
 
-  // Step 2: Read printed out file
+  // Step 2.a: Read static hook guid map file
+  PmemVarGuidMap varMap;
+  // TODO: read the hook guid mape file using PmemVarGuidMap::deserialize
+
+  // Step 2.b: Read dynamic address trace file
   FILE *fp;
   char line[100];
   fp = fopen(address_file, "r");
