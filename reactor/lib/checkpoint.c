@@ -47,7 +47,12 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
       perror("pmem_mapping failure\n");
       exit(1);
     }
+    c_log = (struct checkpoint_log *)pmemaddr;
+    void *old_pool_ptr = (void *)((uint64_t)pmemaddr + sizeof(struct checkpoint_log));
+    uint64_t old_pool = (uint64_t)old_pool_ptr;
 
+    uint64_t offset;
+    variable_count = c_log->variable_count;
   }
   if (c_log == NULL) {
     return NULL;
