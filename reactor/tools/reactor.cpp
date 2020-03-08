@@ -127,10 +127,18 @@ int main(int argc, char *argv[]) {
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
+
   // Step 5: Fine-grain reversion
+  // Step 5a: Create ordered list of checkpoint entries using logical seq num
+  single_data ordered_data[MAX_VARIABLES];
+  size_t *total_size = (size_t *)malloc(sizeof(size_t));
+  *total_size = 0;
+  order_by_sequence_num(ordered_data, total_size, c_log);
+  free(total_size);
+
+  //revert_by_seq_num();
 
   // Step 6: Coarse-grain reversion
-  // TODO: Print data type in instrumentation
   // To be deleted: This will be unnecessary once data types are printed
   /*int c_data_indices[MAX_DATA];
   for(int i = 0; i < c_log->variable_count; i++){
