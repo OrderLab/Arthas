@@ -1,11 +1,21 @@
+// The Arthas Project
+//
+// Copyright (c) 2019, Johns Hopkins University - Order Lab.
+//
+//    All rights reserved.
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//
+
+#include <libpmemobj.h>
 #include <pthread.h>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <libpmemobj.h>
 
 #include "checkpoint.h"
 #include "rollback.h"
+
+#include "reactor-opts.h"
 
 #include "Instrument/PmemVarGuidMap.h"
 #include "Slicing/Slice.h"
@@ -15,51 +25,39 @@ using namespace llvm;
 using namespace llvm::slicing;
 using namespace llvm::instrument;
 
-const char *program;
-const char *address_file;
-const char *checkpoint_file;
-const char *pmem_file;
-const char *pmem_layout;
-const char *pmem_library;
-const char *hook_guidfile;
-int version_num;
-
-void usage() {
-  fprintf(stderr,
-          "Usage: %s <pmem_file of crashed system> <pmem layout name> <version "
-          "# to revert to for 1st coarse attempt> <rerun system commands> <pmem library>\n\n"
-          "<hook guidfile>",
-          program);
-}
+struct reactor_options options;
 
 void parse_args(int argc, char *argv[]) {
   program = argv[0];
-  if (argc < 7) {
+  if (!parse_options(argc, argv, options)) {
+    fprintf(stderr, "Failed to parse the command line options\n");
     usage();
     exit(1);
   }
-  address_file = argv[1];
-  pmem_library = argv[6];
-  // FIXME: is the checkpoint file path the same as the pmem file path?
-  // No, the checkpoint_file contains our checkpointed persistent data
-  // the pmem file is the pmem file which contains the persistent data
-  // of the original, crashed program (ie. hello_libpmem.c takes in a path name
-  // to mmap a persistent file and store a string in)
-  if(strcmp(pmem_library, "libpmemobj") == 0)
-    checkpoint_file = "/mnt/pmem/checkpoint.pm";
-  else if(strcmp(pmem_library, "libpmem") == 0)
-    checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
-  pmem_file = argv[2];
-  pmem_layout = argv[3];
-  version_num = atoi(argv[4]);
-  hook_guidfile = argv[7];
+  if (!(options.pmem_file && options.pmem_layout && options.checkpoint_file &&
+        options.pmem_library && options.version_num)) {
+    fprintf(stderr, "Missing options, please specify all options\n");
+    usage();
+    exit(1);
+  }
+  if (strcmp(options.pmem_library, "libpmem") == 0) {
+    options.checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
+  } else if (strcmp(options.pmem_library, "libpmemobj") == 0) {
+    options.checkpoint_file = "/mnt/pmem/checkpoint.pm";
+  } else {
+    fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
+    usage();
+    exit(1);
+  }
 }
 
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
+  return 0;
 
   // Step 1: Opening Checkpoint Component PMEM File
-  struct checkpoint_log *c_log = reconstruct_checkpoint(checkpoint_file, pmem_library);
+  struct checkpoint_log *c_log =
+      reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
   if (c_log == NULL) {
     fprintf(stderr, "abort checkpoint rollback operation\n");
     return 1;
@@ -74,7 +72,7 @@ int main(int argc, char *argv[]) {
   // Step 2.b: Read dynamic address trace file
   FILE *fp;
   char line[100];
-  fp = fopen(address_file, "r");
+  fp = fopen(options.address_file, "r");
   if (fp == NULL) {
     perror("Error opening address file");
     return -1;
@@ -117,7 +115,7 @@ int main(int argc, char *argv[]) {
   // Step 4: Calculating offsets from pointers
   uint64_t offsets[MAX_DATA];
   void *pmem_addresses[MAX_DATA];
-  PMEMobjpool *pop = pmemobj_open(pmem_file, pmem_layout);
+  PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
   if (pop == NULL) {
     printf("could not open pop\n");
     return -1;
@@ -165,7 +163,7 @@ int main(int argc, char *argv[]) {
   }*/
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
-  coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num,
+  coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data);
 
   // Step 7: re-execution
@@ -195,8 +193,9 @@ int main(int argc, char *argv[]) {
 
   printf("Reexecution %d: \n", coarse_grained_tries);
   printf("\n");
-  re_execute(reexecution_lines, version_num, line_counter, addresses, c_log,
-             pmem_addresses, num_data, pmem_file, pmem_layout, offsets);
+  re_execute(reexecution_lines, options.version_num, line_counter, addresses,
+             c_log, pmem_addresses, num_data, options.pmem_file,
+             options.pmem_layout, offsets);
 
   // free reexecution_lines and string arrays here
 }

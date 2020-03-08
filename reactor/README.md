@@ -8,7 +8,20 @@ the system back to a normal state.
 ## Rollback with reverter
 
 ```
-./reversion instrumentation_out <pmem_file of crashed system> <pmem layout name> <version # to revert to for 1st coarse attempt> <rerun system commands> <pmem library you are using> <hook guid mapping file>
+$ cd build
+$ bin/reator -h
+Usage: bin/reactor [-h] [OPTION]
+
+Options:
+  -h, --help                   : show this help
+  -p, --pmem-file <file>       : path to the target system's persistent memory file
+  -t, --pmem-layout <layout>   : the PM file's layout name
+  -l, --pmem-lib <library>     : the PMDK library: libpmem, libpmemobj
+  -n, --ver <number>           : the version number to revert for the 1st
+                                 coarse-grained reversion attempt
+  -g, --guid-map <file>        : path to the static GUID map file
+  -a, --addresses <file>       : path to the dynamic address trace file
+
 ```
 
 This will enact coarse-grained reversion on the passed pmem file and then try and rollback changes

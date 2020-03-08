@@ -1,4 +1,7 @@
-add_executable(reactor reactor.cpp)
+add_executable(reactor 
+  reactor-opts.cpp
+  reactor.cpp
+)
 target_link_libraries(reactor
   PUBLIC checkpoint
   PUBLIC rollback
