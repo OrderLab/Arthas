@@ -136,7 +136,7 @@ if [ -z "$link_flags" ] && [ $load_store -eq 0 ]; then
   # instrumentation, try to be smart here by automatically add the 
   # -lpmem link flag to link with libpmem. If the program is linked
   # with libpmemobj instead, should pass the link flag explicitly.
-  link_flags="-lpmem"
+  link_flags="-lpmem -lpmemobj"
 fi
 
 $maybe opt -load $plugin_path -instr $plugin_args $source_bc_file -o $output_bc
