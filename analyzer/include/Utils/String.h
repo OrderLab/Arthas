@@ -17,7 +17,27 @@
 #include <algorithm>
 
 void *xmalloc(size_t size);
+
+// split the string by a single-char delimeter
 int splitList(const std::string &str, char sep, std::vector<std::string> &ret);
+
+// split the string by a string delimeter
+int splitList(const std::string& str, const char* sep,
+              std::vector<std::string>& result);
+
+bool splitUntilN(const std::string& str, const char* delimeters, int n,
+                 std::vector<std::string>& result, size_t* last_pos);
+
+template <typename T>
+T str2fmt(const std::string& s) {
+  std::stringstream iss(s);
+  T result;
+  iss >> result;
+  if (iss.fail()) {
+    throw std::invalid_argument("invalid format");
+  }
+  return result;
+}
 
 inline std::string& ltrim(std::string& str, const char* chars) {
   str.erase(0, str.find_first_not_of(chars));

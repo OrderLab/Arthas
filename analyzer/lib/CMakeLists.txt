@@ -20,6 +20,7 @@ add_library(Matcher SHARED
 add_library(Instrument SHARED
   Instrument/PmemAddrInstrumenter.cpp
   Instrument/InstrumentPmemAddrPass.cpp
+  Instrument/PmemVarGuidMap.cpp
 )
 
 target_link_libraries(Instrument

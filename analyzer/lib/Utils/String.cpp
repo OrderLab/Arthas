@@ -47,3 +47,36 @@ int splitList(const string& str, char sep, vector<string> &ret)
   }
   return n;
 }
+
+int splitList(const string &str, const char *sep, vector<string> &result) {
+  if (str.empty()) return 0;
+  int n = 0;
+  size_t start = 0;
+  size_t end = str.find(sep);
+  size_t sep_len = strlen(sep);
+  while (end != std::string::npos) {
+    result.push_back(str.substr(start, end - start));
+    start = end + sep_len;
+    end = str.find(sep, start);
+    n++;
+  }
+  return n;
+}
+
+bool split_untiln(const string &str, const char *delimeters, int n,
+                  vector<string> &result, size_t *last_pos) {
+  size_t prev_pos = str.find_first_not_of(delimeters);
+  size_t pos = str.find_first_of(delimeters, prev_pos);
+  int i = 1;
+  while (prev_pos != string::npos || pos != string::npos) {
+    result.push_back(str.substr(prev_pos, pos - prev_pos));
+    if (i >= n) break;
+    prev_pos = str.find_first_not_of(delimeters, pos);
+    pos = str.find_first_of(delimeters, prev_pos);
+    i++;
+  }
+  if (last_pos != NULL) {
+    *last_pos = pos;
+  }
+  return i == n;
+}

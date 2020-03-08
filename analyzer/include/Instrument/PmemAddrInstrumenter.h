@@ -9,6 +9,7 @@
 #ifndef __INSTRUMENT_PMEMADDR_H_
 #define __INSTRUMENT_PMEMADDR_H_
 
+#include "Instrument/PmemVarGuidMap.h"
 #include "PMem/Extractor.h"
 
 #include "llvm/ADT/SmallVector.h"
@@ -74,9 +75,12 @@ class PmemAddrInstrumenter {
 
   // dump the guid to instruction map to file so that we can later connect the
   // address back to the LLVM instruction
-  void writeGuidHookPointMap(std::string fileName);
+  bool writeGuidHookPointMap(std::string fileName);
 
   uint32_t getInstrumentedCnt() { return _instrument_cnt; }
+
+  static bool fillVarGuidMapInfo(llvm::Instruction *instr,
+                                 PmemVarGuidMapEntry &entry);
 
  protected:
   bool _initialized;

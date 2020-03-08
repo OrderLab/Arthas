@@ -14,6 +14,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
+#include <unistd.h>
 #include <fstream>
 #include <iostream>
 
@@ -214,44 +215,51 @@ bool PmemAddrInstrumenter::instrumentSlice(
   return instrumented;
 }
 
-void PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName)
-{
-  std::ofstream guidfile(fileName);
-  if (!guidfile.is_open()) {
-    errs() << "Failed to open " << fileName << " for writing guid map\n";
-    return;
+// Fill the key information about an instrumented instruction. Each
+// piece of information is separated by the field separator. Later we will
+// use this guid information to locate the LLVM instruction for a printed
+// address.
+//
+// The more information we record in this map, the better it helps with
+// precisely locating the instruction. If, for example, we only record the
+// file name and line number, there could be multiple LLVM instructions.
+bool PmemAddrInstrumenter::fillVarGuidMapInfo(llvm::Instruction *instr,
+                                              PmemVarGuidMapEntry &entry) {
+  auto &Loc = instr->getDebugLoc();
+  Function *func = instr->getFunction();
+  DISubprogram *SP = func->getSubprogram();
+  unsigned int line = 0;
+  if (Loc) {
+    line = Loc.getLine();
+  } else {
+    // if this instruction does not have attached metadata, we assume it
+    // is the beginning of the function, and use the function line number
+    line = SP->getLine();
   }
-  for (auto gi = _guid_hook_point_map.begin(); 
-        gi != _guid_hook_point_map.end(); ++gi) {
-    unsigned int guid = gi->first;
-    Instruction *instr = gi->second;
-    auto &Loc = instr->getDebugLoc();
-    Function *func = instr->getFunction();
-    DISubprogram *SP = func->getSubprogram();
-    unsigned int line = 0;
-    if (Loc) {
-      line = Loc.getLine();
-    } else {
-      // if this instruction does not have attached metadata, we assume it
-      // is the beginning of the function, and use the function line number 
-      line = SP->getLine(); 
-    }
-    std::string instr_str;
-    llvm::raw_string_ostream rso(instr_str);
-    instr->print(rso);
+  std::string instr_str;
+  llvm::raw_string_ostream rso(instr_str);
+  instr->print(rso);
+  entry.source_path = SP->getDirectory().data();
+  entry.source_file = SP->getFilename().data();
+  entry.function = func->getName().data();
+  entry.line = line;
+  entry.instruction = instr_str;
+  return true;
+}
 
-    // Now output the key information for this instrumented instruction, each
-    // piece of information is separated by the field separator. Later we will
-    // use this guid information to locate the LLVM instruction for a printed address.
-    //
-    // The more information we record in this map, the better it helps with 
-    // precisely locating the instruction. If, for example, we only record the
-    // file name and line number, there could be multiple LLVM instructions.
-    guidfile << guid << PmemVarGuidFileFieldSep << SP->getDirectory().data()
-             << PmemVarGuidFileFieldSep;
-    guidfile << SP->getFilename().data() << PmemVarGuidFileFieldSep;
-    guidfile << func->getName().data() << PmemVarGuidFileFieldSep;
-    guidfile << line << PmemVarGuidFileFieldSep << instr_str << "\n";
+bool PmemAddrInstrumenter::writeGuidHookPointMap(std::string fileName) {
+  if (access(fileName.c_str(), 0) != 0) {
+    errs() << "Failed to open " << fileName << " for writing guid map\n";
+    return false;
   }
-  guidfile.close();
+  PmemVarGuidMap var_map;
+  for (auto gi = _guid_hook_point_map.begin(); gi != _guid_hook_point_map.end();
+       ++gi) {
+    PmemVarGuidMapEntry entry;
+    entry.guid = gi->first;
+    Instruction *instr = gi->second;
+    fillVarGuidMapInfo(instr, entry);
+    var_map.add(entry);
+  }
+  return var_map.serialize(fileName.c_str());
 }
