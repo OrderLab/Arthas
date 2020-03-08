@@ -20,24 +20,33 @@ const char *address_file;
 const char *checkpoint_file;
 const char *pmem_file;
 const char *pmem_layout;
+const char *pmem_library;
 int version_num;
 
 void usage() {
   fprintf(stderr,
           "Usage: %s <pmem_file of crashed system> <pmem layout name> <version "
-          "# to revert to for 1st coarse attempt> <rerun system commands>\n\n",
+          "# to revert to for 1st coarse attempt> <rerun system commands> <pmem library>\n\n",
           program);
 }
 
 void parse_args(int argc, char *argv[]) {
   program = argv[0];
-  if (argc < 5) {
+  if (argc < 6) {
     usage();
     exit(1);
   }
   address_file = argv[1];
+  pmem_library = argv[6];
   // FIXME: is the checkpoint file path the same as the pmem file path?
-  checkpoint_file = "/mnt/pmem/checkpoint.pm";
+  // No, the checkpoint_file contains our checkpointed persistent data
+  // the pmem file is the pmem file which contains the persistent data
+  // of the original, crashed program (ie. hello_libpmem.c takes in a path name
+  // to mmap a persistent file and store a string in)
+  if(strcmp(pmem_library, "libpmemobj") == 0)
+    checkpoint_file = "/mnt/pmem/checkpoint.pm";
+  else if(strcmp(pmem_library, "libpmem") == 0)
+    checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
   pmem_file = argv[2];
   pmem_layout = argv[3];
   version_num = atoi(argv[4]);
@@ -47,7 +56,7 @@ int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
   // Step 1: Opening Checkpoint Component PMEM File
-  struct checkpoint_log *c_log = reconstruct_checkpoint(checkpoint_file);
+  struct checkpoint_log *c_log = reconstruct_checkpoint(checkpoint_file, pmem_library);
   if (c_log == NULL) {
     fprintf(stderr, "abort checkpoint rollback operation\n");
     return 1;

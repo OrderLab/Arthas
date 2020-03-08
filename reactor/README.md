@@ -8,7 +8,7 @@ the system back to a normal state.
 ## Rollback with reverter
 
 ```
-./reversion instrumentation_out <pmem_file of crashed system> <pmem layout name> <version # to revert to for 1st coarse attempt> <rerun system commands>
+./reversion instrumentation_out <pmem_file of crashed system> <pmem layout name> <version # to revert to for 1st coarse attempt> <rerun system commands> <pmem library you are using>
 ```
 
 This will enact coarse-grained reversion on the passed pmem file and then try and rollback changes

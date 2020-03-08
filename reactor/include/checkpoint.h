@@ -53,7 +53,7 @@ typedef struct checkpoint_log {
   int variable_count;
 } checkpoint_log;
 
-struct checkpoint_log *reconstruct_checkpoint(const char *file_path);
+struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char *pmem_library);
 void order_by_sequence_num(struct single_data * ordered_data, size_t *total_size, struct checkpoint_log *c_log);
 int sequence_comparator(const void *v1, const void * v2);
 
