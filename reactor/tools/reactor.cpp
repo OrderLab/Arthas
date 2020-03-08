@@ -35,7 +35,7 @@ void parse_args(int argc, char *argv[]) {
   }
   address_file = argv[1];
   // FIXME: is the checkpoint file path the same as the pmem file path?
-  checkpoint_file = "/mnt/mem/checkpoint.pm";
+  checkpoint_file = "/mnt/pmem/checkpoint.pm";
   pmem_file = argv[2];
   pmem_layout = argv[3];
   version_num = atoi(argv[4]);
