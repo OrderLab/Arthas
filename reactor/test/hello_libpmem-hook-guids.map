@@ -1,0 +1,9 @@
+200##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##58##  %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30
+201##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##64##  %14 = load i8*, i8** %5, align 8, !dbg !37
+202##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##65##  %18 = load i8*, i8** %5, align 8, !dbg !40
+203##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##68##  %24 = load i8*, i8** %5, align 8, !dbg !45
+204##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##70##  %28 = load i8*, i8** %5, align 8, !dbg !48
+205##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##73##  %34 = load i8*, i8** %5, align 8, !dbg !56
+206##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##write_hello_string##75##  %41 = load i8*, i8** %5, align 8, !dbg !63
+207##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##read_hello_string##90##  %7 = call i8* @pmem_map_file(i8* %6, i64 1024, i32 1, i32 438, i64* %4, i32* %5), !dbg !28
+208##/home/ryan/project/Arthas/test/pmem##hello_libpmem.c##read_hello_string##96##  %11 = load i8*, i8** %3, align 8, !dbg !35
