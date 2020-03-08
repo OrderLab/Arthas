@@ -29,7 +29,6 @@ class PmemAddrTraceItem {
   std::string addr_str;
   uint64_t guid;
   // convert the hex address string into a decimal uint64 address.
-  // but we don't seem to really need the int value of address at this point
   uint64_t addr;
   PmemVarGuidMapEntry *var;
 
