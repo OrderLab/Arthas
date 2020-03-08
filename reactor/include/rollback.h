@@ -42,6 +42,12 @@ void revert_by_address(const void *search_address, const void *address,
 int search_for_address(const void *address, size_t size,
                        struct checkpoint_log *c_log);
 
+void revert_by_sequence_number(void **sorted_pmem_addresses, single_data *ordered_data,
+                               int starting_point, int reversion_reach);
+
+void sort_by_sequence_number(void **addresses, single_data *ordered_data,
+                             size_t total_size, int num_data,
+                             void ** sorted_addresses);
 #ifdef __cplusplus
 }
 #endif
