@@ -53,6 +53,14 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
 
     uint64_t offset;
     variable_count = c_log->variable_count;
+    printf("variable_count %d\n", variable_count);
+    //offset = (uint64_t)c_log->c_data[0].data[0] - old_pool;
+    printf("c data version of first entry %d\n", c_log->c_data[0].version);
+    for(int i = 0; i < variable_count; i++){
+      for(int j = 0; j <= c_log->c_data[i].version; j++){
+        printf("data is %s\n", (char *)c_log->c_data[i].data[j]);
+      }
+    }
   }
   if (c_log == NULL) {
     return NULL;
