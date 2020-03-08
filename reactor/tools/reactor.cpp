@@ -17,6 +17,7 @@
 
 #include "reactor-opts.h"
 
+#include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
 #include "Slicing/Slice.h"
 
@@ -24,6 +25,9 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 using namespace llvm::instrument;
+
+PmemVarGuidMap varMap;
+PmemAddrTrace addrTrace;
 
 struct reactor_options options;
 
@@ -49,15 +53,23 @@ int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
   // Step 0: Read static hook guid map file
-  PmemVarGuidMap varMap;
-  if (!varMap.deserialize(options.hook_guid_file, varMap)) {
+  if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
             options.hook_guid_file);
     return 1;
   }
   printf("successfully parsed hook guid map with %lu entries\n", varMap.size());
 
-  // Step 1: Opening Checkpoint Component PMEM File
+  // Step 1: Read dynamic address trace file
+  if (!PmemAddrTrace::deserialize(options.address_file, &varMap, addrTrace)) {
+    fprintf(stderr, "Failed to parse hook GUID file %s\n",
+            options.hook_guid_file);
+    return 1;
+  }
+  printf("successfully parsed %lu dynamic address trace items\n",
+         addrTrace.size());
+
+  // Step 2: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
       reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
   if (c_log == NULL) {
@@ -66,6 +78,7 @@ int main(int argc, char *argv[]) {
   }
   printf("finished checkpoint reconstruction\n");
 
+  // FIXME: remove, outdated
   // Step 2: Read dynamic address trace file
   FILE *fp;
   char line[100];

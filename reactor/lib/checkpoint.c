@@ -39,6 +39,9 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
   else if(strcmp(pmem_library, "libpmem") == 0){
     //TODO:open memory mapped file in a different manner
   }
+  if (c_log == NULL) {
+    return NULL;
+  }
   printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
   for (int i = 0; i < variable_count; i++) {
     printf("address is %p\n", c_log->c_data[i].address);
