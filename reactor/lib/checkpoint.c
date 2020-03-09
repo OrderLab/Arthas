@@ -48,14 +48,14 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
       exit(1);
     }
     c_log = (struct checkpoint_log *)pmemaddr;
-    void *old_pool_ptr = (void *)((uint64_t)pmemaddr + sizeof(struct checkpoint_log));
-    uint64_t old_pool = (uint64_t)old_pool_ptr;
+    uint64_t *old_pool_ptr = (uint64_t *)((uint64_t)pmemaddr + sizeof(struct checkpoint_log));
+    uint64_t old_pool = *old_pool_ptr;
 
     uint64_t offset;
     variable_count = c_log->variable_count;
-    printf("variable_count %d\n", variable_count);
+    //printf("variable_count %d\n", variable_count);
+    //printf("old pool ptr is %ld\n", old_pool_ptr);
     //offset = (uint64_t)c_log->c_data[0].data[0] - old_pool;
-    printf("c data version of first entry %d\n", c_log->c_data[0].version);
     for(int i = 0; i < 1; i++){
       for(int j = 0; j <= c_log->c_data[i].version; j++){
         offset = (uint64_t)c_log->c_data[i].data[j] - old_pool;
@@ -77,8 +77,10 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
       printf("version is %d ", j);
       if (c_log->c_data[i].size[0] == 4)
         printf("value is %d\n", *((int *)c_log->c_data[i].data[j]));
-      else
+      else if(c_log->c_data[i].size[0] == 8)
         printf("value is %f\n", *((double *)c_log->c_data[i].data[j]));
+      else
+        printf("value is %s\n", (char *)c_log->c_data[i].data[j]);
       // printf("version is %d, value is %f or %d\n", j, *((double
       // *)c_log->c_data[i].data[j]),*((int *)c_log->c_data[i].data[j]));
     }

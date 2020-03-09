@@ -38,11 +38,14 @@ class PmemAddrTraceItem {
   uint64_t pool_offset;
   // if the address is a pool address or not
   bool is_pool;
+  //if the address is a pmem file address or not
+  bool is_mmap;
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
 
   PmemAddrTraceItem()
-      : addr(0), guid(0), pool_offset(0), is_pool(false), var(nullptr) {}
+      : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
+        var(nullptr) {}
 };
 
 class PmemAddrPool {
@@ -71,7 +74,7 @@ class PmemAddrTrace {
 
   void add(PmemAddrTraceItem *item) {
     _items.push_back(item);
-    if (item->is_pool) {
+    if (item->is_pool || item->is_mmap) {
       _pool_addrs.push_back(PmemAddrPool(item));
     }
   }

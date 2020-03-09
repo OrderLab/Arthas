@@ -27,6 +27,9 @@ const char *PmemAddrTrace::FieldSeparator = ",";
 static const char *PmemObjCreateCallInstrStr =
     "call %struct.pmemobjpool* @pmemobj_create";
 
+// the pmem_map_file call instruction string to identify mmap region
+static const char *PmemCreateCallInstrStr = "call i8* @pmem_map_file";
+
 PmemAddrTrace::~PmemAddrTrace() {
   for (auto item : _items) {
     delete item;
@@ -81,6 +84,10 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
             string::npos) {
           errs() << "Found a pool address " << item->addr_str << "\n";
           item->is_pool = true;
+        } else if (item->var->instruction.find(PmemCreateCallInstrStr) !=
+                   string::npos) {
+          errs() << "Found a libpmem file address " << item->addr_str << "\n";
+          item->is_mmap = true;
         }
       }
     }
