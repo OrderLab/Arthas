@@ -28,9 +28,13 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
     offset = (uint64_t)c_log->c_data - *old_pool;
     variable_count = c_log->variable_count;
     for (int i = 0; i < variable_count; i++) {
-      for (int j = 0; j <= c_log->c_data[i].version; j++) {
+      //printf("variable %d\n", i);
+      int data_index = c_log->c_data[i].version;
+      //printf("total versions is %d\n", data_index);
+      for (int j = 0; j <= data_index; j++) {
+       //printf("version %d\n", j);
         offset = (uint64_t)c_log->c_data[i].data[j] - *old_pool;
-        // printf("offset is %ld\n", offset);
+         //printf("offset is %ld\n", offset);
         c_log->c_data[i].data[j] = (void *)((uint64_t)pop + offset);
       }
     }
@@ -56,7 +60,7 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
     //printf("variable_count %d\n", variable_count);
     //printf("old pool ptr is %ld\n", old_pool_ptr);
     //offset = (uint64_t)c_log->c_data[0].data[0] - old_pool;
-    for(int i = 0; i < 1; i++){
+    for(int i = 0; i < variable_count; i++){
       for(int j = 0; j <= c_log->c_data[i].version; j++){
         offset = (uint64_t)c_log->c_data[i].data[j] - old_pool;
         // printf("offset is %ld\n", offset);
@@ -76,11 +80,11 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
     for (int j = 0; j <= data_index; j++) {
       printf("version is %d ", j);
       if (c_log->c_data[i].size[0] == 4)
-        printf("value is %d\n", *((int *)c_log->c_data[i].data[j]));
+        printf("int value is %d\n", *((int *)c_log->c_data[i].data[j]));
       else if(c_log->c_data[i].size[0] == 8)
-        printf("value is %f\n", *((double *)c_log->c_data[i].data[j]));
-      else
-        printf("value is %s\n", (char *)c_log->c_data[i].data[j]);
+        printf("double value is %f\n", *((double *)c_log->c_data[i].data[j]));
+      //else
+      //  printf("value is %s\n", (char *)c_log->c_data[i].data[j]);
       // printf("version is %d, value is %f or %d\n", j, *((double
       // *)c_log->c_data[i].data[j]),*((int *)c_log->c_data[i].data[j]));
     }

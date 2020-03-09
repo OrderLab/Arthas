@@ -14,6 +14,22 @@
 int coarse_grained_tries = 0;
 int fine_grained_tries = 0;
 
+int search_for_offset(uint64_t offset, size_t size,
+                      struct checkpoint_log *c_log){
+  uint64_t search_upper_bound = offset + (uint64_t)size;
+  uint64_t clog_upper_bound;
+  for (int i = 0; i < c_log->variable_count; i++) {
+    uint64_t clog_offset = c_log->c_data[i].offset;
+    clog_upper_bound =
+        (uint64_t)clog_offset + (uint64_t)c_log->c_data[i].size[0];
+     if(offset >= clog_offset &&
+        search_upper_bound <= clog_upper_bound) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 int search_for_address(const void *address, size_t size,
                        struct checkpoint_log *c_log) {
   uint64_t uint_address = (uint64_t)address;
@@ -79,14 +95,30 @@ void revert_by_address(const void *search_address, const void *address,
   }
 }
 
+void revert_by_offset(uint64_t search_offset, const void *address,
+                       int variable_index, int version, int type, size_t size,
+                       struct checkpoint_log *c_log) {
+  void *dest = (void *)address;
+  if(search_offset == c_log->c_data[variable_index].offset){
+    memcpy(dest, c_log->c_data[variable_index].data[version],
+           c_log->c_data[variable_index].size[version]);
+  }else{
+    //memcpy(dest, (void *)((uint64_t)pmem_file + search_offset), size);
+  }
+
+}
+
 void coarse_grain_reversion(void **addresses, struct checkpoint_log *c_log,
                             void **pmem_addresses, int version_num,
-                            int num_data) {
+                            int num_data, uint64_t *offsets) {
   int c_data_indices[MAX_DATA];
   for (int i = 0; i < c_log->variable_count; i++) {
-    // printf("address is %p\n", c_log->c_data[i].address);
+    //printf("address is %p num_data is %d\n", c_log->c_data[i].address, num_data);
+    printf("offset is %ld\n", c_log->c_data[i].offset);
     for (int j = 0; j < num_data; j++) {
-      if (addresses[j] == c_log->c_data[i].address) {
+      //printf("addresses is %p\n", addresses[j]);
+      if(offsets[j] == c_log->c_data[i].offset){
+      //if (addresses[j] == c_log->c_data[i].address) {
         if (c_log->c_data[i].size[0] == 4)
           printf("current value is %d\n", *((int *)pmem_addresses[j]));
         else
@@ -100,16 +132,24 @@ void coarse_grain_reversion(void **addresses, struct checkpoint_log *c_log,
 
   // Actual reversion
   int ind = -1;
-  for (int i = 0; i < num_data; i++) {
+  for (int i = 0; i < c_log->variable_count; i++) {
     size_t size = c_log->c_data[c_data_indices[i]].size[version_num];
-    ind = search_for_address(addresses[i], size, c_log);
-    // printf("ind is %d for %p\n", ind, addresses[i]);
-    revert_by_address(addresses[i], pmem_addresses[i], ind, version_num, 0,
+    //ind = search_for_address(addresses[i], size, c_log)
+    size = c_log->c_data[i].size[version_num];
+    //printf("ind is %d for %p\n", ind, addresses[i]);
+    for(int j = 0; j < num_data; j++) {
+      if(offsets[j] == c_log->c_data[i].offset){
+        ind = search_for_offset(offsets[j], size, c_log);
+        revert_by_offset(offsets[j], pmem_addresses[j], ind, version_num, 0,
                       size, c_log);
-    if (size == 4)
-      printf("AFTER REVERSION value is %d\n", *((int *)pmem_addresses[i]));
-    else
-      printf("AFTER REVERSION value is %f\n", *((double *)pmem_addresses[i]));
+        if (size == 4)
+          printf("AFTER REVERSION value is %d\n", *((int *)pmem_addresses[j]));
+        else
+          printf("AFTER REVERSION value is %f\n", *((double *)pmem_addresses[j]));
+      }
+    }
+    //revert_by_address(addresses[i], pmem_addresses[i], ind, version_num, 0,
+    //                  size, c_log);
     // printf("AFTER REVERSION value is %f or %d\n", *((double
     // *)pmem_addresses[i]),
     //    *((int *)pmem_addresses[i]));
@@ -160,10 +200,11 @@ void re_execute(const char *reexecution_cmd, int version_num, void **addresses,
   if (reexecute_flag) {
     printf("Reversion attempt %d\n", coarse_grained_tries + 1);
     printf("\n");
+    //TODO: add libpmem support
     PMEMobjpool *pop =
         redo_pmem_addresses(path, layout, num_data, pmem_addresses, offsets);
     coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num - 1,
-                           num_data);
+                           num_data, offsets);
     pmemobj_close(pop);
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");

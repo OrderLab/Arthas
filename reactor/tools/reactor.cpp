@@ -106,6 +106,7 @@ int main(int argc, char *argv[]) {
   void **pmem_addresses = (void **)malloc(num_data * sizeof(void *));
   for (size_t i = 0; i < num_data; ++i) {
     offsets[i] = last_pool.addresses[i]->pool_offset;
+    //cout << "offset is " << offsets[i] << "\n";
     addresses[i] = (void *)last_pool.addresses[i]->addr;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
@@ -178,7 +179,7 @@ int main(int argc, char *argv[]) {
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
-                         num_data);
+                         num_data, offsets);
   pmemobj_close(pop);
 
   // Step 7: re-execution
