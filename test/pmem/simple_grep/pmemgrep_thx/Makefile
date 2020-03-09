@@ -33,7 +33,7 @@ CXXFLAGS = $(shell pkg-config --cflags libpmemobj++) -std=c++11 -O2
 LDFLAGS = $(shell pkg-config --libs libpmemobj++) -lpthread -O2
 else
 CXXFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -std=c++11 -O2
-LDFLAGS = -L $(PMDK_HOME)/src/nondebug -lpmemobj -lpthread -O2
+LDFLAGS = -Wl,-rpath=$(PMDK_HOME)/src/nondebug -lpmemobj -lpthread -O2
 endif
 
 CXX = g++
