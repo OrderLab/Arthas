@@ -59,7 +59,7 @@ pmem_vector: pmem_vector.o
 	llvm-dis $<
 
 clean: 
-	rm -f *.o $(EXES) $(BITCODES)
+	rm -f *.o $(EXES) $(BITCODES) $(ASSEMBLYS)
 	for dir in $(SUBDIRS); do \
 		make -C $$dir clean; \
 	done

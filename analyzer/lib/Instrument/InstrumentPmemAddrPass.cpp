@@ -84,12 +84,22 @@ bool InstrumentPmemAddrPass::runOnFunction(Function &F)
       return false;
     }
     for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-      Value *v = *vi;
-      if (Instruction *instr = dyn_cast<Instruction>(v)) {
+      Value *var = *vi;
+      if (Instruction *instr = dyn_cast<Instruction>(var)) {
         if (_instrumenter->instrumentInstr(instr)) {
           instrumented = true;
-          DEBUG(dbgs() << "Instrumented pmem instruction in " << F.getName() 
-              << ":" << *instr << "\n");
+          DEBUG(dbgs() << "Instrumented pmem var instruction in " << F.getName()
+                       << ":" << *instr << "\n");
+        }
+      }
+    }
+    for (auto ri = locator.region_begin(); ri != locator.region_end(); ++ri) {
+      Value *region = ri->first;
+      if (Instruction *instr = dyn_cast<Instruction>(region)) {
+        if (_instrumenter->instrumentInstr(instr)) {
+          instrumented = true;
+          DEBUG(dbgs() << "Instrumented pmem region instruction in "
+                       << F.getName() << ":" << *instr << "\n");
         }
       }
     }

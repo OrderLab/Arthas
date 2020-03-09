@@ -91,7 +91,8 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
   out_stream << "=================Slice list " << slice_graph->slice_id();
   out_stream << "=================\n";
   for (Slice *slice : slices) {
-    slice->setPersistence(locator.vars());
+    auto persistent_vars = locator.vars().getArrayRef();
+    slice->setPersistence(persistent_vars);
     slice->dump(out_stream);
   }
   errs() << "The list of slices are written to " << sliceOutput << "\n";

@@ -55,12 +55,12 @@ Slice *Slice::fork() {
   return copy;
 }
 
-void Slice::setPersistence(SmallVectorImpl<Value *> &persist_vals) {
+void Slice::setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars) {
   bool vol = false;
   bool persistent = false;
   for (auto si = begin(); si != end(); ++si) {
     Value *val = *si;
-    for (auto pi = persist_vals.begin(); pi != persist_vals.end(); ++pi) {
+    for (auto pi = persist_vars.begin(); pi != persist_vars.end(); ++pi) {
       if (val == *pi) {
         persistent = true;
       } else {

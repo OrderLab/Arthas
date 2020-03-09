@@ -41,10 +41,20 @@ using namespace llvm::defuse;
 
 #undef DEBUG_EXTRACTOR
 
+#ifdef DEBUG_EXTRACTOR
+#define SDEBUG(X) X
+#else
+#define SDEBUG(X) \
+  do {            \
+  } while (false)
+#endif
+
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_persist",          "pmem_msync",   "pmemobj_create",
     "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
 
+// FIXME: we probably should treat return value of pmemobj_create
+// as a persistent variable as well...
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
     "pmemobj_direct_inline", "pmem_map_file"};
 
@@ -87,9 +97,7 @@ bool PMemVariableLocator::runOnFunction(Function &F)
   if (F.isDeclaration()) {
     return false;
   }
-#ifdef  DEBUG_EXTRACTOR
-  errs() << "[" << F.getName() << "]\n";
-#endif
+  SDEBUG(dbgs() << "[" << F.getName() << "]\n");
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     Instruction *inst = &*I;
     if (!isa<CallInst>(inst)) continue;
@@ -100,7 +108,11 @@ bool PMemVariableLocator::runOnFunction(Function &F)
   for (Value *def : varList) {
     processDefinitionPoint(def);
   }
-  
+
+  SDEBUG(dbgs() << "Identified " << varList.size() << " pmem variables, "
+                << regionList.size() << " pmem regions, definition points for "
+                << useDefMap.size() << " instructions\n");
+
 #ifdef  DEBUG_EXTRACTOR
   for (auto &entry : useDefMap) {
     errs() << "Definition point for '" << *entry.first << "':\n";
@@ -131,14 +143,14 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst)
 
         // find the argument that corresponds to memkind persistent variable
         Value *v = callInst->getArgOperand(rit->second);
-        varList.push_back(v);
+        varList.insert(v);
         // Transitive closure to see which memkind_malloc calls use this memkind
         // pmem variable
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
-          DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
-                       << "\n");
-          varList.push_back(ui->first);
+          SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                        << "\n");
+          varList.insert(ui->first);
         }
       }
       // Add check for memkind_create_kind and see if that uses pmem
@@ -150,13 +162,14 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst)
         Value *v = callInst->getArgOperand(rit2->second);
         // Check if argument is MEMKIND_DAX_PMEM
         if (v->getName().compare("MEMKIND_DAX_PMEM") == 0) {
-          varList.push_back(v);
+          varList.insert(v);
           // Transitive closure to see which memkind_malloc calls use this
           // memkind pmem var$
           UserGraph g(v);
           for (auto ui = g.begin(); ui != g.end(); ++ui) {
-            DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first) << "\n");
-            varList.push_back(ui->first);
+            SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                          << "\n");
+            varList.insert(ui->first);
           }
         }
       }
@@ -167,28 +180,31 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
 {
   Function *callee = callInst->getCalledFunction();
   if (!callee) return;
-  // Step 1: Check for PMDK API call instructions 
+  // Step 1: Check for PMDK API call instructions
   if (pmdkApiSet.find(callee->getName()) != pmdkApiSet.end()) {
-    callList.push_back(callInst);
+    callList.insert(callInst);
     if (pmdkPMEMVariableReturnSet.find(callee->getName()) !=
         pmdkPMEMVariableReturnSet.end()) {
       // Step 2: if this API call returns something, we get a pmem variable.
       Value *v = callInst;
-      DEBUG(dbgs() << "- this instruction creates a pmem variable: " << *v
-                   << "\n");
-      varList.push_back(v);
+      SDEBUG(dbgs() << "- this instruction creates a pmem variable: " << *v
+                    << "\n");
+      varList.insert(v);
       // Step 3: find the transitive closure of the users of the pmem variables.
       UserGraph g(v);
       for (auto ui = g.begin(); ui != g.end(); ++ui) {
-        DEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first) << "\n");
-        varList.push_back(ui->first);
+        SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                      << "\n");
+        varList.insert(ui->first);
       }
     }
     // Step 4: Find persistent memory regions (e.g., mmapped through pmem_map_file 
     // call) and their size argument to check all pointers if they point to a PMEM region.
     auto rit = pmdkRegionSizeArgMapping.find(callee->getName());
     if (rit != pmdkRegionSizeArgMapping.end() && 
-        callInst->getNumArgOperands() >= rit->second + 1) { 
+        callInst->getNumArgOperands() >= rit->second + 1) {
+      SDEBUG(dbgs() << "- this instruction creates a pmem region: " << *callInst
+                    << "\n");
       // check if the call instruction has the right number of arguments
       // +1 as the mapping stores the target argument from 0.
 

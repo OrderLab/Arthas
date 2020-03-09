@@ -14,20 +14,20 @@
 #include <string>
 #include <utility>
 
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/Analysis/CallGraph.h"
+#include "llvm/Analysis/PostDominators.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
-#include "llvm/Analysis/CallGraph.h"
-#include "llvm/Analysis/PostDominators.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/DerivedTypes.h"
-
 
 namespace llvm {
 namespace pmem {
@@ -36,10 +36,8 @@ class PMemVariableLocator {
   // Use the small vector here, reference on picking what ADT to use:
   // http://llvm.org/docs/ProgrammersManual.html#picking-the-right-data-structure-for-a-task
  public:
-  typedef llvm::SmallVectorImpl<llvm::CallInst *> ApiCallListImpl;
-  typedef llvm::SmallVectorImpl<llvm::Value *> VariableListImpl;
-  typedef llvm::SmallVector<llvm::CallInst *, 5> ApiCallList;
-  typedef llvm::SmallVector<llvm::Value *, 20> VariableList;
+  typedef llvm::SmallSetVector<llvm::CallInst *, 5> ApiCallList;
+  typedef llvm::SmallSetVector<llvm::Value *, 20> VariableList;
 
   typedef std::multimap<llvm::Value *, llvm::Value *> RegionList;
   typedef std::pair<llvm::Value *, llvm::Value *> RegionInfo;
@@ -47,10 +45,10 @@ class PMemVariableLocator {
   typedef std::set<llvm::Value *> DefinitionPoints;
   typedef std::set<llvm::Value *> ProcessedUses;
 
-  typedef ApiCallListImpl::iterator api_iterator;
-  typedef ApiCallListImpl::const_iterator api_const_iterator;
-  typedef VariableListImpl::iterator var_iterator;
-  typedef VariableListImpl::const_iterator const_var_iterator;
+  typedef ApiCallList::iterator api_iterator;
+  typedef ApiCallList::const_iterator api_const_iterator;
+  typedef VariableList::iterator var_iterator;
+  typedef VariableList::const_iterator const_var_iterator;
   typedef RegionList::iterator region_iterator;
   typedef RegionList::const_iterator const_region_iterator;
   typedef UseDefMap::iterator def_iterator;
@@ -64,7 +62,7 @@ class PMemVariableLocator {
 
   inline api_iterator call_begin() { return callList.begin(); }
   inline api_iterator call_end() { return callList.end(); }
-  inline ApiCallListImpl & calls() { return callList; }
+  inline ApiCallList &calls() { return callList; }
 
   inline api_const_iterator call_begin() const { return callList.begin(); }
   inline api_const_iterator call_end() const { return callList.end(); }
@@ -72,7 +70,7 @@ class PMemVariableLocator {
 
   inline var_iterator var_begin() { return varList.begin(); }
   inline var_iterator var_end() { return varList.end(); }
-  inline VariableListImpl & vars() { return varList; }
+  inline VariableList &vars() { return varList; }
 
   inline const_var_iterator var_begin() const { return varList.begin(); }
   inline const_var_iterator var_end() const { return varList.end(); }

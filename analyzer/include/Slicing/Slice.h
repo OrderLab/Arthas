@@ -12,7 +12,7 @@
 #include <map>
 #include <vector>
 
-#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
@@ -64,7 +64,7 @@ class Slice {
   inline dep_const_iterator begin() const { return dep_values.begin(); }
   inline dep_const_iterator end() const { return dep_values.end(); }
 
-  void setPersistence(llvm::SmallVectorImpl<llvm::Value *> &persist_vals);
+  void setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars);
   void dump(llvm::raw_ostream &os);
 };
 
