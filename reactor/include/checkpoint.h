@@ -37,6 +37,8 @@ typedef struct single_data {
   int sequence_number;
   int version;
   int data_type;
+  void *old_data[MAX_VERSIONS];
+  size_t old_size[MAX_VERSIONS];
 } single_data;
 
 // checkpoint log entry by address/offset

@@ -131,6 +131,23 @@ int main(int argc, char *argv[]) {
   order_by_sequence_num(ordered_data, total_size, c_log);
   free(total_size);
 
+  // TODO: Step 5b: Bring in Slice Graph, find starting point in
+  // terms of sequence number (connect LLVM Node to seq number)
+  int starting_seq_num;
+
+  // Step 5c: sort the addresses arrays by sequence number
+  /*void **sorted_addresses = (void **)malloc(num_data * sizeof(void *));
+  void **sorted_pmem_addresses = (void **)malloc(num_data * sizeof(void *));
+  sort_by_sequence_number(addresses, ordered_data, *total_size,
+  num_data, sorted_addresses, pmem_addresses, sorted_pmem_addresses);*/
+  
+  //Step 5d: revert by sequence number
+  //TODO: put in loop alongside reexecution, decrementing 
+  // most likely sequence number to rollback.
+  /*int curr_version = ordered_data[starting_seq_num].version;
+  revert_by_sequence_number(sorted_pmem_addresses, ordered_data, 
+  starting_seq_num, curr_version - 1);*/
+
   //revert_by_seq_num();
 
   // Step 6: Coarse-grain reversion

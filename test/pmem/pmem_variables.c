@@ -101,13 +101,13 @@ int handle_behavior(char *path){
   }
 
   //Now we will do calculations with variables:
-  int a ;
+  /*int a ;
   if(*pmem_int_ptr2 == 4)
     a = 4 - *pmem_int_ptr2;
   else
     a = 13 - *pmem_int_ptr2;
   int b = 30/a;;
-  printf("FINISHED!!! b is %d\n", b);
+  printf("FINISHED!!! b is %d\n", b);*/
   return 1;
 }
 

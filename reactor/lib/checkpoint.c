@@ -111,6 +111,12 @@ void order_by_sequence_num(single_data * ordered_data, size_t *total_size, struc
      ordered_data[*total_size].size = c_log->c_data[i].size[j];
      ordered_data[*total_size].version = j;
      ordered_data[*total_size].sequence_number = c_log->c_data[i].sequence_number[j];
+     //Adding in old versions to each single data structure to make reversion simpler
+     for(int k = j-1; k >= 0; k--){
+       ordered_data[*total_size].old_data[k] = malloc(c_log->c_data[i].size[k]);
+       memcpy(ordered_data[*total_size].old_data[k], c_log->c_data[i].data[k], c_log->c_data[i].size[k]);
+       ordered_data[*total_size].old_size[k] = c_log->c_data[i].size[k];
+     }
      *total_size = *total_size + 1;
     }
   }
