@@ -40,6 +40,25 @@ int search_for_address(const void *address, size_t size,
   return -1;
 }
 
+void revert_by_sequence_number(void **sorted_pmem_addresses, single_data *ordered_data,
+                               int starting_point, int reversion_reach){
+  for(int i = starting_point; i > (starting_point - reversion_reach); i++){
+    memcpy(sorted_pmem_addresses[i], ordered_data[i].data, ordered_data[i].size); 
+  }
+}
+
+void sort_by_sequence_number(void **addresses, single_data *ordered_data,
+                             size_t total_size, int num_data,
+                             void ** sorted_addresses){
+  for(int i = 0; i < total_size; i++){
+    for(int j = 0; j < num_data; j++){
+      if(ordered_data[i].address == addresses[j]){
+        sorted_addresses[i] = ordered_data[i].address;
+      }
+    }
+  }
+}
+
 void revert_by_address(const void *search_address, const void *address,
                        int variable_index, int version, int type, size_t size,
                        struct checkpoint_log *c_log) {
