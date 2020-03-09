@@ -162,41 +162,12 @@ int main(int argc, char *argv[]) {
   printf("\n");
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data);
+  pmemobj_close(pop);
 
   // Step 7: re-execution
-  pmemobj_close(pop);
-  FILE *fp = fopen(argv[5], "r");
-  if (fp == NULL) {
-    perror("Error opening file");
-    free(addresses);
-    free(pmem_addresses);
-    free(offsets);
-    return -1;
-  }
-
-  char *reexecution_lines[MAX_DATA];
-  // int ret_val;
-  // int reexecute = 0;
-  int line_counter = 0;
-  char line[100];
-  while (fgets(line, 100, fp) != NULL) {
-    // printf("Retry attempt number %d\n", coarse_grained_tries);
-    reexecution_lines[line_counter] = (char *)malloc(strlen(line) + 1);
-    strcpy(reexecution_lines[line_counter], line);
-    /*ret_val = system(line);
-    printf("ret val of reexecution is %d\n", ret_val);
-    if(ret_val != 1){
-      reexecute = 1;
-      break;
-    }*/
-    line_counter++;
-  }
-
-  printf("Reexecution %d: \n", coarse_grained_tries);
-  printf("\n");
-  re_execute(reexecution_lines, options.version_num, line_counter, addresses,
-             c_log, pmem_addresses, num_data, options.pmem_file,
-             options.pmem_layout, offsets);
+  re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
+             pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
+             offsets);
   free(addresses);
   free(pmem_addresses);
   free(offsets);

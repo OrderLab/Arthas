@@ -36,6 +36,7 @@ static struct option long_options[] = {
     {"pmem-layout", required_argument, 0, 't'},
     {"pmem-lib", required_argument, 0, 'l'},
     {"ver", required_argument, 0, 'n'},
+    {"rxcmd", required_argument, 0, 'r'},
     {"guid-map", required_argument, 0, 'g'},
     {"addresses", required_argument, 0, 'a'},
     {0, 0, 0, 0}};
@@ -53,6 +54,8 @@ void usage() {
       "  -n, --ver <number>           : the version number to revert for the "
       "1st \n"
       "                                 coarse-grained reversion attempt\n"
+      "  -r, --rxcmd <command>        : command string to re-execute the\n"
+      "                                 target program with reverted context\n"
       "  -g, --guid-map <file>        : path to the static GUID map file\n"
       "  -a, --addresses <file>       : path to the dynamic address trace "
       "file\n\n",
@@ -92,6 +95,9 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
         break;
       case 'a':
         options.address_file = optarg;
+        break;
+      case 'r':
+        options.reexecute_cmd = optarg;
         break;
       case 0:
         // getopt_long sets a flagkeep going
@@ -147,6 +153,11 @@ bool check_options(reactor_options &options) {
   }
   if (options.version_num <= 0) {
     fprintf(stderr, "version number must be positive\n");
+    return false;
+  }
+  if (!options.reexecute_cmd) {
+    fprintf(stderr,
+            "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
   return true;

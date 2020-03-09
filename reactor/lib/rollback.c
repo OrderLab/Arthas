@@ -130,23 +130,25 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
   return pop;
 }
 
-void re_execute(char **reexecution_lines, int version_num, int line_counter,
-                void **addresses, struct checkpoint_log *c_log,
-                void **pmem_addresses, int num_data, const char *path,
-                const char *layout, uint64_t *offsets)
-{
+void re_execute(const char *reexecution_cmd, int version_num, void **addresses,
+                struct checkpoint_log *c_log, void **pmem_addresses,
+                int num_data, const char *path, const char *layout,
+                uint64_t *offsets) {
   int ret_val;
   int reexecute_flag = 0;
-  for (int i = 0; i < line_counter; i++) {
-    ret_val = system(reexecution_lines[i]);
-    // printf( "********************\n");
-    // printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
-    if (WIFEXITED(ret_val)) {
-      printf("WEXITSTATUS OS %d\n", WEXITSTATUS(ret_val));
-      if (WEXITSTATUS(ret_val) < 0 || WEXITSTATUS(ret_val) > 1) {
-        reexecute_flag = 1;
-        break;
-      }
+  // the reexcution command is a single line command string
+  // if multiple commands are needed, they can be specified
+  // with 'cmd1 && cmd2 && cmd3' just like how multi-commands are
+  // executed in bash. if the rexecution command is so complex,
+  // it can also be put into a script and then the rexecution
+  // command is simply './rx_script.sh'
+  ret_val = system(reexecution_cmd);
+  // printf( "********************\n");
+  // printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
+  if (WIFEXITED(ret_val)) {
+    printf("WEXITSTATUS OS %d\n", WEXITSTATUS(ret_val));
+    if (WEXITSTATUS(ret_val) < 0 || WEXITSTATUS(ret_val) > 1) {
+      reexecute_flag = 1;
     }
   }
   if (coarse_grained_tries == MAX_COARSE_ATTEMPTS) {
@@ -163,7 +165,7 @@ void re_execute(char **reexecution_lines, int version_num, int line_counter,
     pmemobj_close(pop);
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");
-    re_execute(reexecution_lines, version_num - 1, line_counter, addresses,
-               c_log, pmem_addresses, num_data, path, layout, offsets);
+    re_execute(reexecution_cmd, version_num - 1, addresses, c_log,
+               pmem_addresses, num_data, path, layout, offsets);
   }
 }

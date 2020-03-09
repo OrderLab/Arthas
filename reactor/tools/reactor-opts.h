@@ -17,6 +17,7 @@ typedef struct reactor_options {
   const char *pmem_layout;
   const char *pmem_library;
   const char *hook_guid_file;
+  const char *reexecute_cmd;
   int version_num;
 } reactor_options;
 
