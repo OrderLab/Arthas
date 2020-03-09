@@ -8,9 +8,9 @@ LIBPMEMOBJ_CFLAGS = $(shell pkg-config --cflags libpmemobj) -g -O0
 LIBPMEMOBJ_LDFLAGS = $(shell pkg-config --libs libpmemobj) -g -O0
 else
 LIBPMEM_CFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -g -O0
-LIBPMEM_LDFLAGS = $(PMDK_HOME)/src/nondebug/libpmemobj.a $(PMDK_HOME)/src/nondebug/libpmem.a -g -O0 -ldl -pthread 
+LIBPMEM_LDFLAGS = -L $(PMDK_HOME)/src/nondebug/ -lpmem -g -O0
 LIBPMEMOBJ_CFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -g -O0
-LIBPMEMOBJ_LDFLAGS = $(PMDK_HOME)/src/nondebug/libpmemobj.a $(PMDK_HOME)/src/nondebug/libpmem.a -g -O0 -ldl -pthread 
+LIBPMEMOBJ_LDFLAGS = -L $(PMDK_HOME)/src/nondebug -lpmemobj -g -O0 
 endif
 
 CC = gcc

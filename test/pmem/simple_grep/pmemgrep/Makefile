@@ -27,8 +27,15 @@
 PROGS = pmemgrep
 OBJS = pmemgrep.o
 BITCODES = pmemgrep.bc
+
+ifndef PMDK_HOME
 CXXFLAGS =  $(shell pkg-config --cflags libpmemobj++) -std=c++11 -O2
 LDFLAGS = $(shell pkg-config --libs libpmemobj++) -O2
+else
+CXXFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -std=c++11 -O2
+LDFLAGS = -L $(PMDK_HOME)/src/nondebug -lpmemobj -O2
+endif
+
 CXX = g++
 RM = rm
 

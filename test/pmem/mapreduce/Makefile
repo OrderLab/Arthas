@@ -28,8 +28,15 @@ PROGS = wordcount
 OBJS = main.o helpers.o persistent_string.o list_entry.o task_list.o pm_mapreduce.o
 BITCODES = $(OBJS:.o=.bc)
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
+
+ifndef PMDK_HOME
 CXXFLAGS = $(shell pkg-config --cflags libpmemobj++) -std=c++11 -O2
 LDFLAGS = $(shell pkg-config --libs libpmemobj++) -lpthread -O2
+else
+CXXFLAGS = -DUSE_PMEM -I $(PMDK_HOME)/src/include -std=c++11 -O2
+LDFLAGS = -L $(PMDK_HOME)/src/nondebug -lpmemobj -lpthread -O2
+endif
+
 CXX = g++
 RM = rm
 
