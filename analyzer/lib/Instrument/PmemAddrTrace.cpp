@@ -27,6 +27,9 @@ const char *PmemAddrTrace::FieldSeparator = ",";
 static const char *PmemObjCreateCallInstrStr =
     "call %struct.pmemobjpool* @pmemobj_create";
 
+static const char *PmemCreateCallInstrStr =
+    "call i8* @pmem_map_file";
+
 bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
                                 PmemAddrTrace &result, bool ignoreBadLine) {
   std::ifstream addrfile(fileName);
@@ -75,6 +78,11 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
             string::npos) {
           errs() << "Found a pool address " << item.addr_str << "\n";
           item.is_pool = true;
+        }
+        else if (item.var->instruction.find(PmemCreateCallInstrStr) !=
+            string::npos) {
+          errs() << "Found a libpmem file address " << item.addr_str << "\n";
+          item.is_pmem_file = true;
         }
       }
     }

@@ -34,10 +34,12 @@ class PmemAddrTraceItem {
   uint64_t guid;
   // if the address is a pool address or not
   bool is_pool;
+  //if the address is a pmem file address or not
+  bool is_pmem_file;
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
 
-  PmemAddrTraceItem() : is_pool(false), var(nullptr) {}
+  PmemAddrTraceItem() : is_pool(false), is_pmem_file(false), var(nullptr) {}
 };
 
 class PmemAddrTrace {
@@ -54,6 +56,7 @@ class PmemAddrTrace {
   void add(PmemAddrTraceItem &item) {
     _items.push_back(item);
     if (item.is_pool) _pool_addrs.push_back(item);
+    if (item.is_pmem_file) _pmem_file_addrs.push_back(item);
   }
 
   iterator begin() { return _items.begin(); }
@@ -70,12 +73,20 @@ class PmemAddrTrace {
   size_t pool_cnt() const { return _pool_addrs.size(); }
   TraceListTy &pool_addrs() { return _pool_addrs; }
 
+  iterator pmem_file_begin() { return _pmem_file_addrs.begin(); }
+  iterator pmem_file_end() { return _pmem_file_addrs.end(); }
+  const_iterator pmem_file_begin() const { return _pmem_file_addrs.begin(); }
+  const_iterator pmem_file_end() const { return _pmem_file_addrs.end(); }
+  size_t pmem_file_cnt() const { return _pmem_file_addrs.size(); }
+  TraceListTy &pmem_file_addrs() { return _pmem_file_addrs; }
+
   static bool deserialize(const char *fileName, PmemVarGuidMap *varMap,
                           PmemAddrTrace &result, bool ignoreBadLine = false);
 
  protected:
   TraceListTy _items;
   TraceListTy _pool_addrs;
+  TraceListTy _pmem_file_addrs;
 };
 
 }  // namespace llvm
