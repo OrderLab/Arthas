@@ -109,7 +109,8 @@ bool PmemAddrTrace::calculatePoolOffsets() {
   bool offset_obtained = false;
   PmemAddrPool *last_pool = nullptr;
   for (auto &item : _items) {
-    if (item->is_pool) {
+    // we treat the handling the mmap and pool offsets/addresses the same
+    if (item->is_pool || item->is_mmap) {
       bool pool_found = false;
       for (auto &pool : _pool_addrs) {
         if (pool.pool_addr == item) {
