@@ -15,6 +15,8 @@
 // want to link the tracker library with the reactor. So we implement
 // the parser here for now.
 
+#include <cassert>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -32,28 +34,46 @@ class PmemAddrTraceItem {
   uint64_t addr;
   // guid of the source instruction location
   uint64_t guid;
+  // the offset within an owner pool address (default 0)
+  uint64_t pool_offset;
   // if the address is a pool address or not
   bool is_pool;
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
 
-  PmemAddrTraceItem() : is_pool(false), var(nullptr) {}
+  PmemAddrTraceItem()
+      : addr(0), guid(0), pool_offset(0), is_pool(false), var(nullptr) {}
+};
+
+class PmemAddrPool {
+ public:
+  PmemAddrTraceItem *pool_addr;
+  std::vector<PmemAddrTraceItem *> addresses;
+
+  PmemAddrPool(PmemAddrTraceItem *pool) : pool_addr(pool) {}
 };
 
 class PmemAddrTrace {
  public:
-  typedef std::vector<PmemAddrTraceItem> TraceListTy;
+  typedef std::vector<PmemAddrTraceItem *> TraceListTy;
+  typedef std::vector<PmemAddrPool> TracePoolListTy;
   typedef TraceListTy::iterator iterator;
   typedef TraceListTy::const_iterator const_iterator;
+  typedef TracePoolListTy::iterator pool_iterator;
+  typedef TracePoolListTy::const_iterator const_pool_iterator;
 
   static const char *FieldSeparator;
   // should be consistent with address tracker runtime lib
   static const int EntryFields = 2;
 
  public:
-  void add(PmemAddrTraceItem &item) {
+  ~PmemAddrTrace();
+
+  void add(PmemAddrTraceItem *item) {
     _items.push_back(item);
-    if (item.is_pool) _pool_addrs.push_back(item);
+    if (item->is_pool) {
+      _pool_addrs.push_back(PmemAddrPool(item));
+    }
   }
 
   iterator begin() { return _items.begin(); }
@@ -63,19 +83,22 @@ class PmemAddrTrace {
   size_t size() const { return _items.size(); }
   TraceListTy &items() { return _items; }
 
-  iterator pool_begin() { return _pool_addrs.begin(); }
-  iterator pool_end() { return _pool_addrs.end(); }
-  const_iterator pool_begin() const { return _pool_addrs.begin(); }
-  const_iterator pool_end() const { return _pool_addrs.end(); }
+  pool_iterator pool_begin() { return _pool_addrs.begin(); }
+  pool_iterator pool_end() { return _pool_addrs.end(); }
+  const_pool_iterator pool_begin() const { return _pool_addrs.begin(); }
+  const_pool_iterator pool_end() const { return _pool_addrs.end(); }
   size_t pool_cnt() const { return _pool_addrs.size(); }
-  TraceListTy &pool_addrs() { return _pool_addrs; }
+  bool pool_empty() const { return _pool_addrs.empty(); }
+  TracePoolListTy &pool_addrs() { return _pool_addrs; }
+
+  bool calculatePoolOffsets();
 
   static bool deserialize(const char *fileName, PmemVarGuidMap *varMap,
                           PmemAddrTrace &result, bool ignoreBadLine = false);
 
  protected:
   TraceListTy _items;
-  TraceListTy _pool_addrs;
+  TracePoolListTy _pool_addrs;
 };
 
 }  // namespace llvm
