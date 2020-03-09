@@ -1,0 +1,10 @@
+200##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##76##  %28 = call i8* @pmemobj_direct_inline(i64 %25, i64 %27), !dbg !63
+201##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##80##  %32 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg !66
+202##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##82##  %36 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg !70
+203##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##82##  %41 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg !73
+204##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##82##  %44 = load i64, i64* %43, align 8, !dbg !74
+205##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##85##  %48 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg !77
+206##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##88##  %52 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg !81
+207##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##write_hello_string##63##  %9 = call %struct.pmemobjpool* @pmemobj_create(i8* %8, i8* getelementptr inbounds ([13 x i8], [13 x i8]* @.str, i32 0, i32 0), i64 8388608, i32 438), !dbg !30
+208##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##read_hello_string##116##  %25 = call i8* @pmemobj_direct_inline(i64 %22, i64 %24), !dbg !61
+209##/home/ryan/project/Arthas/test/pmem##hello_libpmemobj.c##read_hello_string##119##  %27 = load %struct.my_root*, %struct.my_root** %5, align 8, !dbg !62
