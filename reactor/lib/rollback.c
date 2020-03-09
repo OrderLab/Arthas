@@ -244,6 +244,8 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
       coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num - 1,
                            num_data, offsets);
     else if(reversion_type == COARSE_GRAIN_SEQUENCE){
+      if(seq_num < 0)
+        return -1;
       seq_coarse_grain_reversion(offsets, sorted_pmem_addresses,
                                  seq_num, ordered_data);
     }
