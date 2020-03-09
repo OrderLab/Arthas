@@ -23,6 +23,10 @@ using namespace llvm::instrument;
 // Must be consistent with the field separator used in the address tracker lib
 const char *PmemAddrTrace::FieldSeparator = ",";
 
+// the pmemobj_create call instruction string to identify pool addresses
+static const char *PmemObjCreateCallInstrStr =
+    "call %struct.pmemobjpool* @pmemobj_create";
+
 bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
                                 PmemAddrTrace &result, bool ignoreBadLine) {
   std::ifstream addrfile(fileName);
@@ -61,6 +65,17 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
       auto vi = varMap->find(item.guid);
       if (vi != varMap->end()) {
         item.var = &vi->second;
+        // FIXME: for now we identify whether a trace item is from a pool
+        // address
+        // by checking the associated instruction string in the map.
+        // Another way is to directly record a flag in the trace entry to
+        // indicate whether the address is a pool address. This would
+        // require modifying the instrumenter and address tracker lib API.
+        if (item.var->instruction.find(PmemObjCreateCallInstrStr) !=
+            string::npos) {
+          errs() << "Found a pool address " << item.addr_str << "\n";
+          item.is_pool = true;
+        }
       }
     }
     result.add(item);

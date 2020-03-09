@@ -26,13 +26,18 @@ class PmemVarGuidMapEntry;
 
 class PmemAddrTraceItem {
  public:
+  // string form of the dynamic address (in hex format)
   std::string addr_str;
-  uint64_t guid;
   // convert the hex address string into a decimal uint64 address.
   uint64_t addr;
+  // guid of the source instruction location
+  uint64_t guid;
+  // if the address is a pool address or not
+  bool is_pool;
+  // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
 
-  PmemAddrTraceItem() : var(nullptr) {}
+  PmemAddrTraceItem() : is_pool(false), var(nullptr) {}
 };
 
 class PmemAddrTrace {
@@ -46,7 +51,11 @@ class PmemAddrTrace {
   static const int EntryFields = 2;
 
  public:
-  void add(PmemAddrTraceItem &item) { _items.push_back(item); }
+  void add(PmemAddrTraceItem &item) {
+    _items.push_back(item);
+    if (item.is_pool) _pool_addrs.push_back(item);
+  }
+
   iterator begin() { return _items.begin(); }
   iterator end() { return _items.end(); }
   const_iterator begin() const { return _items.begin(); }
@@ -54,11 +63,19 @@ class PmemAddrTrace {
   size_t size() const { return _items.size(); }
   TraceListTy &items() { return _items; }
 
+  iterator pool_begin() { return _pool_addrs.begin(); }
+  iterator pool_end() { return _pool_addrs.end(); }
+  const_iterator pool_begin() const { return _pool_addrs.begin(); }
+  const_iterator pool_end() const { return _pool_addrs.end(); }
+  size_t pool_cnt() const { return _pool_addrs.size(); }
+  TraceListTy &pool_addrs() { return _pool_addrs; }
+
   static bool deserialize(const char *fileName, PmemVarGuidMap *varMap,
                           PmemAddrTrace &result, bool ignoreBadLine = false);
 
  protected:
-  std::vector<PmemAddrTraceItem> _items;
+  TraceListTy _items;
+  TraceListTy _pool_addrs;
 };
 
 }  // namespace llvm
