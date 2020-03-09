@@ -52,7 +52,7 @@ void parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
-  // Step 0: Read static hook guid map file
+  // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
             options.hook_guid_file);
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
   }
   printf("successfully parsed hook guid map with %lu entries\n", varMap.size());
 
-  // Step 1: Read dynamic address trace file
+  // Step 2.a: Read dynamic address trace file
   if (!PmemAddrTrace::deserialize(options.address_file, &varMap, addrTrace)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
             options.hook_guid_file);
@@ -69,72 +69,59 @@ int main(int argc, char *argv[]) {
   printf("successfully parsed %lu dynamic address trace items\n",
          addrTrace.size());
 
-  // Step 2: Opening Checkpoint Component PMEM File
+  // FIXME: should support libpmem reactor, which does not have a pool address.
+  if (addrTrace.pool_empty()) {
+    fprintf(stderr, "No pool address found in the address trace file, abort\n");
+    return 1;
+  }
+
+  // Step 2.b: Convert collected addresses to pointers and offsets
+  // FIXME: here, we are assuming the target program only has a single pool.
+  if (!addrTrace.calculatePoolOffsets()) {
+    fprintf(stderr,
+            "Failed to calculate the address offsets w.r.t the pool address in "
+            "the address trace file, abort\n");
+    return 1;
+  }
+
+  // Step 2.c: Calculating offsets from pointers
+  // FIXME: assuming last pool is the pool of the pmemobj_open
+  PmemAddrPool &last_pool = addrTrace.pool_addrs().back();
+  if (last_pool.addresses.empty()) {
+    fprintf(stderr, "Last pool %s has no associated addresses in the trace\n",
+            last_pool.pool_addr->addr_str.c_str());
+    return 1;
+  }
+  printf("Pool %s has %lu associated addresses in the trace\n",
+         last_pool.pool_addr->addr_str.c_str(), last_pool.addresses.size());
+  PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
+  if (pop == NULL) {
+    printf("Could not open pmem file %s to get pool start address\n",
+           options.pmem_file);
+    return -1;
+  }
+  size_t num_data = last_pool.addresses.size();
+  uint64_t *offsets = (uint64_t *)malloc(num_data * sizeof(uint64_t));
+  void **addresses = (void **)malloc(num_data * sizeof(void *));
+  void **pmem_addresses = (void **)malloc(num_data * sizeof(void *));
+  for (size_t i = 0; i < num_data; ++i) {
+    offsets[i] = last_pool.addresses[i]->pool_offset;
+    addresses[i] = (void *)last_pool.addresses[i]->addr;
+    pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
+  }
+
+
+  // Step 3: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
       reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
   if (c_log == NULL) {
     fprintf(stderr, "abort checkpoint rollback operation\n");
+    free(addresses);
+    free(pmem_addresses);
+    free(offsets);
     return 1;
   }
   printf("finished checkpoint reconstruction\n");
-
-  // FIXME: remove, outdated
-  // Step 2: Read dynamic address trace file
-  FILE *fp;
-  char line[100];
-  fp = fopen(options.address_file, "r");
-  if (fp == NULL) {
-    perror("Error opening address file");
-    return -1;
-  }
-  char *token;
-  char *str_addresses[MAX_DATA];
-  char *str_pool_address;
-  int num_data = 0;
-
-  while (fgets(line, 100, fp) != NULL) {
-    token = strtok(line, ":");
-    if (strcmp(token, "address") == 0) {
-      token = strtok(NULL, ": ");
-      str_addresses[num_data] = (char *)malloc(strlen(token) + 1);
-      strcpy(str_addresses[num_data], token);
-      str_addresses[num_data][strlen(str_addresses[num_data]) - 1] = '\0';
-      num_data++;
-    } else if (strcmp(token, "POOL address") == 0) {
-      token = strtok(NULL, ": ");
-      str_pool_address = (char *)malloc(strlen(token) + 1);
-      strcpy(str_pool_address, token);
-      str_pool_address[strlen(str_pool_address) - 1] = '\0';
-    }
-  }
-  fclose(fp);
-
-  // Step 3: Convert collected string addresses to pointers and offsets
-  long long_addresses[MAX_DATA];
-  void *addresses[MAX_DATA];
-  long long_pool_address;
-  void *pool_address;
-
-  for (int i = 0; i < num_data; i++) {
-    long_addresses[i] = strtol(str_addresses[i], NULL, 16);
-    addresses[i] = (void *)long_addresses[i];
-  }
-  long_pool_address = strtol(str_pool_address, NULL, 16);
-  pool_address = (void *)long_pool_address;
-
-  // Step 4: Calculating offsets from pointers
-  uint64_t offsets[MAX_DATA];
-  void *pmem_addresses[MAX_DATA];
-  PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
-  if (pop == NULL) {
-    printf("could not open pop\n");
-    return -1;
-  }
-  for (int i = 0; i < num_data; i++) {
-    offsets[i] = (uint64_t)addresses[i] - (uint64_t)pool_address;
-    pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
-  }
-
 
   // Step 5: Fine-grain reversion
   // Step 5a: Create ordered list of checkpoint entries using logical seq num
@@ -178,9 +165,12 @@ int main(int argc, char *argv[]) {
 
   // Step 7: re-execution
   pmemobj_close(pop);
-  fp = fopen(argv[5], "r");
+  FILE *fp = fopen(argv[5], "r");
   if (fp == NULL) {
     perror("Error opening file");
+    free(addresses);
+    free(pmem_addresses);
+    free(offsets);
     return -1;
   }
 
@@ -188,6 +178,7 @@ int main(int argc, char *argv[]) {
   // int ret_val;
   // int reexecute = 0;
   int line_counter = 0;
+  char line[100];
   while (fgets(line, 100, fp) != NULL) {
     // printf("Retry attempt number %d\n", coarse_grained_tries);
     reexecution_lines[line_counter] = (char *)malloc(strlen(line) + 1);
@@ -206,6 +197,8 @@ int main(int argc, char *argv[]) {
   re_execute(reexecution_lines, options.version_num, line_counter, addresses,
              c_log, pmem_addresses, num_data, options.pmem_file,
              options.pmem_layout, offsets);
-
+  free(addresses);
+  free(pmem_addresses);
+  free(offsets);
   // free reexecution_lines and string arrays here
 }
