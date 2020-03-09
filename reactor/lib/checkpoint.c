@@ -74,7 +74,7 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path, const char 
   }
   printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
   for (int i = 0; i < variable_count; i++) {
-    printf("address is %p\n", c_log->c_data[i].address);
+    printf("address is %p offset is %ld\n", c_log->c_data[i].address, c_log->c_data[i].offset);
     // printf("version is %d\n", c_log->c_data[i].version);
     int data_index = c_log->c_data[i].version;
     for (int j = 0; j <= data_index; j++) {
@@ -116,7 +116,7 @@ void order_by_sequence_num(single_data * ordered_data, size_t *total_size, struc
      ordered_data[*total_size].version = j;
      ordered_data[*total_size].sequence_number = c_log->c_data[i].sequence_number[j];
      //Adding in old versions to each single data structure to make reversion simpler
-     for(int k = j-1; k >= 0; k--){
+     for(int k = 0; k < j; k++){
        ordered_data[*total_size].old_data[k] = malloc(c_log->c_data[i].size[k]);
        memcpy(ordered_data[*total_size].old_data[k], c_log->c_data[i].data[k], c_log->c_data[i].size[k]);
        ordered_data[*total_size].old_size[k] = c_log->c_data[i].size[k];

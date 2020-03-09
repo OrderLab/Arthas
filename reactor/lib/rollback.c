@@ -58,16 +58,33 @@ int search_for_address(const void *address, size_t size,
 
 void revert_by_sequence_number(void **sorted_pmem_addresses, single_data *ordered_data,
                                int seq_num, int rollback_version){
-  printf("%p \n", sorted_pmem_addresses[seq_num]);
-  printf("value here is %d \n", *(int *)ordered_data[seq_num].old_data[rollback_version]);
-  printf("value here is %d \n", *(int *)sorted_pmem_addresses[seq_num]);
-  printf("%p \n", ordered_data[seq_num].old_data[rollback_version]);
-  printf("%ld \n", ordered_data[seq_num].old_size[rollback_version]);
+  //printf("%p \n", sorted_pmem_addresses[seq_num]);
+  //printf("value here is %d \n", *(int *)ordered_data[seq_num].old_data[rollback_version]);
+  //printf("value here is %d \n", *(int *)sorted_pmem_addresses[seq_num]);
+  //printf("%p \n", ordered_data[seq_num].old_data[rollback_version]);
+  //printf("%ld \n", ordered_data[seq_num].old_size[rollback_version]);
+  if(ordered_data[seq_num].old_size[rollback_version] == 4)
+    printf("Value before seq num %d is %d offset %ld\n", seq_num, *(int *)sorted_pmem_addresses[seq_num],
+       ordered_data[seq_num].offset);
+  else if(ordered_data[seq_num].old_size[rollback_version] == 8)
+    printf("Value before seq num %d is %f offset %ld\n", seq_num, *(double *)sorted_pmem_addresses[seq_num],
+        ordered_data[seq_num].offset);
+  else
+    printf("Value before seq num %d is %d offset %ld\n", seq_num, *(int *)sorted_pmem_addresses[seq_num],
+        ordered_data[seq_num].offset);
 
   memcpy(sorted_pmem_addresses[seq_num], ordered_data[seq_num].old_data[rollback_version]
   , ordered_data[seq_num].old_size[rollback_version]);
-  printf("value here is %d \n", *(int *)ordered_data[seq_num].old_data[rollback_version]);
-  printf("value here is %d \n", *(int *)sorted_pmem_addresses[seq_num]);
+  //printf("value here is %d \n", *(int *)ordered_data[seq_num].old_data[rollback_version]);
+  if(ordered_data[seq_num].old_size[rollback_version] == 4)
+    printf("REVERTED Value before seq num %d is %d offset %ld\n", seq_num, *(int *)sorted_pmem_addresses[seq_num],
+       ordered_data[seq_num].offset);
+  else if(ordered_data[seq_num].old_size[rollback_version] == 8)
+    printf("REVERTED Value before seq num %d is %f offset %ld\n", seq_num, *(double *)sorted_pmem_addresses[seq_num],
+        ordered_data[seq_num].offset);
+  else
+    printf("REVERTED Value before seq num %d is %d offset %ld\n", seq_num, *(int *)sorted_pmem_addresses[seq_num],
+        ordered_data[seq_num].offset);
 
 }
 
@@ -115,6 +132,15 @@ void revert_by_offset(uint64_t search_offset, const void *address,
   }else{
     //memcpy(dest, (void *)((uint64_t)pmem_file + search_offset), size);
   }
+
+}
+
+void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
+                                 int seq_num, single_data *ordered_data){
+
+  int curr_version = ordered_data[seq_num].version;
+  revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
+                            seq_num, curr_version - 1);
 
 }
 
@@ -182,10 +208,11 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
   return pop;
 }
 
-void re_execute(const char *reexecution_cmd, int version_num, void **addresses,
+int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
                 struct checkpoint_log *c_log, void **pmem_addresses,
                 int num_data, const char *path, const char *layout,
-                uint64_t *offsets) {
+                uint64_t *offsets, int reversion_type, int seq_num,
+                void **sorted_pmem_addresses, single_data *ordered_data) {
   int ret_val;
   int reexecute_flag = 0;
   // the reexcution command is a single line command string
@@ -204,7 +231,7 @@ void re_execute(const char *reexecution_cmd, int version_num, void **addresses,
     }
   }
   if (coarse_grained_tries == MAX_COARSE_ATTEMPTS) {
-    return;
+    return -1;
   }
   // Try again if we need to re-execute
   if (reexecute_flag) {
@@ -213,12 +240,19 @@ void re_execute(const char *reexecution_cmd, int version_num, void **addresses,
     //TODO: add libpmem support
     PMEMobjpool *pop =
         redo_pmem_addresses(path, layout, num_data, pmem_addresses, offsets);
-    coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num - 1,
+    if(reversion_type == COARSE_GRAIN_NAIVE)
+      coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num - 1,
                            num_data, offsets);
+    else if(reversion_type == COARSE_GRAIN_SEQUENCE){
+      seq_coarse_grain_reversion(offsets, sorted_pmem_addresses,
+                                 seq_num, ordered_data);
+    }
     pmemobj_close(pop);
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");
     re_execute(reexecution_cmd, version_num - 1, addresses, c_log,
-               pmem_addresses, num_data, path, layout, offsets);
+               pmem_addresses, num_data, path, layout, offsets, reversion_type, seq_num - 1,
+               sorted_pmem_addresses, ordered_data);
   }
+ return 1;
 }

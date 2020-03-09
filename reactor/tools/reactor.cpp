@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
 
   // TODO: Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
-  int starting_seq_num = 4;
+  int starting_seq_num = 6;
 
   // Step 5c: sort the addresses arrays by sequence number
   void **sorted_addresses = (void **)malloc(num_data * sizeof(void *));
@@ -148,7 +148,17 @@ int main(int argc, char *argv[]) {
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data, 
   starting_seq_num, curr_version - 1);
+  pmemobj_close(pop);
+  int req_flag = re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
+             pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
+             offsets, COARSE_GRAIN_SEQUENCE, starting_seq_num - 1, sorted_pmem_addresses,
+             ordered_data);
+  if(req_flag){
+    cout << "reversion with sequence numbers has succeeded\n";
+    return 1;
+  }
 
+  //re_execute(COARSE_GRAIN_SEQUENCE);
   free(total_size);
   //revert_by_seq_num();
 
@@ -179,6 +189,10 @@ int main(int argc, char *argv[]) {
   }*/
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
+  if(!pop){
+    redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+                        pmem_addresses, offsets);
+  }
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data, offsets);
   pmemobj_close(pop);
@@ -186,7 +200,8 @@ int main(int argc, char *argv[]) {
   // Step 7: re-execution
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
-             offsets);
+             offsets, COARSE_GRAIN_NAIVE, starting_seq_num, sorted_pmem_addresses,
+             ordered_data);
   free(addresses);
   free(pmem_addresses);
   free(offsets);

@@ -50,19 +50,24 @@ int handle_behavior(char *path){
     }TX_END
 
     TX_BEGIN(pop){
-      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
-      *pmem_double_ptr = 10;
       pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
       *pmem_int_ptr2 = 13;
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+      *pmem_double_ptr = 10;
       pmemobj_tx_add_range_direct(pmem_int_ptrs[0], sizeof(int)*5);
     }TX_END
 
     TX_BEGIN(pop){
-      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
-      *pmem_double_ptr = 11;
       pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
       *pmem_int_ptr2 = 4;
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+      *pmem_double_ptr = 11;
     }TX_END
+
+   TX_BEGIN(pop){
+      pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double)); 
+   }TX_END
   }
   else{
     //File exists, open and recover.
