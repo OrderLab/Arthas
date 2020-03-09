@@ -124,6 +124,6 @@ void order_by_sequence_num(single_data * ordered_data, size_t *total_size, struc
      *total_size = *total_size + 1;
     }
   }
-
+  printf("seq num total size is %ld\n", *total_size);
   qsort(ordered_data, *total_size, sizeof(single_data), sequence_comparator);
 }

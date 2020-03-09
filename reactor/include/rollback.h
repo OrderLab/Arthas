@@ -55,7 +55,7 @@ int search_for_offset(uint64_t offset, size_t size,
 void sort_by_sequence_number(void **addresses, single_data *ordered_data,
                              size_t total_size, int num_data,
                              void ** sorted_addresses, void **pmem_addresses,
-                             void **sorted_pmem_addresses);
+                             void **sorted_pmem_addresses, uint64_t *offsets);
 #ifdef __cplusplus
 }
 #endif
