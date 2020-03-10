@@ -245,6 +245,7 @@ int main(int argc, char *argv[]) {
   }
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
   int slice_seq_iterator = 0;
+  slice_seq_numbers[0] = starting_seq_num;
   for (Slice *slice : slices) {
     for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
       // Iterate through addTraceList, find relevant address
@@ -255,7 +256,8 @@ int main(int argc, char *argv[]) {
         if (traceItem->instr == *dep_inst) {
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
-            if (traceItem->addr == (uint64_t)ordered_data[i].address) {
+            if (traceItem->addr == (uint64_t)ordered_data[i].address &&
+                ordered_data[i].sequence_number < starting_seq_num) {
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -266,6 +268,20 @@ int main(int argc, char *argv[]) {
     }
     // TODO: Here we should do reversion on collected seq numbers and try
     // try reexecution
+    /*revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
+                                     slice_seq_numbers,  slice_seq_iterator);
+    pmemobj_close(pop);
+    re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
+              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
+              offsets, FINE_GRAIN, starting_seq_num,
+              sorted_pmem_addresses, ordered_data);
+
+    if (!pop) {
+     redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+                         pmem_addresses, offsets);
+    }
+
+    slice_seq_iterator = 1;*/
   }
 
   // TODO: put in loop alongside reexecution, decrementing
