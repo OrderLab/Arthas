@@ -39,9 +39,12 @@ using namespace llvm::matching;
 
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
+struct reactor_options options;
 
 unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
-    PMemVariableLocator &locator, Slices &slices, unique_ptr<DgSlicer> &_dgSlicer) {
+                                        PMemVariableLocator &locator,
+                                        Slices &slices,
+                                        unique_ptr<DgSlicer> &_dgSlicer) {
   // Take faulty instruction and walk through Dependency Graph to
   // obtain slices + metadata of persistent variables
   uint32_t slice_id = 0;
@@ -52,49 +55,16 @@ unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
- // *_out_stream << "=================Slice graph " << slice_graph->slice_id();
- // *_out_stream << "=================\n";
- // *_out_stream << *slice_graph.get() << "\n";
- // errs() << "Slice graph is written to " << SliceOutput << "\n";
 
   slice_graph->computeSlices(slices);
- // *_out_stream << "=================Slice list " << slice_graph->slice_id();
- // *_out_stream << "=================\n";
   for (Slice *slice : slices) {
     auto persistent_vars = locator.vars().getArrayRef();
     slice->setPersistence(persistent_vars);
-   // slice->dump(*_out_stream);
   }
-  //errs() << "The list of slices are written to " << SliceOutput << "\n";
   return slice_graph;
 }
 
-struct reactor_options options;
-
-void parse_args(int argc, char *argv[]) {
-  program = argv[0];
-  if (!parse_options(argc, argv, options)) {
-    fprintf(stderr, "Failed to parse the command line options\n");
-    usage();
-    exit(1);
-  }
-  if (strcmp(options.pmem_library, "libpmem") == 0) {
-    options.checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
-  } else if (strcmp(options.pmem_library, "libpmemobj") == 0) {
-    options.checkpoint_file = "/mnt/pmem/checkpoint.pm";
-  } else {
-    fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
-    usage();
-    exit(1);
-  }
-}
-
-int main(int argc, char *argv[]) {
-  parse_args(argc, argv);
-
-  LLVMContext context;
-  //unique_ptr<Module> M = parseModule(context, options.bc_file);
-  Module *M = parseModule(context, options.bc_file).release();
+bool slice_fault_instructions(Module *M) {
   vector<Instruction *> _startSliceInstrs;
   SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func, options.inst_no);
   if (!parseSlicingCriteriaOpt(opt, *M, _startSliceInstrs)) {
@@ -102,8 +72,8 @@ int main(int argc, char *argv[]) {
     return false;
   }
 
-  SliceDirection _sliceDir;
-  unique_ptr<DgSlicer> _dgSlicer = make_unique<DgSlicer>(M, _sliceDir);
+  unique_ptr<DgSlicer> _dgSlicer =
+      make_unique<DgSlicer>(M, SliceDirection::Backward);
   _dgSlicer->computeDependencies();
 
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
@@ -117,8 +87,36 @@ int main(int argc, char *argv[]) {
     locator->runOnFunction(*F);
     Slices slices;
     instructionSlice(fault_inst, *locator, slices, _dgSlicer);
-
   }
+  return true;
+}
+
+void parse_args(int argc, char *argv[]) {
+  program = argv[0];
+  if (!parse_options(argc, argv, options)) {
+    fprintf(stderr, "Failed to parse the command line options\n");
+    usage();
+    exit(1);
+  }
+  if (options.pmem_library) {
+    if (strcmp(options.pmem_library, "libpmem") == 0) {
+      options.checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
+    } else if (options.pmem_library &&
+               strcmp(options.pmem_library, "libpmemobj") == 0) {
+      options.checkpoint_file = "/mnt/pmem/checkpoint.pm";
+    } else {
+      fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
+      usage();
+      exit(1);
+    }
+  }
+}
+
+int main(int argc, char *argv[]) {
+  parse_args(argc, argv);
+
+  LLVMContext context;
+  unique_ptr<Module> M = parseModule(context, options.bc_file);
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
@@ -137,20 +135,16 @@ int main(int argc, char *argv[]) {
   printf("successfully parsed %lu dynamic address trace items\n",
          addrTrace.size());
 
-  // map address to instructions
-  /*
-  Matcher matcher;
-  LLVMContext context;
-  unique_ptr<Module> M = parseModule(context, <path_to_bitcode_file>);
-  matcher.process(*M);
-  addrTrace.addressesToInstructions(&matcher);
-  */
-
   // FIXME: should support libpmem reactor, which does not have a pool address.
   if (addrTrace.pool_empty()) {
     fprintf(stderr, "No pool address found in the address trace file, abort\n");
     return 1;
   }
+
+  // map address to instructions
+  Matcher matcher;
+  matcher.process(*M);
+  addrTrace.addressesToInstructions(&matcher);
 
   // Step 2.b: Convert collected addresses to pointers and offsets
   // FIXME: here, we are assuming the target program only has a single pool.
@@ -221,6 +215,8 @@ int main(int argc, char *argv[]) {
   num_data, sorted_addresses, pmem_addresses, sorted_pmem_addresses, offsets);
 
   //Step 5d: revert by sequence number
+
+  slice_fault_instructions(M.get());
   //TODO: put in loop alongside reexecution, decrementing 
   // most likely sequence number to rollback.
   int curr_version = ordered_data[starting_seq_num].version;

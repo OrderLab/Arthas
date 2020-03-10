@@ -1,6 +1,3 @@
-add_definitions(-DHAVE_LLVM)
-add_definitions(-DENABLE_CFG)
-
 if (DEFINED ENV{PMDK_HOME})
   set(PMDK_HOME "$ENV{PMDK_HOME}")
 endif()
@@ -22,8 +19,12 @@ message(STATUS "PMEM libraries: ${PMEM_LIBRARIES}")
 link_directories(${PMEM_LIBRARY_DIRS})
 
 include_directories(${ROOT_SOURCE_DIR}/analyzer/include)
-link_directories(${ROOT_SOURCE_DIR}/analyzer/lib)
+link_directories(analyzer/lib)
 
+# need this hack here, otherwise #include "dg/llvm/XXX" in 
+# the analyzer won't work anymore 
+add_definitions(-DHAVE_LLVM)
+add_definitions(-DENABLE_CFG)
 include_directories(${ROOT_SOURCE_DIR}/analyzer/third-party/dg/include)
 link_directories(third-party/dg/lib)
 
