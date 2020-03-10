@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
   int slice_seq_iterator = 0;
   for (Slice *slice : slices) {
     for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
-      // TODO: iterate through addTraceList, find relevant address
+      // Iterate through addTraceList, find relevant address
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
@@ -241,6 +241,8 @@ int main(int argc, char *argv[]) {
         }
       }
     }
+    // TODO: Here we should do reversion on collected seq numbers and try
+    // try reexecution
   }
 
   // TODO: put in loop alongside reexecution, decrementing
