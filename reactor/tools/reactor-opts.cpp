@@ -39,6 +39,10 @@ static struct option long_options[] = {
     {"rxcmd", required_argument, 0, 'r'},
     {"guid-map", required_argument, 0, 'g'},
     {"addresses", required_argument, 0, 'a'},
+    {"file-lines", required_argument, 0, 'z'},
+    {"inst-str", required_argument, 0, 'i'},
+    {"func-name", required_argument, 0, 'f'},
+    {"inst-no", required_argument, 0, 's'},
     {0, 0, 0, 0}};
 
 void usage() {
@@ -57,8 +61,12 @@ void usage() {
       "  -r, --rxcmd <command>        : command string to re-execute the\n"
       "                                 target program with reverted context\n"
       "  -g, --guid-map <file>        : path to the static GUID map file\n"
-      "  -a, --addresses <file>       : path to the dynamic address trace "
-      "file\n\n",
+      "  -a, --addresses <file>       : path to the dynamic address trace file\n"
+      "  -z  --file-lines <lines>     : comma separated list of slicing criterion\n"
+      "  -i  --inst-str <inst-string> : instruction to start slicing\n"
+      "  -f  --func-name <func>       : func name \n"
+      "  -s  --inst-no <inst>         : Nth instruction in a function to start slicing "
+      "\n\n",
       program);
 }
 
@@ -98,6 +106,22 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
         break;
       case 'r':
         options.reexecute_cmd = optarg;
+        break;
+      case 'z':
+        options.file_lines = optarg;
+        break;
+      case 'i':
+        options.inst = optarg;
+        break;
+      case 'f':
+        options.func = optarg;
+        break;
+      case 's':
+        options.inst_no = strtol(optarg, &pend, 10);
+        if (pend == optarg || *pend != '\0') {
+          fprintf(stderr, "version number must be an integer\n");
+          return false;
+        }
         break;
       case 0:
         // getopt_long sets a flagkeep going
@@ -160,5 +184,26 @@ bool check_options(reactor_options &options) {
             "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
+  if (options.file_lines.empty()) {
+    fprintf(stderr,
+            "file_lines not set, specify it with -z or --file-lines\n");
+    return false;
+  }
+  if (options.inst.empty()) {
+    fprintf(stderr,
+            "instruction string is not set, specify it with -i or --inst-str\n");
+    return false;
+  }
+  if (options.func.empty()) {
+    fprintf(stderr,
+            "function name is not set, specify it with -f or --func-name\n");
+    return false;
+  }
+  if (!options.inst_no){
+    fprintf(stderr,
+            "instruction num is not set, specify it with -s or --inst-no\n");
+    return false;
+  }
+
   return true;
 }

@@ -9,6 +9,8 @@
 #ifndef _REACTOR_OPTS_H_
 #define _REACTOR_OPTS_H_
 
+#include <string>
+
 typedef struct reactor_options {
   /* argument options */
   const char *address_file;
@@ -18,6 +20,10 @@ typedef struct reactor_options {
   const char *pmem_library;
   const char *hook_guid_file;
   const char *reexecute_cmd;
+  std::string file_lines; // comma separated file:line criteria
+  std::string inst; // string representation of the target instruction
+  std::string func; // function name for the target instruction
+  int inst_no;  // target instruction is the i-th instruction in the given function
   int version_num;
 } reactor_options;
 
