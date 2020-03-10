@@ -40,16 +40,45 @@ else()
 endif()
 
 file(GLOB_RECURSE FILES_TO_FORMAT
-  ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/analyzer/*.h
-
+  ${CMAKE_SOURCE_DIR}/analyzer/*.cpp
+  ${CMAKE_SOURCE_DIR}/analyzer/*.h
+  ${CMAKE_SOURCE_DIR}/reactor/*.cpp
+  ${CMAKE_SOURCE_DIR}/reactor/*.c
+  ${CMAKE_SOURCE_DIR}/reactor/*.h
 )
 
+set(EXCLUDE_DIRS 
+  ${CMAKE_SOURCE_DIR}/analyzer/third-party 
+  ${CMAKE_SOURCE_DIR}/analyzer/future
+  "/CMakeFiles/"
+)
+
+foreach (SOURCE_FILE ${FILES_TO_FORMAT})
+  foreach (EXCLUDE_DIR ${EXCLUDE_DIRS})
+    string (FIND ${SOURCE_FILE} ${EXCLUDE_DIR} EXCLUDE_DIR_FOUND)
+    if (NOT ${EXCLUDE_DIR_FOUND} EQUAL -1)
+      list (REMOVE_ITEM FILES_TO_FORMAT ${SOURCE_FILE})
+    endif ()
+  endforeach()
+endforeach()
+
 if(CLANG_FORMAT_EXE)
-  message(STATUS "running clang-format on all source files.")
+  add_custom_target(
+    format-all
+    COMMENT "Formatting all source files"
+    COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${FILES_TO_FORMAT}
+  )
+  add_custom_target(
+    format-check
+    COMMENT "Checking code style format of changed source files"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND scripts/clang-format-changed.py --check-only --clang-format-bin ${CLANG_FORMAT_EXE}
+  )
   add_custom_target(
     format
-    COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${FILES_TO_FORMAT}
+    COMMENT "Format code style of changed source files"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMAND scripts/clang-format-changed.py --in-place --clang-format-bin ${CLANG_FORMAT_EXE}
   )
 endif()
 
