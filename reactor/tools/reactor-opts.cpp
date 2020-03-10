@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <algorithm>
 
 #include "reactor-opts.h"
 
@@ -39,10 +40,8 @@ static struct option long_options[] = {
     {"rxcmd", required_argument, 0, 'r'},
     {"guid-map", required_argument, 0, 'g'},
     {"addresses", required_argument, 0, 'a'},
-    {"file-lines", required_argument, 0, 'z'},
-    {"inst-str", required_argument, 0, 'i'},
-    {"func-name", required_argument, 0, 'f'},
-    {"inst-no", required_argument, 0, 's'},
+    {"fault-inst", required_argument, 0, 'i'},
+    {"fault-loc", required_argument, 0, 'c'},
     {"bc-file", required_argument, 0, 'b'},
     {0, 0, 0, 0}};
 
@@ -64,12 +63,10 @@ void usage() {
       "  -g, --guid-map <file>        : path to the static GUID map file\n"
       "  -a, --addresses <file>       : path to the dynamic address trace "
       "file\n"
-      "  -z  --file-lines <lines>     : comma separated list of slicing "
       "criterion\n"
-      "  -i  --inst-str <inst-string> : instruction to start slicing\n"
-      "  -f  --func-name <func>       : func name \n"
-      "  -s  --inst-no <inst>         : Nth instruction in a function to start "
-      "slicing \n"
+      "  -i  --fault-inst <string>    : the fault instruction\n"
+      "  -f  --fault-loc  <file:line\n"
+      "                   [:func]>    : location of the fault instruction \n"
       "  -b  --bc-file <file>         : bytecode file "
       "\n\n",
       program);
@@ -112,21 +109,11 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
       case 'r':
         options.reexecute_cmd = optarg;
         break;
-      case 'z':
-        options.file_lines = optarg;
+      case 'c':
+        options.fault_loc = optarg;
         break;
       case 'i':
-        options.inst = optarg;
-        break;
-      case 'f':
-        options.func = optarg;
-        break;
-      case 's':
-        options.inst_no = strtol(optarg, &pend, 10);
-        if (pend == optarg || *pend != '\0') {
-          fprintf(stderr, "version number must be an integer\n");
-          return false;
-        }
+        options.fault_instr = optarg;
         break;
       case 'b':
         options.bc_file = optarg;
@@ -192,32 +179,31 @@ bool check_options(reactor_options &options) {
             "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
-  /*if (options.file_lines.empty()) {
+  if (!options.fault_instr.empty()) {
     fprintf(stderr,
-            "file_lines not set, specify it with -z or --file-lines\n");
+            "fault instruction string is not set, specify it with -i or "
+            "--fault-inst\n");
     return false;
-  }*/
-  if (options.inst.empty()) {
+  }
+  if (!options.fault_loc.empty()) {
+    fprintf(stderr,
+            "fault instruction location is not set, specify it with -c or "
+            "--fault-loc\n");
+    return false;
+  }
+  size_t n =
+      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
+  if (n < 1 || n > 2) {
     fprintf(
         stderr,
-        "instruction string is not set, specify it with -i or --inst-str\n");
+        "invalid location specifier %s, it must be <file:line[:func]> format\n",
+        options.fault_loc.c_str());
     return false;
   }
-  if (options.func.empty()) {
+  if (!options.bc_file.empty()) {
     fprintf(stderr,
-            "function name is not set, specify it with -f or --func-name\n");
+            "bitcode file is not set, specify it with -b or --bc-file\n");
     return false;
   }
-  if (!options.inst_no) {
-    fprintf(stderr,
-            "instruction num is not set, specify it with -s or --inst-no\n");
-    return false;
-  }
-  if (options.bc_file.empty()) {
-    fprintf(stderr,
-            "function name is not set, specify it with -f or --func-name\n");
-    return false;
-  }
-
   return true;
 }

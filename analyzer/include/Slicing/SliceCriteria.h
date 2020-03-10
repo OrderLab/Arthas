@@ -24,6 +24,8 @@ struct SliceInstCriteriaOpt {
   std::string func; // function name for the target instruction
   int inst_no; // target instruction is the i-th instruction in the given function
 
+  SliceInstCriteriaOpt() {}
+
   SliceInstCriteriaOpt(std::string fileLines, std::string instruction,
                        std::string functionName, int instrNo)
       : file_lines(fileLines),

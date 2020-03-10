@@ -8,6 +8,7 @@
 
 #include <libpmemobj.h>
 #include <pthread.h>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -65,9 +66,21 @@ unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
 
 bool slice_fault_instructions(Module *M, Slices &slices,
                               vector<Instruction *> &_startSliceInstrs) {
-  SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func,
-                           options.inst_no);
-  if (!parseSlicingCriteriaOpt(opt, *M, _startSliceInstrs)) {
+  size_t n =
+      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
+
+  SliceInstCriteriaOpt slice_opt;
+  if (n == 1) {
+    slice_opt.file_lines = options.fault_loc;
+  } else if (n == 2) {
+    size_t pos = options.fault_loc.rfind(':');
+    slice_opt.file_lines = options.fault_loc.substr(0, pos);
+    slice_opt.func = options.fault_loc.substr(pos + 1);
+  } else {
+    errs() << "invalid fault location specifier " << options.fault_loc << "\n";
+    return false;
+  }
+  if (!parseSlicingCriteriaOpt(slice_opt, *M, _startSliceInstrs)) {
     errs() << "Please supply the correct slicing criteria (see --help)\n";
     return false;
   }
@@ -141,11 +154,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // map address to instructions
-  Matcher matcher;
-  matcher.process(*M);
-  addrTrace.addressesToInstructions(&matcher);
-
   // Step 2.b: Convert collected addresses to pointers and offsets
   // FIXME: here, we are assuming the target program only has a single pool.
   if (!addrTrace.calculatePoolOffsets()) {
@@ -154,6 +162,11 @@ int main(int argc, char *argv[]) {
             "the address trace file, abort\n");
     return 1;
   }
+
+  // map address to instructions
+  Matcher matcher;
+  matcher.process(*M);
+  addrTrace.addressesToInstructions(&matcher);
 
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
@@ -203,8 +216,6 @@ int main(int argc, char *argv[]) {
 
   // TODO: Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
-  SliceInstCriteriaOpt(options.file_lines, options.inst, options.func,
-                       options.inst_no);
   int starting_seq_num = 6;
 
   // Step 5c: sort the addresses arrays by sequence number

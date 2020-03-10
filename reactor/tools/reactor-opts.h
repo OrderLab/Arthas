@@ -20,12 +20,14 @@ typedef struct reactor_options {
   const char *pmem_library;
   const char *hook_guid_file;
   const char *reexecute_cmd;
-  std::string bc_file;
-  std::string file_lines; // comma separated file:line criteria
-  std::string inst; // string representation of the target instruction
-  std::string func; // function name for the target instruction
-  int inst_no;  // target instruction is the i-th instruction in the given function
   int version_num;
+
+  // string representation of the fault instruction
+  std::string fault_instr;
+  // fault instruction location information
+  std::string fault_loc;
+  // the path to the bitcode file
+  std::string bc_file;
 } reactor_options;
 
 extern const char *program;
