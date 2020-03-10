@@ -8,6 +8,7 @@
 
 #include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
+#include "Matcher/Matcher.h"
 #include "Utils/String.h"
 
 #include "llvm/Support/raw_ostream.h"
@@ -19,6 +20,7 @@
 using namespace std;
 using namespace llvm;
 using namespace llvm::instrument;
+using namespace llvm::matching;
 
 // Must be consistent with the field separator used in the address tracker lib
 const char *PmemAddrTrace::FieldSeparator = ",";
@@ -94,6 +96,50 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
     result.add(item);
   }
   addrfile.close();
+  return true;
+}
+
+bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
+  // assume the matcher has been called with process(Module) beforehand
+  if (!matcher->processed()) {
+    errs() << "Matcher is not ready, cannot use it\n";
+    return false;
+  }
+
+  // each item has one file:line, reserve the vector
+  for (auto &item : _items) {
+    if (item->var == nullptr) continue;
+    // FIXME: path + filename is probably better
+    FileLine fileLine(item->var->source_file, item->var->line);
+    errs() << "Source " << item->var->source_file << ":" << item->var->line
+           << "\n";
+    MatchResult matchResult;
+    if (!matcher->matchInstrsCriterion(fileLine, &matchResult)) {
+      errs() << "Failed to find instruction for address " << item->addr_str
+             << ", guid " << item->guid << "\n";
+      continue;
+    }
+    bool found = false;
+    for (Instruction *instr : matchResult.instrs) {
+      std::string str_instr;
+      llvm::raw_string_ostream rso(str_instr);
+      instr->print(rso);
+      errs() << "Instruction " << *instr << "\n";
+      if (item->var->instruction.compare(str_instr) == 0) {
+        // update the instruction field of item
+        item->instr = instr;
+        errs() << "Found instruction for address " << item->addr_str
+               << ", guid " << item->guid << ": " << str_instr << "\n";
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      errs() << "Failed to find instruction for address " << item->addr_str
+             << ", guid " << item->guid << ", instr " << item->var->instruction
+             << "\n";
+    }
+  }
   return true;
 }
 

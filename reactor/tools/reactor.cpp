@@ -19,7 +19,7 @@
 
 #include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
-#include "Slicing/SliceCriteria.h"
+#include "Matcher/Matcher.h"
 #include "Slicing/Slice.h"
 #include "Slicing/Slicer.h"
 #include "Utils/LLVM.h"
@@ -27,6 +27,7 @@
 #include "Matcher/Matcher.h"
 #include "DefUse/DefUse.h"
 #include "PMem/Extractor.h"
+#include "Slicing/SliceCriteria.h"
 
 using namespace std;
 using namespace llvm;
@@ -34,6 +35,7 @@ using namespace llvm::slicing;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
 using namespace llvm::defuse;
+using namespace llvm::matching;
 
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
@@ -135,6 +137,15 @@ int main(int argc, char *argv[]) {
   printf("successfully parsed %lu dynamic address trace items\n",
          addrTrace.size());
 
+  // map address to instructions
+  /*
+  Matcher matcher;
+  LLVMContext context;
+  unique_ptr<Module> M = parseModule(context, <path_to_bitcode_file>);
+  matcher.process(*M);
+  addrTrace.addressesToInstructions(&matcher);
+  */
+
   // FIXME: should support libpmem reactor, which does not have a pool address.
   if (addrTrace.pool_empty()) {
     fprintf(stderr, "No pool address found in the address trace file, abort\n");
@@ -177,7 +188,6 @@ int main(int argc, char *argv[]) {
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
-
   // Step 3: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
       reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
@@ -199,6 +209,8 @@ int main(int argc, char *argv[]) {
 
   // TODO: Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
+  SliceInstCriteriaOpt(options.file_lines, options.inst, options.func,
+                       options.inst_no);
   int starting_seq_num = 6;
 
   // Step 5c: sort the addresses arrays by sequence number
