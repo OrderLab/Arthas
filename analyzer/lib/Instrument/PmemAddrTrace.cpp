@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <sstream>
 
 #undef DEBUG_ADDRTRACE
@@ -41,6 +42,9 @@ static const char *PmemObjCreateCallInstrStr =
 
 // the pmem_map_file call instruction string to identify mmap region
 static const char *PmemCreateCallInstrStr = "call i8* @pmem_map_file";
+
+// regular expression for the register format in the LLVM instruction: %N
+static const regex register_regex("\\%\\d+");
 
 PmemAddrTrace::~PmemAddrTrace() {
   for (auto item : _items) {
@@ -158,21 +162,28 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
         //    %41 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
         //    !73
         //
-        // They only differ by the register number!
+        // They only differ by the register number! Besides the return value
+        // register number, the argument register numbers could also change!
 
-        // FIXME: we are only ignoring the return register number, but the
-        // function argument register numbers could also change!!
-        size_t assign_pos1 = str_instr.find('=');
-        size_t assign_pos2 = item->var->instruction.find('=');
-        if (assign_pos1 != std::string::npos &&
-            assign_pos2 != std::string::npos) {
-          string instr_body1 = str_instr.substr(assign_pos1 + 1);
-          string instr_body2 = item->var->instruction.substr(assign_pos2 + 1);
-          if (instr_body1.compare(instr_body2) == 0) {
-            // don't break here so that if we can find exact matching in the
-            // loop, exact matching is still preferred
-            fuzzy_instr = instr;
+        // To implement fuzzy match, we split the instruction strings based on
+        // the register regular expression, and then only if all the parts
+        // of the split string match will the two strings match.
+
+        std::sregex_token_iterator iter1(str_instr.begin(), str_instr.end(),
+                                         register_regex, -1);
+        std::sregex_token_iterator iter2(item->var->instruction.begin(),
+                                         item->var->instruction.end(),
+                                         register_regex, -1);
+        std::sregex_token_iterator end;
+        for (; iter1 != end && iter2 != end; ++iter1, ++iter2) {
+          if (iter1->compare(*iter2) != 0) {
+            break;
           }
+        }
+        if (iter1 == end && iter2 == end) {
+          // don't break here so that if we can find exact matching in the
+          // loop, exact matching is still preferred
+          fuzzy_instr = instr;
         }
       }
     }
