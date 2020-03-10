@@ -17,6 +17,16 @@
 #include <iostream>
 #include <sstream>
 
+#undef DEBUG_ADDRTRACE
+
+#ifdef DEBUG_ADDRTRACE
+#define SDEBUG(X) X
+#else
+#define SDEBUG(X) \
+  do {            \
+  } while (false)
+#endif
+
 using namespace std;
 using namespace llvm;
 using namespace llvm::instrument;
@@ -106,13 +116,12 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     return false;
   }
 
-  // each item has one file:line, reserve the vector
   for (auto &item : _items) {
     if (item->var == nullptr) continue;
     // FIXME: path + filename is probably better
     FileLine fileLine(item->var->source_file, item->var->line);
-    errs() << "Source " << item->var->source_file << ":" << item->var->line
-           << "\n";
+    SDEBUG(dbgs() << "Source " << item->var->source_file << ":"
+                  << item->var->line << "\n");
     MatchResult matchResult;
     if (!matcher->matchInstrsCriterion(fileLine, &matchResult)) {
       errs() << "Failed to find instruction for address " << item->addr_str
@@ -120,11 +129,12 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
       continue;
     }
     bool found = false;
+    Instruction *fuzzy_instr = nullptr;
     for (Instruction *instr : matchResult.instrs) {
       std::string str_instr;
       llvm::raw_string_ostream rso(str_instr);
       instr->print(rso);
-      errs() << "Instruction " << *instr << "\n";
+      SDEBUG(dbgs() << "Instruction " << *instr << "\n");
       if (item->var->instruction.compare(str_instr) == 0) {
         // update the instruction field of item
         item->instr = instr;
@@ -132,12 +142,50 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
                << ", guid " << item->guid << ": " << str_instr << "\n";
         found = true;
         break;
+      } else {
+        // If the string instruction does not match, we'll check
+        // if the instruction can be fuzzily matched.
+        // The reason that the fuzzy matching is necessary is because
+        // the debug information recorded in the Instrumenter is
+        // based on the **instrumented** bitcode, which will shift
+        // the register number in the assignment!!! If we are given the
+        // original bitcode file, the register number will not match, e.g.,:
+        //
+        //  instr in original bitcode-
+        //    %38 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
+        //    !73
+        //  instr in instrumented bitcode-
+        //    %41 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
+        //    !73
+        //
+        // They only differ by the register number!
+
+        // FIXME: we are only ignoring the return register number, but the
+        // function argument register numbers could also change!!
+        size_t assign_pos1 = str_instr.find('=');
+        size_t assign_pos2 = item->var->instruction.find('=');
+        if (assign_pos1 != std::string::npos &&
+            assign_pos2 != std::string::npos) {
+          string instr_body1 = str_instr.substr(assign_pos1 + 1);
+          string instr_body2 = item->var->instruction.substr(assign_pos2 + 1);
+          if (instr_body1.compare(instr_body2) == 0) {
+            // don't break here so that if we can find exact matching in the
+            // loop, exact matching is still preferred
+            fuzzy_instr = instr;
+          }
+        }
       }
     }
     if (!found) {
-      errs() << "Failed to find instruction for address " << item->addr_str
-             << ", guid " << item->guid << ", instr " << item->var->instruction
-             << "\n";
+      if (fuzzy_instr) {
+        errs() << "Found a fuzzily matched instruction for address "
+               << item->addr_str << ", guid " << item->guid << ", instr "
+               << item->var->instruction << " ~~ " << *fuzzy_instr << "\n";
+      } else {
+        errs() << "Failed to find instruction for address " << item->addr_str
+               << ", guid " << item->guid << ", instr "
+               << item->var->instruction << "\n";
+      }
     }
   }
   return true;
