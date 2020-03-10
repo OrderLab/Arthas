@@ -17,19 +17,6 @@ add_library(Matcher SHARED
   Matcher/Matcher.cpp
 )
 
-add_library(Instrument SHARED
-  Instrument/PmemAddrInstrumenter.cpp
-  Instrument/InstrumentPmemAddrPass.cpp
-  Instrument/PmemVarGuidMap.cpp
-  Instrument/PmemAddrTrace.cpp
-)
-
-target_link_libraries(Instrument
-  PUBLIC PMem
-  PRIVATE AddrTracker
-  PRIVATE ${llvm_transformutils}
-)
-
 add_library(PMem SHARED
   PMem/Extractor.cpp
 )
@@ -46,6 +33,26 @@ target_link_libraries(LLVMPMem
   PUBLIC PMem
 )
 
+add_library(Instrumenter SHARED
+  Instrument/PmemAddrInstrumenter.cpp
+  Instrument/PmemVarGuidMap.cpp
+  Instrument/PmemAddrTrace.cpp
+)
+
+target_link_libraries(Instrumenter
+  PUBLIC PMem
+  PRIVATE AddrTracker
+  PRIVATE ${llvm_transformutils}
+)
+
+add_library(LLVMInstrument SHARED
+  Instrument/InstrumentPmemAddrPass.cpp
+)
+
+target_link_libraries(LLVMInstrument
+  PUBLIC Instrumenter
+)
+
 add_library(Slicer SHARED
   Slicing/Slice.cpp
   Slicing/SliceGraph.cpp
@@ -58,7 +65,7 @@ target_link_libraries(Slicer
   PUBLIC DefUse
   PUBLIC Matcher
   PUBLIC PMem
-  PUBLIC Instrument
+  PUBLIC Instrumenter
   PUBLIC Utils
   PUBLIC LLVMdg
 )

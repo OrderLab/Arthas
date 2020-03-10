@@ -5,7 +5,7 @@ add_executable(reactor
 target_link_libraries(reactor
   PUBLIC checkpoint
   PUBLIC rollback
-  PRIVATE Instrument
+  PRIVATE Instrumenter
   PRIVATE Slicer
   PRIVATE ${PMEM_LIBRARIES}
   PRIVATE pthread 
