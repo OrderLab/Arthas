@@ -50,19 +50,24 @@ int handle_behavior(char *path){
     }TX_END
 
     TX_BEGIN(pop){
-      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
-      *pmem_double_ptr = 10;
       pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
       *pmem_int_ptr2 = 13;
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+      *pmem_double_ptr = 10;
       pmemobj_tx_add_range_direct(pmem_int_ptrs[0], sizeof(int)*5);
     }TX_END
 
     TX_BEGIN(pop){
-      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
-      *pmem_double_ptr = 11;
       pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
       *pmem_int_ptr2 = 4;
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+      *pmem_double_ptr = 11;
     }TX_END
+
+   TX_BEGIN(pop){
+      pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double)); 
+   }TX_END
   }
   else{
     //File exists, open and recover.
@@ -101,13 +106,13 @@ int handle_behavior(char *path){
   }
 
   //Now we will do calculations with variables:
-  /*int a ;
+  int a ;
   if(*pmem_int_ptr2 == 4)
     a = 4 - *pmem_int_ptr2;
   else
     a = 13 - *pmem_int_ptr2;
   int b = 30/a;;
-  printf("FINISHED!!! b is %d\n", b);*/
+  printf("FINISHED!!! b is %d\n", b);
   return 1;
 }
 
