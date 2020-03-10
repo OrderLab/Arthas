@@ -64,8 +64,8 @@ unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
   return slice_graph;
 }
 
-bool slice_fault_instructions(Module *M, Slices &slices) {
-  vector<Instruction *> _startSliceInstrs;
+bool slice_fault_instructions(Module *M, Slices &slices,
+                              vector<Instruction *> &_startSliceInstrs) {
   SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func,
                            options.inst_no);
   if (!parseSlicingCriteriaOpt(opt, *M, _startSliceInstrs)) {
@@ -219,7 +219,20 @@ int main(int argc, char *argv[]) {
   // Step 5d: revert by sequence number
 
   Slices slices;
-  slice_fault_instructions(M.get(), slices);
+  vector<Instruction *> _startSliceInstrs;
+  slice_fault_instructions(M.get(), slices, _startSliceInstrs);
+  for (auto fault_inst : _startSliceInstrs) {
+    for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
+      PmemAddrTraceItem *traceItem = *it;
+      if (traceItem->instr == &(*fault_inst)) {
+        for (int i = *total_size; i >= 0; i--) {
+          if (traceItem->addr == (uint64_t)ordered_data[i].address) {
+            starting_seq_num = ordered_data[i].sequence_number;
+          }
+        }
+      }
+    }
+  }
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
   int slice_seq_iterator = 0;
   for (Slice *slice : slices) {
@@ -231,7 +244,7 @@ int main(int argc, char *argv[]) {
         PmemAddrTraceItem *traceItem = *it;
         if (traceItem->instr == *dep_inst) {
           // We found the address for the instruction: traceItem->addr
-          for (int i = 0; i < *total_size; i++) {
+          for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address) {
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
