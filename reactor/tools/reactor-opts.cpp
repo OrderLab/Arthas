@@ -62,11 +62,14 @@ void usage() {
       "  -r, --rxcmd <command>        : command string to re-execute the\n"
       "                                 target program with reverted context\n"
       "  -g, --guid-map <file>        : path to the static GUID map file\n"
-      "  -a, --addresses <file>       : path to the dynamic address trace file\n"
-      "  -z  --file-lines <lines>     : comma separated list of slicing criterion\n"
+      "  -a, --addresses <file>       : path to the dynamic address trace "
+      "file\n"
+      "  -z  --file-lines <lines>     : comma separated list of slicing "
+      "criterion\n"
       "  -i  --inst-str <inst-string> : instruction to start slicing\n"
       "  -f  --func-name <func>       : func name \n"
-      "  -s  --inst-no <inst>         : Nth instruction in a function to start slicing \n"
+      "  -s  --inst-no <inst>         : Nth instruction in a function to start "
+      "slicing \n"
       "  -b  --bc-file <file>         : bytecode file "
       "\n\n",
       program);
@@ -189,14 +192,15 @@ bool check_options(reactor_options &options) {
             "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
-  if (options.file_lines.empty()) {
+  /*if (options.file_lines.empty()) {
     fprintf(stderr,
             "file_lines not set, specify it with -z or --file-lines\n");
     return false;
-  }
+  }*/
   if (options.inst.empty()) {
-    fprintf(stderr,
-            "instruction string is not set, specify it with -i or --inst-str\n");
+    fprintf(
+        stderr,
+        "instruction string is not set, specify it with -i or --inst-str\n");
     return false;
   }
   if (options.func.empty()) {
@@ -204,7 +208,7 @@ bool check_options(reactor_options &options) {
             "function name is not set, specify it with -f or --func-name\n");
     return false;
   }
-  if (!options.inst_no){
+  if (!options.inst_no) {
     fprintf(stderr,
             "instruction num is not set, specify it with -s or --inst-no\n");
     return false;

@@ -17,17 +17,17 @@
 
 #include "reactor-opts.h"
 
+#include "DefUse/DefUse.h"
 #include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
 #include "Matcher/Matcher.h"
+#include "Matcher/Matcher.h"
+#include "PMem/Extractor.h"
 #include "Slicing/Slice.h"
+#include "Slicing/SliceCriteria.h"
 #include "Slicing/Slicer.h"
 #include "Utils/LLVM.h"
 #include "Utils/String.h"
-#include "Matcher/Matcher.h"
-#include "DefUse/DefUse.h"
-#include "PMem/Extractor.h"
-#include "Slicing/SliceCriteria.h"
 
 using namespace std;
 using namespace llvm;
@@ -64,9 +64,10 @@ unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
   return slice_graph;
 }
 
-bool slice_fault_instructions(Module *M) {
+bool slice_fault_instructions(Module *M, Slices &slices) {
   vector<Instruction *> _startSliceInstrs;
-  SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func, options.inst_no);
+  SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func,
+                           options.inst_no);
   if (!parseSlicingCriteriaOpt(opt, *M, _startSliceInstrs)) {
     errs() << "Please supply the correct slicing criteria (see --help)\n";
     return false;
@@ -85,7 +86,7 @@ bool slice_fault_instructions(Module *M) {
     }
     PMemVariableLocator *locator = locatorMap[F].get();
     locator->runOnFunction(*F);
-    Slices slices;
+    // Slices slices;
     instructionSlice(fault_inst, *locator, slices, _dgSlicer);
   }
   return true;
@@ -177,7 +178,7 @@ int main(int argc, char *argv[]) {
   void **pmem_addresses = (void **)malloc(num_data * sizeof(void *));
   for (size_t i = 0; i < num_data; ++i) {
     offsets[i] = last_pool.addresses[i]->pool_offset;
-    //cout << "offset is " << offsets[i] << "\n";
+    // cout << "offset is " << offsets[i] << "\n";
     addresses[i] = (void *)last_pool.addresses[i]->addr;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
@@ -211,30 +212,54 @@ int main(int argc, char *argv[]) {
   void **sorted_addresses = (void **)malloc(num_data * sizeof(void *));
   void **sorted_pmem_addresses = (void **)malloc(num_data * sizeof(void *));
   printf("total size is %ld\n", *total_size);
-  sort_by_sequence_number(addresses, ordered_data, *total_size,
-  num_data, sorted_addresses, pmem_addresses, sorted_pmem_addresses, offsets);
+  sort_by_sequence_number(addresses, ordered_data, *total_size, num_data,
+                          sorted_addresses, pmem_addresses,
+                          sorted_pmem_addresses, offsets);
 
-  //Step 5d: revert by sequence number
+  // Step 5d: revert by sequence number
 
-  slice_fault_instructions(M.get());
-  //TODO: put in loop alongside reexecution, decrementing 
+  Slices slices;
+  slice_fault_instructions(M.get(), slices);
+  int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
+  int slice_seq_iterator = 0;
+  for (Slice *slice : slices) {
+    for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
+      // TODO: iterate through addTraceList, find relevant address
+      // for dep_inst, find address inside of ordered_data,
+      // find corresponding sequence numbers for address
+      for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
+        PmemAddrTraceItem *traceItem = *it;
+        if (traceItem->instr == *dep_inst) {
+          // We found the address for the instruction: traceItem->addr
+          for (int i = 0; i < *total_size; i++) {
+            if (traceItem->addr == (uint64_t)ordered_data[i].address) {
+              slice_seq_numbers[slice_seq_iterator] =
+                  ordered_data[i].sequence_number;
+              slice_seq_iterator++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // TODO: put in loop alongside reexecution, decrementing
   // most likely sequence number to rollback.
   int curr_version = ordered_data[starting_seq_num].version;
-  revert_by_sequence_number(sorted_pmem_addresses, ordered_data, 
-  starting_seq_num, curr_version - 1);
+  revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
+                            starting_seq_num, curr_version - 1);
   pmemobj_close(pop);
-  int req_flag = re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
-             pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
-             offsets, COARSE_GRAIN_SEQUENCE, starting_seq_num - 1, sorted_pmem_addresses,
-             ordered_data);
-  if(req_flag){
+  int req_flag =
+      re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
+                 pmem_addresses, num_data, options.pmem_file,
+                 options.pmem_layout, offsets, COARSE_GRAIN_SEQUENCE,
+                 starting_seq_num - 1, sorted_pmem_addresses, ordered_data);
+  if (req_flag) {
     cout << "reversion with sequence numbers has succeeded\n";
     return 1;
   }
 
-  //re_execute(COARSE_GRAIN_SEQUENCE);
   free(total_size);
-  //revert_by_seq_num();
 
   // Step 6: Coarse-grain reversion
   // To be deleted: This will be unnecessary once data types are printed
@@ -263,7 +288,7 @@ int main(int argc, char *argv[]) {
   }*/
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
-  if(!pop){
+  if (!pop) {
     redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
                         pmem_addresses, offsets);
   }
@@ -274,8 +299,8 @@ int main(int argc, char *argv[]) {
   // Step 7: re-execution
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
-             offsets, COARSE_GRAIN_NAIVE, starting_seq_num, sorted_pmem_addresses,
-             ordered_data);
+             offsets, COARSE_GRAIN_NAIVE, starting_seq_num,
+             sorted_pmem_addresses, ordered_data);
   free(addresses);
   free(pmem_addresses);
   free(offsets);
