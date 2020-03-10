@@ -23,7 +23,7 @@ target_link_libraries(locator
 
 add_executable(instrumentor instrumentor/main.cpp)
 target_link_libraries(instrumentor
-  PRIVATE Instrument
+  PRIVATE Instrumenter
   PRIVATE AddrTracker
   PRIVATE Utils
   PRIVATE Matcher
@@ -32,11 +32,12 @@ target_link_libraries(instrumentor
   PRIVATE ${llvm_irreader}
   PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
+  PRIVATE ${llvm_bitwriter}
 )
 add_executable(slicer slicer/main.cpp)
 target_link_libraries(slicer
   PRIVATE Utils
-  PRIVATE Instrument
+  PRIVATE Instrumenter
   PRIVATE AddrTracker
   PRIVATE Matcher
   PRIVATE Slicer

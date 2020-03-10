@@ -81,3 +81,18 @@ bool split_untiln(const string &str, const char *delimeters, int n,
   }
   return i == n;
 }
+
+std::string getFileBaseName(std::string filePath, bool withExt, char dirSep) {
+  std::size_t sepPos = filePath.rfind(dirSep);
+  std::size_t dotPos = filePath.rfind('.');
+  std::size_t len;
+  if (sepPos != std::string::npos) {
+    len = ((withExt || dotPos == std::string::npos) ? filePath.size()
+                                                    : (dotPos - 1)) -
+          sepPos;
+    return filePath.substr(sepPos + 1, len);
+  } else {
+    if (withExt || dotPos == std::string::npos) return filePath;
+    return filePath.substr(0, dotPos);
+  }
+}

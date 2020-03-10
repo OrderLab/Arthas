@@ -15,7 +15,8 @@ Usage:
 
   -h, --help:       display this message
 
-      --plugin:     path to libInstrument.so, default is build/analyzer/lib
+      --plugin:     path to libLLVMInstrument.so, default is build/analyzer/lib
+                    (this flag is deprecated)
 
       --load-store: instrument regular load/store instructions
 
@@ -75,6 +76,7 @@ this_dir=$(cd "$(dirname "${BASH_SOURCE-$0}")"; pwd)
 build_dir=$(cd "${this_dir}/../build"; pwd)
 output=
 plugin_path=
+instrumenter=
 maybe=
 runtime_path=
 link_libs=
@@ -98,10 +100,11 @@ if [ ! -f $source_bc_file ]; then
   exit 1
 fi
 if [ -z "$plugin_path" ]; then
-  plugin_path=${build_dir}/analyzer/lib/libInstrument.so
+  plugin_path=${build_dir}/analyzer/lib/libLLVMInstrument.so
 fi
-if [ ! -f $plugin_path ]; then
-  echo "Plugin $plugin_path not found"
+instrumenter=${build_dir}/bin/instrumentor
+if [ ! -x $instrumenter ]; then
+  echo "Instrumenter $instrumenter not found"
   exit 1
 fi
 if [ -z "$runtime_path" ]; then
@@ -117,7 +120,8 @@ if [ ! -f  $runtime_lib ]; then
   exit 1
 fi 
 if [ -z "$output" ]; then
-  output_base="${source_bc_file%.*}"-instrumented
+  source_base=$(basename $source_bc_file)
+  output_base="${source_base%.*}"-instrumented
   output_bc=${output_base}.bc
   output_asm=${output_base}.s
   output_exe=${output_base}
@@ -128,7 +132,7 @@ else
 fi
 
 if [ $load_store -ne 0 ]; then
-  plugin_args="$plugin_args -regular-load-store"
+  instrumenter_args="$instrumenter_args -regular-load-store"
 fi
 
 if [ -z "$link_flags" ] && [ $load_store -eq 0 ]; then
@@ -139,7 +143,7 @@ if [ -z "$link_flags" ] && [ $load_store -eq 0 ]; then
   link_flags="-lpmem"
 fi
 
-$maybe opt -load $plugin_path -instr $plugin_args $source_bc_file -o $output_bc
+$maybe $instrumenter $instrumenter_args $source_bc_file -o $output_bc
 $maybe llc -O0 -disable-fp-elim -filetype=asm -o $output_asm $output_bc
 $maybe llvm-dis $output_bc
 # linking with shared runtime lib, flexible but slower

@@ -67,4 +67,7 @@ inline std::string& trim(std::string& str) {
   return ltrim(rtrim(str));
 }
 
+std::string getFileBaseName(std::string filePath, bool withExt = true,
+                            char dirSep = '/');
+
 #endif /* _UTILS_STRING_H_ */
