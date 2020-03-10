@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "llvm/IR/Instruction.h"
 
 namespace llvm {
 namespace instrument {
@@ -42,10 +43,12 @@ class PmemAddrTraceItem {
   bool is_mmap;
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
+  // associated llvm Instruction
+  llvm::Instruction *inst;
 
   PmemAddrTraceItem()
       : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
-        var(nullptr) {}
+        var(nullptr), inst(nullptr) {}
 };
 
 class PmemAddrPool {
