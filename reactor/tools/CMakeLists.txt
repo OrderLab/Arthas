@@ -10,4 +10,6 @@ target_link_libraries(reactor
   PRIVATE ${PMEM_LIBRARIES}
   PRIVATE pthread 
   PRIVATE dl
+  PRIVATE Matcher
+  PRIVATE DefUse
 )

@@ -1,3 +1,6 @@
+add_definitions(-DHAVE_LLVM)
+add_definitions(-DENABLE_CFG)
+
 if (DEFINED ENV{PMDK_HOME})
   set(PMDK_HOME "$ENV{PMDK_HOME}")
 endif()
@@ -20,6 +23,9 @@ link_directories(${PMEM_LIBRARY_DIRS})
 
 include_directories(${ROOT_SOURCE_DIR}/analyzer/include)
 link_directories(${ROOT_SOURCE_DIR}/analyzer/lib)
+
+include_directories(${ROOT_SOURCE_DIR}/analyzer/third-party/dg/include)
+link_directories(third-party/dg/lib)
 
 include_directories(include)
 include_directories(lib)

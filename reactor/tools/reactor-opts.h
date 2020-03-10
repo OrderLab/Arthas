@@ -20,6 +20,7 @@ typedef struct reactor_options {
   const char *pmem_library;
   const char *hook_guid_file;
   const char *reexecute_cmd;
+  std::string bc_file;
   std::string file_lines; // comma separated file:line criteria
   std::string inst; // string representation of the target instruction
   std::string func; // function name for the target instruction

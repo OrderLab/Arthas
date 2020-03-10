@@ -43,6 +43,7 @@ static struct option long_options[] = {
     {"inst-str", required_argument, 0, 'i'},
     {"func-name", required_argument, 0, 'f'},
     {"inst-no", required_argument, 0, 's'},
+    {"bc-file", required_argument, 0, 'b'},
     {0, 0, 0, 0}};
 
 void usage() {
@@ -65,7 +66,8 @@ void usage() {
       "  -z  --file-lines <lines>     : comma separated list of slicing criterion\n"
       "  -i  --inst-str <inst-string> : instruction to start slicing\n"
       "  -f  --func-name <func>       : func name \n"
-      "  -s  --inst-no <inst>         : Nth instruction in a function to start slicing "
+      "  -s  --inst-no <inst>         : Nth instruction in a function to start slicing \n"
+      "  -b  --bc-file <file>         : bytecode file "
       "\n\n",
       program);
 }
@@ -122,6 +124,9 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
           fprintf(stderr, "version number must be an integer\n");
           return false;
         }
+        break;
+      case 'b':
+        options.bc_file = optarg;
         break;
       case 0:
         // getopt_long sets a flagkeep going
@@ -202,6 +207,11 @@ bool check_options(reactor_options &options) {
   if (!options.inst_no){
     fprintf(stderr,
             "instruction num is not set, specify it with -s or --inst-no\n");
+    return false;
+  }
+  if (options.bc_file.empty()) {
+    fprintf(stderr,
+            "function name is not set, specify it with -f or --func-name\n");
     return false;
   }
 

@@ -21,14 +21,51 @@
 #include "Instrument/PmemVarGuidMap.h"
 #include "Slicing/SliceCriteria.h"
 #include "Slicing/Slice.h"
+#include "Slicing/Slicer.h"
+#include "Utils/LLVM.h"
+#include "Utils/String.h"
+#include "Matcher/Matcher.h"
+#include "DefUse/DefUse.h"
+#include "PMem/Extractor.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
+using namespace llvm::pmem;
 using namespace llvm::instrument;
+using namespace llvm::defuse;
 
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
+
+unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
+    PMemVariableLocator &locator, Slices &slices, unique_ptr<DgSlicer> &_dgSlicer) {
+  // Take faulty instruction and walk through Dependency Graph to
+  // obtain slices + metadata of persistent variables
+  uint32_t slice_id = 0;
+  SliceGraph *sg =
+      _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
+  auto &st = _dgSlicer->getStatistics();
+  unique_ptr<SliceGraph> slice_graph(sg);
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
+         << " nodes\n";
+  errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+ // *_out_stream << "=================Slice graph " << slice_graph->slice_id();
+ // *_out_stream << "=================\n";
+ // *_out_stream << *slice_graph.get() << "\n";
+ // errs() << "Slice graph is written to " << SliceOutput << "\n";
+
+  slice_graph->computeSlices(slices);
+ // *_out_stream << "=================Slice list " << slice_graph->slice_id();
+ // *_out_stream << "=================\n";
+  for (Slice *slice : slices) {
+    auto persistent_vars = locator.vars().getArrayRef();
+    slice->setPersistence(persistent_vars);
+   // slice->dump(*_out_stream);
+  }
+  //errs() << "The list of slices are written to " << SliceOutput << "\n";
+  return slice_graph;
+}
 
 struct reactor_options options;
 
@@ -53,8 +90,34 @@ void parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
-  SliceInstCriteriaOpt (options.file_lines, options.inst, options.func, options.inst_no);
-  
+  LLVMContext context;
+  //unique_ptr<Module> M = parseModule(context, options.bc_file);
+  Module *M = parseModule(context, options.bc_file).release();
+  vector<Instruction *> _startSliceInstrs;
+  SliceInstCriteriaOpt opt(options.file_lines, options.inst, options.func, options.inst_no);
+  if (!parseSlicingCriteriaOpt(opt, *M, _startSliceInstrs)) {
+    errs() << "Please supply the correct slicing criteria (see --help)\n";
+    return false;
+  }
+
+  SliceDirection _sliceDir;
+  unique_ptr<DgSlicer> _dgSlicer = make_unique<DgSlicer>(M, _sliceDir);
+  _dgSlicer->computeDependencies();
+
+  map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
+  for (auto fault_inst : _startSliceInstrs) {
+    Function *F = fault_inst->getFunction();
+    auto li = locatorMap.find(F);
+    if (li == locatorMap.end()) {
+      locatorMap.insert(make_pair(F, make_unique<PMemVariableLocator>()));
+    }
+    PMemVariableLocator *locator = locatorMap[F].get();
+    locator->runOnFunction(*F);
+    Slices slices;
+    instructionSlice(fault_inst, *locator, slices, _dgSlicer);
+
+  }
+
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
