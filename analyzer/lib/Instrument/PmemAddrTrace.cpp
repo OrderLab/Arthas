@@ -111,22 +111,33 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     if (item->var == nullptr) continue;
     // FIXME: path + filename is probably better
     FileLine fileLine(item->var->source_file, item->var->line);
+    errs() << "Source " << item->var->source_file << ":" << item->var->line
+           << "\n";
     MatchResult matchResult;
     if (!matcher->matchInstrsCriterion(fileLine, &matchResult)) {
       errs() << "Failed to find instruction for address " << item->addr_str
              << ", guid " << item->guid << "\n";
       continue;
     }
+    bool found = false;
     for (Instruction *instr : matchResult.instrs) {
       std::string str_instr;
       llvm::raw_string_ostream rso(str_instr);
       instr->print(rso);
+      errs() << "Instruction " << *instr << "\n";
       if (item->var->instruction.compare(str_instr) == 0) {
         // update the instruction field of item
         item->instr = instr;
-        errs() << "Found slice instruction " << str_instr << "\n";
+        errs() << "Found instruction for address " << item->addr_str
+               << ", guid " << item->guid << ": " << str_instr << "\n";
+        found = true;
         break;
       }
+    }
+    if (!found) {
+      errs() << "Failed to find instruction for address " << item->addr_str
+             << ", guid " << item->guid << ", instr " << item->var->instruction
+             << "\n";
     }
   }
   return true;

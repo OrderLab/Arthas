@@ -19,13 +19,16 @@
 
 #include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
-#include "Slicing/SliceCriteria.h"
+#include "Matcher/Matcher.h"
 #include "Slicing/Slice.h"
+#include "Slicing/SliceCriteria.h"
+#include "Utils/LLVM.h"
 
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 using namespace llvm::instrument;
+using namespace llvm::matching;
 
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
@@ -53,8 +56,6 @@ void parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
-  SliceInstCriteriaOpt (options.file_lines, options.inst, options.func, options.inst_no);
-  
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
@@ -71,6 +72,15 @@ int main(int argc, char *argv[]) {
   }
   printf("successfully parsed %lu dynamic address trace items\n",
          addrTrace.size());
+
+  // map address to instructions
+  /*
+  Matcher matcher;
+  LLVMContext context;
+  unique_ptr<Module> M = parseModule(context, <path_to_bitcode_file>);
+  matcher.process(*M);
+  addrTrace.addressesToInstructions(&matcher);
+  */
 
   // FIXME: should support libpmem reactor, which does not have a pool address.
   if (addrTrace.pool_empty()) {
@@ -114,7 +124,6 @@ int main(int argc, char *argv[]) {
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
 
-
   // Step 3: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
       reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
@@ -136,6 +145,8 @@ int main(int argc, char *argv[]) {
 
   // TODO: Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
+  SliceInstCriteriaOpt(options.file_lines, options.inst, options.func,
+                       options.inst_no);
   int starting_seq_num = 6;
 
   // Step 5c: sort the addresses arrays by sequence number
