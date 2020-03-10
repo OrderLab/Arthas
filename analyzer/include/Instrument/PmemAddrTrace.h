@@ -21,6 +21,10 @@
 #include <vector>
 
 namespace llvm {
+
+// forward declare the llvm::Instruction
+class Instruction;
+
 namespace instrument {
 
 class PmemVarGuidMap;
@@ -38,14 +42,16 @@ class PmemAddrTraceItem {
   uint64_t pool_offset;
   // if the address is a pool address or not
   bool is_pool;
-  //if the address is a pmem file address or not
+  // if the address is a pmem file address or not
   bool is_mmap;
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
+  // the LLVM instruction responsible for generating the address
+  Instruction *instr;
 
   PmemAddrTraceItem()
       : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
-        var(nullptr) {}
+        var(nullptr), instr(nullptr) {}
 };
 
 class PmemAddrPool {
@@ -94,8 +100,12 @@ class PmemAddrTrace {
   bool pool_empty() const { return _pool_addrs.empty(); }
   TracePoolListTy &pool_addrs() { return _pool_addrs; }
 
+  // Map the address in the trace to the corresponding LLVM instructions
+  bool addressesToInstructions();
+  // Try to calculate the pool offsets of a dynamic address
   bool calculatePoolOffsets();
 
+  // Deserialize the address trace from file
   static bool deserialize(const char *fileName, PmemVarGuidMap *varMap,
                           PmemAddrTrace &result, bool ignoreBadLine = false);
 
