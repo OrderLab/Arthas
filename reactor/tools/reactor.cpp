@@ -19,6 +19,7 @@
 
 #include "Instrument/PmemAddrTrace.h"
 #include "Instrument/PmemVarGuidMap.h"
+#include "Slicing/SliceCriteria.h"
 #include "Slicing/Slice.h"
 
 using namespace std;
@@ -52,6 +53,8 @@ void parse_args(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
 
+  SliceInstCriteriaOpt (options.file_lines, options.inst, options.func, options.inst_no);
+  
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
