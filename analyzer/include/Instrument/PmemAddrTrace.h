@@ -25,6 +25,10 @@ namespace llvm {
 // forward declare the llvm::Instruction
 class Instruction;
 
+namespace matching {
+class Matcher;
+}
+
 namespace instrument {
 
 class PmemVarGuidMap;
@@ -47,7 +51,7 @@ class PmemAddrTraceItem {
   // the associated guid map entry to locate the source instruction
   PmemVarGuidMapEntry *var;
   // the LLVM instruction responsible for generating the address
-  Instruction *instr;
+  llvm::Instruction *instr;
 
   PmemAddrTraceItem()
       : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
@@ -101,7 +105,7 @@ class PmemAddrTrace {
   TracePoolListTy &pool_addrs() { return _pool_addrs; }
 
   // Map the address in the trace to the corresponding LLVM instructions
-  bool addressesToInstructions();
+  bool addressesToInstructions(matching::Matcher *matcher);
   // Try to calculate the pool offsets of a dynamic address
   bool calculatePoolOffsets();
 

@@ -150,7 +150,7 @@ void Matcher::process(Module &M)
   // longer useful to use the DebugInfoFinder...
   // finder.processModule(M);
   module = &M;
-  processed = true;
+  _processed = true;
 }
 
 StringRef getFunctionName(const DISubprogram *SP) {

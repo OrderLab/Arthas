@@ -86,7 +86,7 @@ class MatchResult {
 class Matcher {
  protected:
   bool initialized;
-  bool processed;
+  bool _processed;
   int strips;
 
   llvm::DebugInfoFinder finder;
@@ -96,12 +96,13 @@ class Matcher {
   Matcher(int path_strips = 0) {
     strips = path_strips;
     initialized = false;
-    processed = false;
+    _processed = false;
   }
 
   bool matchInstrsCriterion(FileLine criterion, MatchResult *result);
   bool matchInstrsCriteria(std::vector<FileLine> &criteria, std::vector<MatchResult> &results);
 
+  bool processed() const { return _processed; }
   void process(llvm::Module &M);
 
   void setStrip(int path_strips) { strips = path_strips; }
