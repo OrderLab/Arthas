@@ -29,6 +29,8 @@
 #include "Utils/LLVM.h"
 #include "Utils/String.h"
 
+#include "llvm/Support/FileSystem.h"
+
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
@@ -38,33 +40,11 @@ using namespace llvm::defuse;
 using namespace llvm::matching;
 
 Instruction *faultInstr;
+Slices faultSlices;
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
 
 struct reactor_options options;
-
-unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
-                                        PMemVariableLocator &locator,
-                                        Slices &slices,
-                                        unique_ptr<DgSlicer> &_dgSlicer) {
-  // Take faulty instruction and walk through Dependency Graph to
-  // obtain slices + metadata of persistent variables
-  uint32_t slice_id = 0;
-  SliceGraph *sg =
-      _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
-  auto &st = _dgSlicer->getStatistics();
-  unique_ptr<SliceGraph> slice_graph(sg);
-  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
-         << " nodes\n";
-  errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
-
-  slice_graph->computeSlices(slices);
-  for (Slice *slice : slices) {
-    auto persistent_vars = locator.vars().getArrayRef();
-    slice->setPersistence(persistent_vars);
-  }
-  return slice_graph;
-}
 
 bool slice_fault_instruction(Module *M, Slices &slices,
                              Instruction *fault_inst) {
@@ -80,7 +60,24 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   }
   PMemVariableLocator *locator = locatorMap[F].get();
   locator->runOnFunction(*F);
-  instructionSlice(fault_inst, *locator, slices, _dgSlicer);
+
+  uint32_t slice_id = 0;
+  SliceGraph *sg =
+      _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
+  auto &st = _dgSlicer->getStatistics();
+  unique_ptr<SliceGraph> slice_graph(sg);
+  errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
+         << " nodes\n";
+  errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+
+  error_code ec;
+  raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
+  slice_graph->computeSlices(slices);
+  out_stream << *slice_graph << "\n";
+  for (Slice *slice : slices) {
+    auto persistent_vars = locator->vars().getArrayRef();
+    slice->setPersistence(persistent_vars);
+  }
   return true;
 }
 
@@ -139,6 +136,8 @@ int main(int argc, char *argv[]) {
     errs() << "Failed to locate the fault instruction\n";
     return 1;
   }
+
+  slice_fault_instruction(M.get(), faultSlices, faultInstr);
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
