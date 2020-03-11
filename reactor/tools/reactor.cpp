@@ -131,11 +131,11 @@ int main(int argc, char *argv[]) {
   Matcher matcher;
   matcher.process(*M);
 
-  faultInstr = locate_fault_instruction(M.get(), &matcher);
+  /*faultInstr = locate_fault_instruction(M.get(), &matcher);
   if (!faultInstr) {
     errs() << "Failed to locate the fault instruction\n";
     return 1;
-  }
+  }*/
 
   slice_fault_instruction(M.get(), faultSlices, faultInstr);
 
@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
   *total_size = 0;
   order_by_sequence_num(ordered_data, total_size, c_log);
 
-  // TODO: Step 5b: Bring in Slice Graph, find starting point in
+  // Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
   int starting_seq_num = 6;
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
   }
 
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
-  int slice_seq_iterator = 0;
+  int slice_seq_iterator = 1;
   slice_seq_numbers[0] = starting_seq_num;
   for (Slice *slice : slices) {
     for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
@@ -270,25 +270,31 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-    // TODO: Here we should do reversion on collected seq numbers and try
+    // TODO: Testing of this needs to be done.
+    // Here we should do reversion on collected seq numbers and try
     // try reexecution
-    /*revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
-                                     slice_seq_numbers,  slice_seq_iterator);
+    revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
+                                    slice_seq_numbers, slice_seq_iterator);
     pmemobj_close(pop);
-    re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
-              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
-              offsets, FINE_GRAIN, starting_seq_num,
-              sorted_pmem_addresses, ordered_data);
-
+    int req_flag2 =
+        re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
+                   pmem_addresses, num_data, options.pmem_file,
+                   options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
+                   sorted_pmem_addresses, ordered_data);
+    if (req_flag2 == 1) {
+      cout << "reversion with sequence numbers array has succeeded\n";
+      return 1;
+    }
     if (!pop) {
-     redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                         pmem_addresses, offsets);
+      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+                          pmem_addresses, offsets);
     }
 
-    slice_seq_iterator = 1;*/
+    slice_seq_iterator = 1;
   }
 
-  // TODO: put in loop alongside reexecution, decrementing
+  cout << "start regular reversion\n";
+  // Maybe: put in loop alongside reexecution, decrementing
   // most likely sequence number to rollback.
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
