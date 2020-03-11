@@ -74,6 +74,7 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
   slice_graph->computeSlices(slices);
   out_stream << *slice_graph << "\n";
+  out_stream.close();
   for (Slice *slice : slices) {
     auto persistent_vars = locator->vars().getArrayRef();
     slice->setPersistence(persistent_vars);
@@ -131,13 +132,11 @@ int main(int argc, char *argv[]) {
   Matcher matcher;
   matcher.process(*M);
 
-  /*faultInstr = locate_fault_instruction(M.get(), &matcher);
+  faultInstr = locate_fault_instruction(M.get(), &matcher);
   if (!faultInstr) {
     errs() << "Failed to locate the fault instruction\n";
     return 1;
-  }*/
-
-  slice_fault_instruction(M.get(), faultSlices, faultInstr);
+  }
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
@@ -234,8 +233,6 @@ int main(int argc, char *argv[]) {
 
   // Step 5d: revert by sequence number
 
-  Slices slices;
-  slice_fault_instruction(M.get(), slices, faultInstr);
   for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
     PmemAddrTraceItem *traceItem = *it;
     if (traceItem->instr == faultInstr) {
@@ -247,10 +244,15 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (!slice_fault_instruction(M.get(), faultSlices, faultInstr)) {
+    errs() << "Failed to compute the slices for the fault instructions\n";
+    return 1;
+  }
+
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
   int slice_seq_iterator = 1;
   slice_seq_numbers[0] = starting_seq_num;
-  for (Slice *slice : slices) {
+  for (Slice *slice : faultSlices) {
     for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
       // Iterate through addTraceList, find relevant address
       // for dep_inst, find address inside of ordered_data,
