@@ -66,6 +66,15 @@ class FileLine {
    static bool fromCriteriaStr(std::string criteria, std::vector<FileLine> &results);
 };
 
+class FunctionInstSeq {
+ public:
+  std::string function;
+  unsigned int inst_no;
+
+  FunctionInstSeq(std::string func, unsigned int no)
+      : function(func), inst_no(no) {}
+};
+
 typedef llvm::SmallVector<llvm::Instruction *, 8> MatchInstrs;
 
 class MatchResult {
@@ -85,27 +94,25 @@ class MatchResult {
 
 class Matcher {
  protected:
-  bool initialized;
   bool _processed;
-  int strips;
-
-  llvm::DebugInfoFinder finder;
-  llvm::Module *module;
+  int _strips;
+  llvm::Module *_module;
 
  public:
   Matcher(int path_strips = 0) {
-    strips = path_strips;
-    initialized = false;
+    _strips = path_strips;
     _processed = false;
   }
 
+  llvm::Instruction *matchInstr(FileLine opt, std::string instr_str);
+  llvm::Instruction *matchInstr(FunctionInstSeq opt);
   bool matchInstrsCriterion(FileLine criterion, MatchResult *result);
   bool matchInstrsCriteria(std::vector<FileLine> &criteria, std::vector<MatchResult> &results);
 
   bool processed() const { return _processed; }
   void process(llvm::Module &M);
 
-  void setStrip(int path_strips) { strips = path_strips; }
+  void setStrip(int path_strips) { _strips = path_strips; }
 
   void dumpSP(llvm::DISubprogram *SP);
   std::string normalizePath(llvm::StringRef fname);

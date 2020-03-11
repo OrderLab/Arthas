@@ -37,8 +37,10 @@ using namespace llvm::instrument;
 using namespace llvm::defuse;
 using namespace llvm::matching;
 
+Instruction *faultInstr;
 PmemVarGuidMap varMap;
 PmemAddrTrace addrTrace;
+
 struct reactor_options options;
 
 unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
@@ -64,44 +66,43 @@ unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
   return slice_graph;
 }
 
-bool slice_fault_instructions(Module *M, Slices &slices,
-                              vector<Instruction *> &_startSliceInstrs) {
-  size_t n =
-      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
-
-  SliceInstCriteriaOpt slice_opt;
-  if (n == 1) {
-    slice_opt.file_lines = options.fault_loc;
-  } else if (n == 2) {
-    size_t pos = options.fault_loc.rfind(':');
-    slice_opt.file_lines = options.fault_loc.substr(0, pos);
-    slice_opt.func = options.fault_loc.substr(pos + 1);
-  } else {
-    errs() << "invalid fault location specifier " << options.fault_loc << "\n";
-    return false;
-  }
-  if (!parseSlicingCriteriaOpt(slice_opt, *M, _startSliceInstrs)) {
-    errs() << "Please supply the correct slicing criteria (see --help)\n";
-    return false;
-  }
-
+bool slice_fault_instruction(Module *M, Slices &slices,
+                             Instruction *fault_inst) {
   unique_ptr<DgSlicer> _dgSlicer =
       make_unique<DgSlicer>(M, SliceDirection::Backward);
   _dgSlicer->computeDependencies();
 
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
-  for (auto fault_inst : _startSliceInstrs) {
-    Function *F = fault_inst->getFunction();
-    auto li = locatorMap.find(F);
-    if (li == locatorMap.end()) {
-      locatorMap.insert(make_pair(F, make_unique<PMemVariableLocator>()));
-    }
-    PMemVariableLocator *locator = locatorMap[F].get();
-    locator->runOnFunction(*F);
-    // Slices slices;
-    instructionSlice(fault_inst, *locator, slices, _dgSlicer);
+  Function *F = fault_inst->getFunction();
+  auto li = locatorMap.find(F);
+  if (li == locatorMap.end()) {
+    locatorMap.insert(make_pair(F, make_unique<PMemVariableLocator>()));
   }
+  PMemVariableLocator *locator = locatorMap[F].get();
+  locator->runOnFunction(*F);
+  instructionSlice(fault_inst, *locator, slices, _dgSlicer);
   return true;
+}
+
+Instruction *locate_fault_instruction(Module *M, Matcher *matcher) {
+  if (!matcher->processed()) {
+    errs() << "Matcher is not ready, cannot use it\n";
+    return nullptr;
+  }
+  FileLine fileLine;
+  size_t n =
+      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
+
+  if (n == 1) {
+    FileLine::fromCriterionStr(options.fault_loc, fileLine);
+  } else if (n == 2) {
+    size_t pos = options.fault_loc.rfind(':');
+    FileLine::fromCriterionStr(options.fault_loc.substr(0, pos), fileLine);
+  } else {
+    errs() << "invalid fault location specifier " << options.fault_loc << "\n";
+    return nullptr;
+  }
+  return matcher->matchInstr(fileLine, options.fault_instr);
 }
 
 void parse_args(int argc, char *argv[]) {
@@ -130,6 +131,14 @@ int main(int argc, char *argv[]) {
 
   LLVMContext context;
   unique_ptr<Module> M = parseModule(context, options.bc_file);
+  Matcher matcher;
+  matcher.process(*M);
+
+  faultInstr = locate_fault_instruction(M.get(), &matcher);
+  if (!faultInstr) {
+    errs() << "Failed to locate the fault instruction\n";
+    return 1;
+  }
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
@@ -164,8 +173,6 @@ int main(int argc, char *argv[]) {
   }
 
   // map address to instructions
-  Matcher matcher;
-  matcher.process(*M);
   addrTrace.addressesToInstructions(&matcher);
 
   // Step 2.c: Calculating offsets from pointers
@@ -229,20 +236,18 @@ int main(int argc, char *argv[]) {
   // Step 5d: revert by sequence number
 
   Slices slices;
-  vector<Instruction *> _startSliceInstrs;
-  slice_fault_instructions(M.get(), slices, _startSliceInstrs);
-  for (auto fault_inst : _startSliceInstrs) {
-    for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-      PmemAddrTraceItem *traceItem = *it;
-      if (traceItem->instr == &(*fault_inst)) {
-        for (int i = *total_size; i >= 0; i--) {
-          if (traceItem->addr == (uint64_t)ordered_data[i].address) {
-            starting_seq_num = ordered_data[i].sequence_number;
-          }
+  slice_fault_instruction(M.get(), slices, faultInstr);
+  for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
+    PmemAddrTraceItem *traceItem = *it;
+    if (traceItem->instr == faultInstr) {
+      for (int i = *total_size; i >= 0; i--) {
+        if (traceItem->addr == (uint64_t)ordered_data[i].address) {
+          starting_seq_num = ordered_data[i].sequence_number;
         }
       }
     }
   }
+
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
   int slice_seq_iterator = 0;
   slice_seq_numbers[0] = starting_seq_num;
