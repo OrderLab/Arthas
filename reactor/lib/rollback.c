@@ -266,6 +266,8 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
       if (seq_num < 0) return -1;
       seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, seq_num,
                                  ordered_data);
+    } else {
+      return -1;
     }
     pmemobj_close(pop);
     printf("Reexecution %d: \n", coarse_grained_tries);

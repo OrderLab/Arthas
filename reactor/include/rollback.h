@@ -66,9 +66,9 @@ void sort_by_sequence_number(void **addresses, single_data *ordered_data,
 void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
                                 int seq_num, single_data *ordered_data);
 
-void revert_by_sequence_number(void **sorted_pmem_addresses,
-                               single_data *ordered_data, int seq_num,
-                               int rollback_version);
+void revert_by_sequence_number_array(void **sorted_pmem_addresses,
+                                     single_data *ordered_data,
+                                     int *seq_numbers, int total_seq_num);
 
 #ifdef __cplusplus
 }
