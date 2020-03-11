@@ -21,7 +21,7 @@
 // declaration below. It can optionally include additional short option
 // specifiers that do not have a corresponding long-option. ':'
 // after the character means this opt requires an argument.
-#define REACTOR_ARGS "hp:t:l:n:g:a:"
+#define REACTOR_ARGS "hp:t:l:n:r:g:a:i:c:b:"
 
 // Reference:
 // https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Options.html
