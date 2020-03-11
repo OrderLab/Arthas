@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <algorithm>
+#include <iostream>
 
 #include "reactor-opts.h"
 
@@ -179,13 +180,13 @@ bool check_options(reactor_options &options) {
             "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
-  if (!options.fault_instr.empty()) {
+  if (options.fault_instr.empty()) {
     fprintf(stderr,
             "fault instruction string is not set, specify it with -i or "
             "--fault-inst\n");
     return false;
   }
-  if (!options.fault_loc.empty()) {
+  if (options.fault_loc.empty()) {
     fprintf(stderr,
             "fault instruction location is not set, specify it with -c or "
             "--fault-loc\n");
@@ -200,7 +201,7 @@ bool check_options(reactor_options &options) {
         options.fault_loc.c_str());
     return false;
   }
-  if (!options.bc_file.empty()) {
+  if (options.bc_file.empty()) {
     fprintf(stderr,
             "bitcode file is not set, specify it with -b or --bc-file\n");
     return false;

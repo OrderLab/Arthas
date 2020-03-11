@@ -116,7 +116,6 @@ int handle_behavior(char *path) {
   else
     a = 13 - *pmem_int_ptr2;
   int b = 30 / a;
-  ;
   printf("FINISHED!!! b is %d\n", b);
   return 1;
 }
