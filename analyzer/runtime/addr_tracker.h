@@ -9,6 +9,7 @@
 #ifndef __ADDR_TRACKER_H_
 #define __ADDR_TRACKER_H_
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
