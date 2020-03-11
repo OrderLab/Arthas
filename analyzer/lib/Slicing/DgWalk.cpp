@@ -57,7 +57,6 @@ bool DgWalkBase::shouldSliceInst(const llvm::Value *val) {
   const Instruction *inst = dyn_cast<Instruction>(val);
   if (!inst) return false;
 
-  errs() << inst->getOpcodeName() << ":" << *inst << "\n";
   switch (inst->getOpcode()) {
     case Instruction::Unreachable:
       return false;
