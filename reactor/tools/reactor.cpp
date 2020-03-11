@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
+  int req_flag2 = 0;
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
   int slice_seq_iterator = 0;
   if (starting_seq_num != -1) {
@@ -283,28 +283,35 @@ int main(int argc, char *argv[]) {
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
                                     slice_seq_numbers, slice_seq_iterator);
     pmemobj_close(pop);
-    int req_flag2 =
+    if(slice_seq_iterator > 0){
+      req_flag2 =
         re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
                    pmem_addresses, num_data, options.pmem_file,
                    options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
                    sorted_pmem_addresses, ordered_data);
+    }
     if (req_flag2 == 1) {
       cout << "reversion with sequence numbers array has succeeded\n";
       return 1;
     }
-    if (!pop) {
-      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+    //if (!pop) {
+    pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
                           pmem_addresses, offsets);
-    }
+    //}
+
     if (starting_seq_num != -1)
       slice_seq_iterator = 1;
     else
       slice_seq_iterator = 0;
+
   }
 
   cout << "start regular reversion\n";
   // Maybe: put in loop alongside reexecution, decrementing
   // most likely sequence number to rollback.
+
+  //TODO: What to do if starting seq num is not the fault instruction?
+  starting_seq_num = 5;
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                             starting_seq_num, curr_version - 1);
