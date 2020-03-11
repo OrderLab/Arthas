@@ -66,7 +66,7 @@ void usage() {
       "file\n"
       "criterion\n"
       "  -i  --fault-inst <string>    : the fault instruction\n"
-      "  -f  --fault-loc  <file:line\n"
+      "  -c  --fault-loc  <file:line\n"
       "                   [:func]>    : location of the fault instruction \n"
       "  -b  --bc-file <file>         : bytecode file "
       "\n\n",
