@@ -149,7 +149,7 @@ void Matcher::process(Module &M)
   // corresponding Function * from a DISubprogram. Therefore, it is no
   // longer useful to use the DebugInfoFinder...
   // finder.processModule(M);
-  module = &M;
+  _module = &M;
   _processed = true;
 }
 
@@ -173,8 +173,8 @@ string Matcher::normalizePath(StringRef fname) {
   }
   filename.assign(canon);
   free(canon);
-  if (strips > 0) {
-    const char *normalized = stripname(filename.c_str(), strips);
+  if (_strips > 0) {
+    const char *normalized = stripname(filename.c_str(), _strips);
     if (strlen(normalized) == 0) {
       errs() << "Warning: filename is empty after strip\n";
     }
@@ -218,7 +218,7 @@ bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria,
     vector<MatchResult> &results) {
   results.resize(criteria.size());
   size_t sz = criteria.size();
-  for (auto &F : module->functions()) {
+  for (auto &F : _module->functions()) {
     if (skipFunction(&F))
       continue;
     DISubprogram *SP = F.getSubprogram();
@@ -249,7 +249,7 @@ bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria,
 }
 
 bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
-  for (auto &F : module->functions()) {
+  for (auto &F : _module->functions()) {
     if (skipFunction(&F))
       continue;
     DISubprogram *SP = F.getSubprogram();
@@ -268,3 +268,44 @@ bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
   }
   return false;
 }
+
+Instruction *Matcher::matchInstr(FunctionInstSeq opt) {
+  if (opt.function.empty() || opt.inst_no == 0) return nullptr;
+  bool found = false;
+  Function *F;
+  for (Module::iterator I = _module->begin(), E = _module->end(); I != E; ++I) {
+    F = &*I;
+    if (!F->isDeclaration() && F->getName().equals(opt.function)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    return nullptr;
+  }
+  found = false;
+  unsigned int inst_no = 0;
+  for (inst_iterator ii = inst_begin(F), ie = inst_end(F); ii != ie; ++ii) {
+    inst_no++;  // instruction no. from 1 to N within the function F
+    Instruction *instr = &*ii;
+    if (opt.inst_no == inst_no) return instr;
+  }
+  return nullptr;
+}
+
+Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str) {
+  if (instr_str.empty()) return nullptr;
+  MatchResult result;
+  if (!matchInstrsCriterion(opt, &result)) return nullptr;
+  for (Instruction *instr : result.instrs) {
+    std::string str_instr;
+    llvm::raw_string_ostream rso(str_instr);
+    instr->print(rso);
+    trim(str_instr);
+    if (instr_str.compare(str_instr) == 0) {
+      return instr;
+    }
+  }
+  return nullptr;
+}
+
