@@ -100,7 +100,8 @@ Instruction *locate_fault_instruction(Module *M, Matcher *matcher) {
     errs() << "invalid fault location specifier " << options.fault_loc << "\n";
     return nullptr;
   }
-  return matcher->matchInstr(fileLine, options.fault_instr);
+  // enable fuzzy matching
+  return matcher->matchInstr(fileLine, options.fault_instr, true);
 }
 
 void parse_args(int argc, char *argv[]) {
@@ -137,6 +138,7 @@ int main(int argc, char *argv[]) {
     errs() << "Failed to locate the fault instruction\n";
     return 1;
   }
+  errs() << "Located fault instruction " << *faultInstr << "\n";
 
   if (!slice_fault_instruction(M.get(), faultSlices, faultInstr)) {
     errs() << "Failed to compute the slices for the fault instructions\n";

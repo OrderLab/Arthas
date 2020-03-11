@@ -126,77 +126,22 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     FileLine fileLine(item->var->source_file, item->var->line);
     SDEBUG(dbgs() << "Source " << item->var->source_file << ":"
                   << item->var->line << "\n");
-    MatchResult matchResult;
-    if (!matcher->matchInstrsCriterion(fileLine, &matchResult)) {
+
+    // find the corresponding instruction (and enable fuzzy matching)
+    bool is_result_fuzzy;
+    Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
+                                             true, &is_result_fuzzy);
+    if (!instr) {
       errs() << "Failed to find instruction for address " << item->addr_str
              << ", guid " << item->guid << "\n";
       continue;
     }
-    bool found = false;
-    Instruction *fuzzy_instr = nullptr;
-    for (Instruction *instr : matchResult.instrs) {
-      std::string str_instr;
-      llvm::raw_string_ostream rso(str_instr);
-      instr->print(rso);
-      SDEBUG(dbgs() << "Instruction " << *instr << "\n");
-      if (item->var->instruction.compare(str_instr) == 0) {
-        // update the instruction field of item
-        item->instr = instr;
-        errs() << "Found instruction for address " << item->addr_str
-               << ", guid " << item->guid << ": " << str_instr << "\n";
-        found = true;
-        break;
-      } else {
-        // If the string instruction does not match, we'll check
-        // if the instruction can be fuzzily matched.
-        // The reason that the fuzzy matching is necessary is because
-        // the debug information recorded in the Instrumenter is
-        // based on the **instrumented** bitcode, which will shift
-        // the register number in the assignment!!! If we are given the
-        // original bitcode file, the register number will not match, e.g.,:
-        //
-        //  instr in original bitcode-
-        //    %38 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
-        //    !73
-        //  instr in instrumented bitcode-
-        //    %41 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
-        //    !73
-        //
-        // They only differ by the register number! Besides the return value
-        // register number, the argument register numbers could also change!
-
-        // To implement fuzzy match, we split the instruction strings based on
-        // the register regular expression, and then only if all the parts
-        // of the split string match will the two strings match.
-
-        std::sregex_token_iterator iter1(str_instr.begin(), str_instr.end(),
-                                         register_regex, -1);
-        std::sregex_token_iterator iter2(item->var->instruction.begin(),
-                                         item->var->instruction.end(),
-                                         register_regex, -1);
-        std::sregex_token_iterator end;
-        for (; iter1 != end && iter2 != end; ++iter1, ++iter2) {
-          if (iter1->compare(*iter2) != 0) {
-            break;
-          }
-        }
-        if (iter1 == end && iter2 == end) {
-          // don't break here so that if we can find exact matching in the
-          // loop, exact matching is still preferred
-          fuzzy_instr = instr;
-        }
-      }
-    }
-    if (!found) {
-      if (fuzzy_instr) {
-        errs() << "Found a fuzzily matched instruction for address "
-               << item->addr_str << ", guid " << item->guid << ", instr "
-               << item->var->instruction << " ~~ " << *fuzzy_instr << "\n";
-      } else {
-        errs() << "Failed to find instruction for address " << item->addr_str
-               << ", guid " << item->guid << ", instr "
-               << item->var->instruction << "\n";
-      }
+    // update the instruction field of item
+    item->instr = instr;
+    if (is_result_fuzzy) {
+      errs() << "Found a fuzzily matched instruction for address "
+             << item->addr_str << ", guid " << item->guid << ", instr "
+             << item->var->instruction << " ~~ " << *instr << "\n";
     }
   }
   return true;

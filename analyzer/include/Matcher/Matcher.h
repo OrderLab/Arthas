@@ -23,8 +23,9 @@
 #include "llvm/Support/Dwarf.h"
 #include "llvm/Support/raw_ostream.h"
 
-#include <vector>
 #include <deque>
+#include <string>
+#include <vector>
 
 #include "Scope.h"
 
@@ -104,7 +105,8 @@ class Matcher {
     _processed = false;
   }
 
-  llvm::Instruction *matchInstr(FileLine opt, std::string instr_str);
+  llvm::Instruction *matchInstr(FileLine opt, std::string instr_str, bool fuzzy,
+                                bool *is_result_fuzzy = nullptr);
   llvm::Instruction *matchInstr(FunctionInstSeq opt);
   bool matchInstrsCriterion(FileLine criterion, MatchResult *result);
   bool matchInstrsCriteria(std::vector<FileLine> &criteria, std::vector<MatchResult> &results);
@@ -116,6 +118,8 @@ class Matcher {
 
   void dumpSP(llvm::DISubprogram *SP);
   std::string normalizePath(llvm::StringRef fname);
+
+  static bool fuzzilyMatch(std::string &inst1_str, std::string &inst2_str);
 
  protected:
   bool spMatchFilename(llvm::DISubprogram *sp, const char *filename);

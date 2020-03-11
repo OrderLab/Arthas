@@ -12,11 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <regex>
+
 #include "Matcher/Matcher.h"
 #include "Utils/Path.h"
 #include "Utils/String.h"
 
 static bool DEBUG_MATCHER = false;
+
+// regular expression for the register format in the LLVM instruction: %N
+static const std::regex register_regex("\\%\\d+");
 
 using namespace std;
 using namespace llvm;
@@ -293,19 +298,67 @@ Instruction *Matcher::matchInstr(FunctionInstSeq opt) {
   return nullptr;
 }
 
-Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str) {
+Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
+                                 bool fuzzy, bool *is_result_fuzzy) {
   if (instr_str.empty()) return nullptr;
   MatchResult result;
   if (!matchInstrsCriterion(opt, &result)) return nullptr;
+  Instruction *fuzzy_instr = nullptr;
   for (Instruction *instr : result.instrs) {
     std::string str_instr;
     llvm::raw_string_ostream rso(str_instr);
     instr->print(rso);
     trim(str_instr);
     if (instr_str.compare(str_instr) == 0) {
+      if (is_result_fuzzy) *is_result_fuzzy = false;
       return instr;
+    } else {
+      // If the string instruction does not match, we'll check
+      // if the instruction can be fuzzily matched.
+      if (fuzzy && fuzzilyMatch(str_instr, instr_str)) {
+        fuzzy_instr = instr;
+        // don't break here so that if we can find exact matching in the
+        // loop, exact matching is still preferred
+      }
     }
   }
-  return nullptr;
+  if (is_result_fuzzy) *is_result_fuzzy = true;
+  return fuzzy_instr;
 }
 
+bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str) {
+  // The reason that the fuzzy matching is necessary is because
+  // the debug information recorded in the Instrumenter is
+  // based on the **instrumented** bitcode, which will shift
+  // the register number in the assignment!!! If we are given the
+  // original bitcode file, the register number will not match, e.g.,:
+  //
+  //  instr in original bitcode-
+  //    %38 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
+  //    !73
+  //  instr in instrumented bitcode-
+  //    %41 = load %struct.my_root*, %struct.my_root** %7, align 8, !dbg
+  //    !73
+  //
+  // They only differ by the register number! Besides the return value
+  // register number, the argument register numbers could also change!
+
+  // To implement fuzzy match, we split the instruction strings based on
+  // the register regular expression, and then only if all the parts
+  // of the split string match will the two strings match.
+
+  std::sregex_token_iterator iter1(inst1_str.begin(), inst1_str.end(),
+                                   register_regex, -1);
+  std::sregex_token_iterator iter2(inst2_str.begin(), inst2_str.end(),
+                                   register_regex, -1);
+  std::sregex_token_iterator end;
+  for (; iter1 != end && iter2 != end; ++iter1, ++iter2) {
+    if (iter1->compare(*iter2) != 0) {
+      break;
+    }
+  }
+  if (iter1 == end && iter2 == end) {
+    return true;
+  }
+  return false;
+}
