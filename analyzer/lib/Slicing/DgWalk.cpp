@@ -53,6 +53,26 @@ uint32_t DgWalkBase::sliceRelationOpts(SliceDirection dir, bool full_relation)
   }
 }
 
+bool DgWalkBase::shouldSliceInst(const llvm::Value *val) {
+  const Instruction *inst = dyn_cast<Instruction>(val);
+  if (!inst) return false;
+
+  errs() << inst->getOpcodeName() << ":" << *inst << "\n";
+  switch (inst->getOpcode()) {
+    case Instruction::Unreachable:
+      return false;
+    case Instruction::Ret: {
+      // FIXME: for now, we only ignore return instruction
+      // if it returns void, probably should be more
+      // aggressive to not include return instruction at all
+      auto ret = cast<ReturnInst>(inst);
+      return ret->getReturnValue() != nullptr;
+    }
+    default:
+      return true;
+  }
+}
+
 void DgWalkAndMark::mark(const std::set<dg::LLVMNode *> &start,
                          uint32_t slice_id) {
   DgWalkData data(slice_id, this, (_dir != SliceDirection::Backward) 
@@ -111,6 +131,8 @@ SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
   while (!queue.empty()) {
     dn_curr = queue.pop();
     if (options == 0) continue;
+    if (!shouldSliceInst(dn_curr->getValue())) continue;
+
     // we also mark the node and bb with slice id for counting the statistics
     mark(dn_curr, slice_id);
     sn_curr = sg->getOrCreateNode(dn_curr->getValue());

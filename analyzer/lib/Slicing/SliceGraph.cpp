@@ -32,6 +32,10 @@ bool SliceNode::hasEdgeTo(SliceNode *node) {
 }
 
 bool SliceNode::connect(SliceNode *node, SliceEdge::EdgeKind kind) {
+  if (node == this || _value == node->getValue()) {
+    // errs() << "Trying to create a self-pointing edge\n";
+    return false;
+  }
   if (!hasEdgeTo(node)) {
     _edges.insert(new SliceEdge(node, kind));
     return true;
