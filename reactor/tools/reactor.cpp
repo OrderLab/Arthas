@@ -138,6 +138,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  if (!slice_fault_instruction(M.get(), faultSlices, faultInstr)) {
+    errs() << "Failed to compute the slices for the fault instructions\n";
+    return 1;
+  }
+
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
@@ -221,7 +226,7 @@ int main(int argc, char *argv[]) {
 
   // Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
-  int starting_seq_num = 6;
+  int starting_seq_num = -1;
 
   // Step 5c: sort the addresses arrays by sequence number
   void **sorted_addresses = (void **)malloc(num_data * sizeof(void *));
@@ -244,14 +249,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (!slice_fault_instruction(M.get(), faultSlices, faultInstr)) {
-    errs() << "Failed to compute the slices for the fault instructions\n";
-    return 1;
-  }
-
   int *slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
-  int slice_seq_iterator = 1;
-  slice_seq_numbers[0] = starting_seq_num;
+  int slice_seq_iterator = 0;
+  if (starting_seq_num != -1) {
+    slice_seq_iterator = 1;
+    slice_seq_numbers[0] = starting_seq_num;
+  }
   for (Slice *slice : faultSlices) {
     for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
       // Iterate through addTraceList, find relevant address
@@ -263,7 +266,7 @@ int main(int argc, char *argv[]) {
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
-                ordered_data[i].sequence_number < starting_seq_num) {
+                ordered_data[i].sequence_number != starting_seq_num) {
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -291,8 +294,10 @@ int main(int argc, char *argv[]) {
       redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
                           pmem_addresses, offsets);
     }
-
-    slice_seq_iterator = 1;
+    if (starting_seq_num != -1)
+      slice_seq_iterator = 1;
+    else
+      slice_seq_iterator = 0;
   }
 
   cout << "start regular reversion\n";
