@@ -282,6 +282,7 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
       seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, seq_num,
                                  ordered_data);
     } else {
+      pmemobj_close(pop);
       return -1;
     }
     pmemobj_close(pop);

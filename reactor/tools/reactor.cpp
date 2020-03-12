@@ -299,8 +299,8 @@ int main(int argc, char *argv[]) {
                                  decided_slice_seq_numbers, decided_total);
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
                                     decided_slice_seq_numbers, *decided_total);
-    if (strcmp(options.pmem_library, "libpmemobj") == 0)
-      pmemobj_close((PMEMobjpool *)pop);
+    // if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pmemobj_close((PMEMobjpool *)pop);
     // TODO: Not sure of consequences of pmem_unmap + pmem_map again, will test
     if (*decided_total > 0) {
       req_flag2 =
@@ -312,11 +312,14 @@ int main(int argc, char *argv[]) {
     if (req_flag2 == 1) {
       cout << "reversion with sequence numbers array has succeeded\n";
       return 1;
-    }
+    } 
+    /*else {
+      cout << "reversion did not work\n";
+    }*/
     // if (!pop) {
-    if (strcmp(options.pmem_library, "libpmemobj") == 0)
-      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, pmem_addresses, offsets);
+    // if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                      num_data, pmem_addresses, offsets);
     //}
 
     if (starting_seq_num != -1)
@@ -334,8 +337,8 @@ int main(int argc, char *argv[]) {
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                             starting_seq_num, curr_version - 1);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0)
-    pmemobj_close((PMEMobjpool *)pop);
+  // if (strcmp(options.pmem_library, "libpmemobj") == 0)
+  pmemobj_close((PMEMobjpool *)pop);
   int req_flag =
       re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
                  pmem_addresses, num_data, options.pmem_file,
@@ -376,14 +379,14 @@ int main(int argc, char *argv[]) {
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
   if (!pop) {
-    if (strcmp(options.pmem_library, "libpmemobj") == 0)
-      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                          pmem_addresses, offsets);
+    // if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+                        pmem_addresses, offsets);
   }
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data, offsets);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0)
-    pmemobj_close((PMEMobjpool *)pop);
+  // if (strcmp(options.pmem_library, "libpmemobj") == 0)
+  pmemobj_close((PMEMobjpool *)pop);
 
   // Step 7: re-execution
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
