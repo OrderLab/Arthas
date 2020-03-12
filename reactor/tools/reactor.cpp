@@ -280,37 +280,41 @@ int main(int argc, char *argv[]) {
     // TODO: Testing of this needs to be done.
     // Here we should do reversion on collected seq numbers and try
     // try reexecution
+    int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
+    int *decided_total = (int *)malloc(sizeof(int));
+    *decided_total = 0;
+    decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
+                                 decided_slice_seq_numbers, decided_total);
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
-                                    slice_seq_numbers, slice_seq_iterator);
+                                    decided_slice_seq_numbers, *decided_total);
     pmemobj_close(pop);
-    if(slice_seq_iterator > 0){
+    if (*decided_total > 0) {
       req_flag2 =
-        re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
-                   pmem_addresses, num_data, options.pmem_file,
-                   options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
-                   sorted_pmem_addresses, ordered_data);
+          re_execute(options.reexecute_cmd, options.version_num, addresses,
+                     c_log, pmem_addresses, num_data, options.pmem_file,
+                     options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
+                     sorted_pmem_addresses, ordered_data);
     }
     if (req_flag2 == 1) {
       cout << "reversion with sequence numbers array has succeeded\n";
       return 1;
     }
-    //if (!pop) {
+    // if (!pop) {
     pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                          pmem_addresses, offsets);
+                              pmem_addresses, offsets);
     //}
 
     if (starting_seq_num != -1)
       slice_seq_iterator = 1;
     else
       slice_seq_iterator = 0;
-
   }
 
   cout << "start regular reversion\n";
   // Maybe: put in loop alongside reexecution, decrementing
   // most likely sequence number to rollback.
 
-  //TODO: What to do if starting seq num is not the fault instruction?
+  // TODO: What to do if starting seq num is not the fault instruction?
   starting_seq_num = 5;
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
