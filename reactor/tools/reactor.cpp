@@ -190,7 +190,15 @@ int main(int argc, char *argv[]) {
   }
   printf("Pool %s has %lu associated addresses in the trace\n",
          last_pool.pool_addr->addr_str.c_str(), last_pool.addresses.size());
-  PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
+  // PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
+  void *pop;
+  size_t mapped_len;
+  int is_pmem;
+  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pop = (void *)pmemobj_open(options.pmem_file, options.pmem_layout);
+  else if (strcmp(options.pmem_library, "libpmem") == 0)
+    pop = (void *)pmem_map_file(options.pmem_file, PMEM_LEN, PMEM_FILE_CREATE,
+                                0666, &mapped_len, &is_pmem);
   if (pop == NULL) {
     printf("Could not open pmem file %s to get pool start address\n",
            options.pmem_file);
@@ -263,8 +271,12 @@ int main(int argc, char *argv[]) {
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
+        cout << "Inside Trace\n";
+        ;
         PmemAddrTraceItem *traceItem = *it;
         if (traceItem->instr == *dep_inst) {
+          cout << "FOUND INSTRUCTION\n";
+          ;
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
@@ -287,7 +299,9 @@ int main(int argc, char *argv[]) {
                                  decided_slice_seq_numbers, decided_total);
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
                                     decided_slice_seq_numbers, *decided_total);
-    pmemobj_close(pop);
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+      pmemobj_close((PMEMobjpool *)pop);
+    // TODO: Not sure of consequences of pmem_unmap + pmem_map again, will test
     if (*decided_total > 0) {
       req_flag2 =
           re_execute(options.reexecute_cmd, options.version_num, addresses,
@@ -300,8 +314,9 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     // if (!pop) {
-    pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                              pmem_addresses, offsets);
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, pmem_addresses, offsets);
     //}
 
     if (starting_seq_num != -1)
@@ -319,7 +334,8 @@ int main(int argc, char *argv[]) {
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                             starting_seq_num, curr_version - 1);
-  pmemobj_close(pop);
+  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pmemobj_close((PMEMobjpool *)pop);
   int req_flag =
       re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
                  pmem_addresses, num_data, options.pmem_file,
@@ -360,12 +376,13 @@ int main(int argc, char *argv[]) {
   printf("Reversion attempt %d\n", coarse_grained_tries + 1);
   printf("\n");
   if (!pop) {
-    redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                        pmem_addresses, offsets);
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
+                          pmem_addresses, offsets);
   }
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data, offsets);
-  pmemobj_close(pop);
+  if (strcmp(options.pmem_library, "libpmemobj") == 0) pmemobj_close((PMEMobjpool *)pop);
 
   // Step 7: re-execution
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
