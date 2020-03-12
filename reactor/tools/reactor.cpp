@@ -178,8 +178,8 @@ int main(int argc, char *argv[]) {
   }
 
   // map address to instructions
-  addrTrace.addressesToInstructions(&matcher);
-
+  bool ret = addrTrace.addressesToInstructions(&matcher);
+  cout << ret;
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = addrTrace.pool_addrs().back();
@@ -241,7 +241,7 @@ int main(int argc, char *argv[]) {
   // Step 5c: sort the addresses arrays by sequence number
   void **sorted_addresses = (void **)malloc(num_data * sizeof(void *));
   void **sorted_pmem_addresses = (void **)malloc(num_data * sizeof(void *));
-  printf("total size is %ld\n", *total_size);
+  // printf("total size is %ld\n", *total_size);
   sort_by_sequence_number(addresses, ordered_data, *total_size, num_data,
                           sorted_addresses, pmem_addresses,
                           sorted_pmem_addresses, offsets);
@@ -271,12 +271,12 @@ int main(int argc, char *argv[]) {
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-        cout << "Inside Trace\n";
-        ;
+        // cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
+        // cout << traceItem->instr << "\n";
+        // cout << *dep_inst << "\n";
         if (traceItem->instr == *dep_inst) {
-          cout << "FOUND INSTRUCTION\n";
-          ;
+          // cout << "FOUND INSTRUCTION\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
@@ -382,7 +382,8 @@ int main(int argc, char *argv[]) {
   }
   coarse_grain_reversion(addresses, c_log, pmem_addresses, options.version_num,
                          num_data, offsets);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0) pmemobj_close((PMEMobjpool *)pop);
+  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pmemobj_close((PMEMobjpool *)pop);
 
   // Step 7: re-execution
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
