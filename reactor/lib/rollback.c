@@ -55,6 +55,21 @@ int search_for_address(const void *address, size_t size,
   return -1;
 }
 
+int reverse_cmpfunc(const void *a, const void *b) {
+  return (*(int *)b - *(int *)a);
+}
+
+void decision_func_sequence_array(int *old_seq_numbers, int old_total,
+                                  int *new_seq_numbers, int *new_total) {
+  // TODO: Right now decision function is just based on sequence number
+  // ordering
+  for (int i = 0; i < old_total; i++) {
+    new_seq_numbers[i] = old_seq_numbers[i];
+    *new_total = *new_total + 1;
+  }
+  qsort(new_seq_numbers, *new_total, sizeof(int), reverse_cmpfunc);
+}
+
 void revert_by_sequence_number_array(void **sorted_pmem_addresses,
                                      single_data *ordered_data,
                                      int *seq_numbers, int total_seq_num) {
@@ -267,6 +282,7 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
       seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, seq_num,
                                  ordered_data);
     } else {
+      pmemobj_close(pop);
       return -1;
     }
     pmemobj_close(pop);

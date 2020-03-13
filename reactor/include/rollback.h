@@ -70,6 +70,11 @@ void revert_by_sequence_number_array(void **sorted_pmem_addresses,
                                      single_data *ordered_data,
                                      int *seq_numbers, int total_seq_num);
 
+int reverse_cmpfunc(const void *a, const void *b);
+
+void decision_func_sequence_array(int *old_seq_numbers, int old_total,
+                                  int *new_seq_numbers, int *new_total);
+
 #ifdef __cplusplus
 }
 #endif

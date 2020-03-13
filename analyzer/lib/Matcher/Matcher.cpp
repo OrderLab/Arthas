@@ -27,8 +27,7 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::matching;
 
-void MatchResult::print(raw_ostream &os) const
-{
+void MatchResult::print(raw_ostream &os) const {
   if (matched) {
     DISubprogram *SP = func->getSubprogram();
     unsigned start_line = ScopeInfoFinder::getFirstLine(func);
@@ -46,8 +45,7 @@ void MatchResult::print(raw_ostream &os) const
 
 bool cmpDICU(DICompileUnit *CU1, DICompileUnit *CU2) {
   int cmp = CU1->getDirectory().compare(CU2->getDirectory());
-  if (cmp == 0)
-    cmp = CU1->getFilename().compare(CU2->getFilename());
+  if (cmp == 0) cmp = CU1->getFilename().compare(CU2->getFilename());
   return cmp >= 0 ? false : true;
 }
 
@@ -83,54 +81,51 @@ bool InstSourceLocComparator::operator()(Instruction *inst1,
     return cmp < 0;
 }
 
-inline bool skipFunction(Function *F)
-{
-  // Skip intrinsic functions and function declaration because DT only 
+inline bool skipFunction(Function *F) {
+  // Skip intrinsic functions and function declaration because DT only
   // works with function definition.
   return F->isDeclaration() || F->getName().startswith("llvm.dbg");
 }
 
 unsigned ScopeInfoFinder::getInstLine(const Instruction *I) {
-  auto & Loc = I->getDebugLoc();
+  auto &Loc = I->getDebugLoc();
   if (!Loc) {
     if (DEBUG_MATCHER) {
-      errs() << "Unknown LOC" << "\n";
+      errs() << "Unknown LOC"
+             << "\n";
     }
     return 0;
   }
   return Loc.getLine();
 }
 
-unsigned ScopeInfoFinder::getFirstLine(Function *F)
-{
+unsigned ScopeInfoFinder::getFirstLine(Function *F) {
   DISubprogram *SP = F->getSubprogram();
-  if (SP == NULL)
-    return 0;
+  if (SP == NULL) return 0;
   // line number for start of the function
   return SP->getLine();
 }
 
-unsigned ScopeInfoFinder::getLastLine(Function *F)
-{
-  if (F == NULL || F->begin() == F->end()) //empty block
+unsigned ScopeInfoFinder::getLastLine(Function *F) {
+  if (F == NULL || F->begin() == F->end())  // empty block
     return 0;
-  const BasicBlock & BB = F->back();
-  const Instruction & I = BB.back();
-  auto & Loc = I.getDebugLoc();
+  const BasicBlock &BB = F->back();
+  const Instruction &I = BB.back();
+  auto &Loc = I.getDebugLoc();
   if (!Loc) return 0;
   return Loc.getLine();
 }
 
-bool ScopeInfoFinder::getBlockScope(Scope & scope, BasicBlock *B)
-{
-  if (B->begin() == B->end()) // empty block
+bool ScopeInfoFinder::getBlockScope(Scope &scope, BasicBlock *B) {
+  if (B->begin() == B->end())  // empty block
     return false;
 
   /** Use first and last instruction to get the scope information **/
-  Instruction *first = & B->front();
-  Instruction *last = & B->back();
+  Instruction *first = &B->front();
+  Instruction *last = &B->back();
   if (first == NULL || last == NULL) {
-    errs() << "NULL scope instructions " << "\n";
+    errs() << "NULL scope instructions "
+           << "\n";
     return false;
   }
   unsigned b = getInstLine(first);
@@ -143,8 +138,7 @@ bool ScopeInfoFinder::getBlockScope(Scope & scope, BasicBlock *B)
   return true;
 }
 
-bool FileLine::fromCriterionStr(string criterion, FileLine &result)
-{
+bool FileLine::fromCriterionStr(string criterion, FileLine &result) {
   vector<string> parts;
   splitList(criterion, ':', parts);
   if (parts.size() < 2) {
@@ -169,8 +163,7 @@ bool FileLine::fromCriteriaStr(string criteria, vector<FileLine> &results) {
   return true;
 }
 
-void Matcher::process(Module &M)
-{
+void Matcher::process(Module &M) {
   // With the new LLVM version, it seems we can no longer retrieve the
   // corresponding Function * from a DISubprogram. Therefore, it is no
   // longer useful to use the DebugInfoFinder...
@@ -210,24 +203,23 @@ string Matcher::normalizePath(StringRef fname) {
   }
 }
 
-bool Matcher::spMatchFilename(DISubprogram *sp, const char *filename)
-{
-    std::string debugname;
-    // Filename may already contains the path information
-    if (sp->getFilename().size() > 0 && sp->getFilename()[0] == '/')
-      debugname = sp->getFilename();
-    else
-      debugname = sp->getDirectory().str() + "/" + sp->getFilename().str();
-    return pathendswith(debugname.c_str(), filename);
+bool Matcher::spMatchFilename(DISubprogram *sp, const char *filename) {
+  std::string debugname;
+  // Filename may already contains the path information
+  if (sp->getFilename().size() > 0 && sp->getFilename()[0] == '/')
+    debugname = sp->getFilename();
+  else
+    debugname = sp->getDirectory().str() + "/" + sp->getFilename().str();
+  return pathendswith(debugname.c_str(), filename);
 }
 
-bool Matcher::matchInstrsInFunction(unsigned int line, Function *func, MatchInstrs &result)
-{
+bool Matcher::matchInstrsInFunction(unsigned int line, Function *func,
+                                    MatchInstrs &result) {
   unsigned l = 0;
-  Instruction * inst = NULL;
+  Instruction *inst = NULL;
   bool matched = false;
-  for (inst_iterator ii = inst_begin(func), ie = inst_end(func); 
-      ii != ie; ++ii) {
+  for (inst_iterator ii = inst_begin(func), ie = inst_end(func); ii != ie;
+       ++ii) {
     inst = &*ii;
     l = ScopeInfoFinder::getInstLine(inst);
     if (l == line) {
@@ -240,13 +232,12 @@ bool Matcher::matchInstrsInFunction(unsigned int line, Function *func, MatchInst
   return matched;
 }
 
-bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria, 
-    vector<MatchResult> &results) {
+bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria,
+                                  vector<MatchResult> &results) {
   results.resize(criteria.size());
   size_t sz = criteria.size();
   for (auto &F : _module->functions()) {
-    if (skipFunction(&F))
-      continue;
+    if (skipFunction(&F)) continue;
     DISubprogram *SP = F.getSubprogram();
     for (size_t i = 0; i < sz; ++i) {
       // if a criterion has been matched before, try the next one
@@ -264,20 +255,17 @@ bool Matcher::matchInstrsCriteria(vector<FileLine> &criteria,
     }
     bool allMatched = true;
     for (size_t i = 0; i < sz; ++i)
-      if (!results[i].matched)
-        allMatched = false;
+      if (!results[i].matched) allMatched = false;
     // if all criteria has been matched, there is no point continuing
     // iterating the remaining functions.
-    if (allMatched)
-      return true;
+    if (allMatched) return true;
   }
   return true;
 }
 
 bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
   for (auto &F : _module->functions()) {
-    if (skipFunction(&F))
-      continue;
+    if (skipFunction(&F)) continue;
     DISubprogram *SP = F.getSubprogram();
     if (spMatchFilename(SP, criterion.file.c_str())) {
       if (DEBUG_MATCHER) {
@@ -286,7 +274,8 @@ bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
       unsigned start_line = SP->getLine();
       unsigned end_line = ScopeInfoFinder::getLastLine(&F);
       if (criterion.line >= start_line && criterion.line <= end_line) {
-        result->matched = matchInstrsInFunction(criterion.line, &F, result->instrs);
+        result->matched =
+            matchInstrsInFunction(criterion.line, &F, result->instrs);
         result->func = &F;
         return true;
       }
@@ -325,6 +314,11 @@ Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
   MatchResult result;
   if (!matchInstrsCriterion(opt, &result)) return nullptr;
   Instruction *fuzzy_instr = nullptr;
+  // FIXME: Reactor wasn't able to find matches because
+  // inputted string wasn't being trimmed, not sure if
+  // this is best place to trim it, but added in here
+  // for now
+  trim(instr_str);
   for (Instruction *instr : result.instrs) {
     std::string str_instr;
     llvm::raw_string_ostream rso(str_instr);
@@ -334,6 +328,7 @@ Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
       if (is_result_fuzzy) *is_result_fuzzy = false;
       return instr;
     } else {
+      // errs() << "Fuzzy matching time\n";
       // If the string instruction does not match, we'll check
       // if the instruction can be fuzzily matched.
       if (fuzzy && fuzzilyMatch(str_instr, instr_str)) {
