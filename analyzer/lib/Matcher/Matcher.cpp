@@ -62,6 +62,27 @@ bool cmpDISP(DISubprogram *SP1, DISubprogram *SP2) {
   return cmp >= 0 ? false : true;
 }
 
+bool InstSourceLocComparator::operator()(Instruction *inst1,
+                                         Instruction *inst2) const {
+  DISubprogram *sp1 = inst1->getFunction()->getSubprogram();
+  DISubprogram *sp2 = inst2->getFunction()->getSubprogram();
+  int cmp = sp1->getDirectory().compare(sp2->getDirectory());
+  if (cmp == 0) {
+    cmp = sp1->getFilename().compare(sp2->getFilename());
+    if (cmp == 0) {
+      auto &loc1 = inst1->getDebugLoc();
+      auto &loc2 = inst2->getDebugLoc();
+      unsigned line1 = loc1 ? loc1.getLine() : sp1->getLine();
+      unsigned line2 = loc2 ? loc2.getLine() : sp2->getLine();
+      cmp = line1 - line2;
+    }
+  }
+  if (reverse_order)
+    return cmp > 0;
+  else
+    return cmp < 0;
+}
+
 inline bool skipFunction(Function *F)
 {
   // Skip intrinsic functions and function declaration because DT only 

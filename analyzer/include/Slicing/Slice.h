@@ -38,31 +38,35 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 
 class Slice {
  public:
-  typedef llvm::SmallVector<llvm::Value *, 20> DependentValueList;
+  using ValueTy = llvm::Instruction *;
+
+  typedef llvm::SmallVector<ValueTy, 20> DependentValueList;
 
   typedef DependentValueList::iterator dep_iterator;
   typedef DependentValueList::const_iterator dep_const_iterator;
 
   uint64_t id;
-  llvm::Value *root;
+  llvm::Instruction *root;
   SliceDirection direction;
   SlicePersistence persistence;
-  DependentValueList dep_values;
+  DependentValueList dep_vals;
 
-  Slice(uint64_t slice_id, llvm::Value *root_val, SliceDirection dir,
+  Slice(uint64_t slice_id, ValueTy root_val, SliceDirection dir,
         SlicePersistence kind = SlicePersistence::NA)
       : id(slice_id), root(root_val), direction(dir), persistence(kind) {
-    dep_values.push_back(root_val);  // root val depends on itself
+    dep_vals.push_back(root_val);  // root val depends on itself
   }
 
   Slice *fork();
 
-  inline void add(llvm::Value *val) { dep_values.push_back(val); }
+  inline void add(llvm::Instruction *inst) { dep_vals.push_back(inst); }
 
-  inline dep_iterator begin() { return dep_values.begin(); }
-  inline dep_iterator end() { return dep_values.end(); }
-  inline dep_const_iterator begin() const { return dep_values.begin(); }
-  inline dep_const_iterator end() const { return dep_values.end(); }
+  inline dep_iterator begin() { return dep_vals.begin(); }
+  inline dep_iterator end() { return dep_vals.end(); }
+  inline dep_const_iterator begin() const { return dep_vals.begin(); }
+  inline dep_const_iterator end() const { return dep_vals.end(); }
+
+  void sort();
 
   void setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars);
   void dump(llvm::raw_ostream &os);

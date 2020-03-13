@@ -7,6 +7,10 @@
 //
 
 #include "Slicing/Slice.h"
+#include "Matcher/Matcher.h"
+
+#include <algorithm>
+#include <functional>
 
 using namespace std;
 using namespace llvm;
@@ -46,8 +50,8 @@ void Slice::dump(raw_ostream &os)
 
 Slice *Slice::fork() {
   Slice *copy = new Slice(id, root, direction, persistence);
-  for (Value *dep : *this) {
-    // root has been inserted in the dep_values, skip it
+  for (ValueTy dep : *this) {
+    // root has been inserted in the dep_vals, skip it
     if (dep == root)
       continue;
     copy->add(dep);
@@ -77,8 +81,16 @@ void Slice::setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars) {
   }
 }
 
-Slices::~Slices()
-{
+void Slice::sort() {
+  // if this is a backward slice, we should sort the slice based on reverse
+  // program order. otherwise sort it based on program order
+  //
+  // FIXME: simply file:line sorting is insufficient
+  std::sort(dep_vals.begin(), dep_vals.end(),
+            InstSourceLocComparator(direction == SliceDirection::Backward));
+}
+
+Slices::~Slices() {
   // Assume Slices are the owner of all the slices. Therefore, it must release
   // the memory of each dynamically allocated slice in its destructor.
   for (slice_iterator si = begin(); si != end(); ++si) {

@@ -138,6 +138,14 @@ inline raw_ostream &operator<<(raw_ostream &os, const matching::MatchResult &res
 
 bool cmpDISP(llvm::DISubprogram *, llvm::DISubprogram *);
 bool cmpDICU(llvm::DICompileUnit *, llvm::DICompileUnit *);
+
+struct InstSourceLocComparator {
+  bool reverse_order;
+  InstSourceLocComparator(bool reverse = false) : reverse_order(reverse) {}
+
+  bool operator()(llvm::Instruction *inst1, llvm::Instruction *inst2) const;
+};
+
 bool skipFunction(llvm::Function *);
 llvm::StringRef getFunctionName(const llvm::DISubprogram *SP);
 

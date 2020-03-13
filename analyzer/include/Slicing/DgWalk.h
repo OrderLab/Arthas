@@ -43,7 +43,7 @@ class DgWalkBase {
   inline bool isFull() const { return _dir == SliceDirection::Full; }
 
   static uint32_t sliceRelationOpts(SliceDirection dir, bool full_relation);
-  static bool shouldSliceInst(const llvm::Value *val);
+  static bool shouldSliceInst(const llvm::Instruction *inst);
 
  protected: 
   SliceDirection _dir;
@@ -117,8 +117,10 @@ class DgWalkAndBuildSliceGraph: public DgWalkDFS {
                          EdgeIterT begin, EdgeIterT end) {
     for (EdgeIterT ei = begin; ei != end; ++ei) {
       auto dn_next = *ei;
-      if (!shouldSliceInst(dn_next->getValue())) continue;
-      auto sn_next = sg->getOrCreateNode(dn_next->getValue());
+      llvm::Value *value = dn_next->getValue();
+      llvm::Instruction *inst = dyn_cast<Instruction>(value);
+      if (!inst || shouldSliceInst(inst)) continue;
+      auto sn_next = sg->getOrCreateNode(inst);
       sn_curr->connect(sn_next, kind);
       enqueue(dn_next);
     }

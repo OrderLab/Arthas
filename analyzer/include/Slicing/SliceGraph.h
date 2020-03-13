@@ -45,37 +45,48 @@ class SliceEdge {
     InterfereDependence,
   };
 
+  typedef int64_t DistanceTy;
+
  public:
   SliceEdge(SliceNode *n, EdgeKind k = EdgeKind::Unknown)
-      : target_node(n), kind(k) {}
-  SliceEdge(const SliceEdge &e) : target_node(e.target_node), kind(e.kind) {}
+      : target_node(n), kind(k), distance(0) {}
+  SliceEdge(const SliceEdge &e)
+      : target_node(e.target_node), kind(e.kind), distance(0) {}
 
   SliceEdge &operator=(const SliceEdge &e) {
     target_node = e.target_node;
     return *this;
   }
 
-  SliceNode* getTargetNode() const { return target_node; }
+  SliceNode *getTargetNode() const { return target_node; }
+
+  DistanceTy getDistance() { return distance; }
+  void setDistance(DistanceTy dist) { distance = dist; }
 
   EdgeKind getKind() const { return kind; };
   bool isDefUse() const { return kind == EdgeKind::RegisterDefUse; }
   bool isMemoryDependence() const { return kind == EdgeKind::MemoryDependence; }
-  bool isControlDependence() const { return kind == EdgeKind::ControlDependence; }
+  bool isControlDependence() const {
+    return kind == EdgeKind::ControlDependence;
+  }
 
  protected:
   SliceNode *target_node;
   EdgeKind kind;
+  // the physical "distance" with the target node: positive meaning after
+  // the node, negative meaning before the node.
+  DistanceTy distance;
 };
 
 class SliceNode {
  public:
-  using ValueTy = llvm::Value *;
-  using EdgeListTy = SetVector<SliceEdge *>;
+  using ValueTy = llvm::Instruction *;
+  using EdgeListTy = SmallVector<SliceEdge *, 8>;
   using iterator = typename EdgeListTy::iterator;
   using const_iterator = typename EdgeListTy::const_iterator;
 
  public:
-  SliceNode(llvm::Value *val, uint32_t dep = 0): _value(val), _depth(dep) {}
+  SliceNode(ValueTy val, uint32_t dep = 0) : _value(val), _depth(dep) {}
 
   ValueTy getValue() const { return _value; }
   uint32_t getDepth() const { return _depth; }
@@ -93,12 +104,15 @@ class SliceNode {
   bool empty_edges() const { return _edges.empty(); }
 
   bool connect(SliceNode *node, SliceEdge::EdgeKind kind);
-  bool addEdge(SliceEdge *e) { return _edges.insert(e); }
-  void removeEdge(SliceEdge *e) { _edges.remove(e); }
+  bool disconnect(SliceNode *node);
+
+  bool removeEdge(SliceEdge *e);
   // allows two nodes to have multiple edges
-  bool findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el); 
+  bool findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el);
   bool hasEdgeTo(SliceNode *node);
   void clearEdges() { _edges.clear(); }
+
+  void sort();
 
  protected:
   EdgeListTy _edges;
@@ -119,8 +133,7 @@ class SliceGraph {
 
  public:
   SliceGraph(SliceNode *root_node, SliceDirection dir, uint32_t slice_id)
-      : _root(root_node), _direction(dir), _slice_id(slice_id)
-  {
+      : _root(root_node), _direction(dir), _slice_id(slice_id) {
     addNode(root_node);
   }
 
@@ -145,6 +158,8 @@ class SliceGraph {
   // path in the slice graph.
   bool computeSlices(Slices &slices);
 
+  void sort();
+
  protected:
   NodeListTy _nodes;
   SliceNode *_root;
@@ -153,8 +168,12 @@ class SliceGraph {
   uint32_t _slice_id;
 };
 
-} // namespace slicing
-} // namespace llvm
+struct SliceEdgeComparator {
+  bool operator()(SliceEdge *edge1, SliceEdge *edge2) const;
+};
+
+}  // namespace slicing
+}  // namespace llvm
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
                               const llvm::slicing::SliceEdge::EdgeKind &kind);
