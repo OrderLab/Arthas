@@ -10,6 +10,7 @@
 #include "Matcher/Matcher.h"
 
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/Support/Debug.h"
 
 #include <algorithm>
@@ -37,8 +38,7 @@ bool SliceEdgeComparator::operator()(SliceEdge *edge1, SliceEdge *edge2) const {
   }
 }
 
-bool SliceNode::findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el)
-{
+bool SliceNode::findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el) {
   for (auto *edge : _edges) {
     if (edge->getTargetNode() == node) el.push_back(edge);
   }
@@ -64,70 +64,38 @@ bool SliceNode::removeEdge(SliceEdge *edge) {
   return false;
 }
 
-bool SliceNode::connect(SliceNode *node, SliceEdge::EdgeKind kind) {
-  if (node == this || _value == node->getValue()) {
-    // errs() << "Trying to create a self-pointing edge\n";
-    return false;
-  }
-  if (!hasEdgeTo(node)) {
-    _edges.push_back(new SliceEdge(node, kind));
-    return true;
-  }
-  return false;
-}
-
-bool SliceNode::disconnect(SliceNode *node) {
-  iterator it;
-  for (it = _edges.begin(); it != _edges.end(); ++it) {
-    if ((*it)->getTargetNode() == node) break;
-  }
-  if (it != _edges.end()) {
-    _edges.erase(it);
-    return true;
-  }
-  return false;
-}
-
-void SliceNode::sort() {
-  // TODO: set the distance of slice edges properly before sorting
-  std::sort(_edges.begin(), _edges.end(), SliceEdgeComparator());
-}
-
-void SliceGraph::sort() {
-  // sort each slice node's edges, but it's not necessary to sort
-  // the nodes list as we want the root node to be in the first.
-  for (auto node : _nodes) {
-    node->sort();
-  }
-}
-
-raw_ostream &operator<<(raw_ostream &os, const SliceEdge::EdgeKind &kind)
-{
+raw_ostream &operator<<(raw_ostream &os, const SliceEdge::EdgeKind &kind) {
   switch (kind) {
-    case SliceEdge::EdgeKind::Unknown: os << "n/a"; return os;
-    case SliceEdge::EdgeKind::RegisterDefUse: os << "reg-def-use"; return os;
-    case SliceEdge::EdgeKind::MemoryDependence: os << "memory-dep"; return os;
-    case SliceEdge::EdgeKind::ControlDependence: os << "control-dep"; return os;
-    case SliceEdge::EdgeKind::InterfereDependence: os << "interfere-dep"; return os;
-    default: os << "unknown"; return os;
+    case SliceEdge::EdgeKind::Unknown:
+      os << "n/a";
+      return os;
+    case SliceEdge::EdgeKind::RegisterDefUse:
+      os << "reg-def-use";
+      return os;
+    case SliceEdge::EdgeKind::MemoryDependence:
+      os << "memory-dep";
+      return os;
+    case SliceEdge::EdgeKind::ControlDependence:
+      os << "control-dep";
+      return os;
+    case SliceEdge::EdgeKind::InterfereDependence:
+      os << "interfere-dep";
+      return os;
+    default:
+      os << "unknown";
+      return os;
   }
   return os;
 }
 
-raw_ostream &operator<<(raw_ostream &os, const SliceEdge &edge)
-{
-  Value *value = edge.getTargetNode()->getValue();
-  if (auto inst = dyn_cast<Instruction>(value)) {
-    os << "----[" << edge.getKind() << "] to " << inst->getFunction()->getName()
-       << "(): " << *inst << "\n";
-  } else {
-    os << "----[" << edge.getKind() << "] to " << *value << "\n";
-  }
+raw_ostream &operator<<(raw_ostream &os, const SliceEdge &edge) {
+  SliceNode::ValueTy value = edge.getTargetNode()->getValue();
+  os << "----[" << edge.getKind() << "] to distance " << edge.getDistance();
+  os << " " << value->getFunction()->getName() << "(): " << *value << "\n";
   return os;
 }
 
-raw_ostream &operator<<(raw_ostream &os, const SliceNode &node)
-{
+raw_ostream &operator<<(raw_ostream &os, const SliceNode &node) {
   os << "* node: " << *node.getValue() << "\n";
   for (auto ei = node.edge_begin(); ei != node.edge_end(); ++ei) {
     SliceEdge *edge = *ei;
@@ -136,8 +104,7 @@ raw_ostream &operator<<(raw_ostream &os, const SliceNode &node)
   return os;
 }
 
-raw_ostream &operator<<(raw_ostream &os, const SliceGraph &graph)
-{
+raw_ostream &operator<<(raw_ostream &os, const SliceGraph &graph) {
   for (auto ni = graph.node_begin(); ni != graph.node_end(); ++ni) {
     SliceNode *node = *ni;
     os << *node;
@@ -145,16 +112,14 @@ raw_ostream &operator<<(raw_ostream &os, const SliceGraph &graph)
   return os;
 }
 
-bool SliceGraph::addNode(SliceNode *node) 
-{
+bool SliceGraph::addNode(SliceNode *node) {
   if (findNode(node) != _nodes.end()) return false;
   _nodes.push_back(node);
   _node_map.emplace(node->getValue(), node);
   return true;
 }
 
-SliceNode *SliceGraph::getOrCreateNode(SliceNode::ValueTy val)
-{
+SliceNode *SliceGraph::getOrCreateNode(SliceNode::ValueTy val) {
   auto it = _node_map.find(val);
   if (it == _node_map.end()) {
     SliceNode *node = new SliceNode(val);
@@ -166,34 +131,27 @@ SliceNode *SliceGraph::getOrCreateNode(SliceNode::ValueTy val)
   return it->second;
 }
 
-SliceGraph::node_iterator SliceGraph::findNode(SliceNode *node)
-{
+SliceGraph::node_iterator SliceGraph::findNode(SliceNode *node) {
   for (node_iterator ni = _nodes.begin(); ni != _nodes.end(); ni++)
-    if (*ni == node)
-      return ni;
+    if (*ni == node) return ni;
   return _nodes.end();
 }
 
-SliceGraph::const_node_iterator SliceGraph::findNode(SliceNode *node) const 
-{
+SliceGraph::const_node_iterator SliceGraph::findNode(SliceNode *node) const {
   for (const_node_iterator ni = _nodes.begin(); ni != _nodes.end(); ni++)
-    if (*ni == node)
-      return ni;
+    if (*ni == node) return ni;
   return _nodes.end();
 }
 
-bool SliceGraph::removeNode(SliceNode *node)
-{
+bool SliceGraph::removeNode(SliceNode *node) {
   node_iterator ni = findNode(node);
-  if (ni == _nodes.end())
-    return false;
+  if (ni == _nodes.end()) return false;
   EdgeListTy el;
   for (auto *n : _nodes) {
     if (n == node) continue;
     // remove all edges to the target node
     n->findEdgesTo(node, el);
-    for (auto *e : el)
-      n->removeEdge(e);
+    for (auto *e : el) n->removeEdge(e);
     el.clear();
   }
   node->clearEdges();
@@ -201,8 +159,44 @@ bool SliceGraph::removeNode(SliceNode *node)
   return true;
 }
 
-SliceGraph::~SliceGraph()
-{
+bool SliceGraph::connect(SliceNode *node1, SliceNode *node2,
+                         SliceEdge::EdgeKind kind) {
+  if (node1 == node2 || node1->getValue() == node2->getValue()) {
+    return false;
+  }
+  if (!node1->hasEdgeTo(node2)) {
+    SliceEdge *edge = new SliceEdge(node2, kind);
+    node1->addEdge(edge);
+    // add the new edge to the global edge list
+    _edges.push_back(edge);
+    return true;
+  }
+  return false;
+}
+
+bool SliceGraph::disconnect(SliceNode *node1, SliceNode *node2) {
+  SliceNode::iterator it;
+  for (it = node1->edge_begin(); it != node1->edge_end(); ++it) {
+    if ((*it)->getTargetNode() == node2) break;
+  }
+  if (it != node1->edge_end()) {
+    node1->edges().erase(it);
+    edge_iterator eit;
+    for (eit = _edges.begin(); eit != _edges.end(); ++eit) {
+      if (*eit == *it) break;
+    }
+    if (eit != _edges.end()) {
+      // remove the edge from the global edge list as well
+      _edges.erase(eit);
+    }
+    // now it's safe to delete this edge
+    delete *it;
+    return true;
+  }
+  return false;
+}
+
+SliceGraph::~SliceGraph() {
   errs() << "Destructing slice graph " << _slice_id << "\n";
   for (auto *node : _nodes) {
     for (auto ei = node->edge_begin(); ei != node->edge_end(); ++ei) {
@@ -271,10 +265,73 @@ bool SliceGraph::computeSlices(Slices &slices) {
       curr_slice = next_slice;
     }
   }
-  // the current slice may be the last slice that has not been added to the 
+  // the current slice may be the last slice that has not been added to the
   // slices, add it in this case.
   if (!slices.has(curr_slice->id)) {
     slices.add(curr_slice);
   }
   return true;
 }
+
+bool SliceGraph::computeDistances() {
+  Instruction *root_inst = _root->getValue();
+  Function *root_func = root_inst->getFunction();
+  map<Instruction *, EdgeListTy> localInsts;
+  for (auto edge : _edges) {
+    Instruction *target = edge->getTargetNode()->getValue();
+    Function *func = target->getFunction();
+    if (root_func == func) {
+      auto lit = localInsts.find(target);
+      if (lit != localInsts.end()) {
+        lit->second.push_back(edge);
+      } else {
+        localInsts.emplace(target, EdgeListTy{edge});
+      }
+    } else {
+      // FIXME: dirty, assuming they are from callers
+      edge->setDistance(-10000000);
+    }
+  }
+  map<Instruction *, uint64_t> instPos;
+  uint64_t root_position = 0;
+  uint64_t position = 0;
+  for (inst_iterator ii = inst_begin(root_func), ie = inst_end(root_func);
+       ii != ie; ++ii) {
+    ++position;
+    Instruction *inst = &*ii;
+    if (localInsts.find(inst) != localInsts.end()) {
+      instPos.emplace(inst, position);
+    }
+    if (inst == root_inst) root_position = position;
+  }
+  if (root_position == 0) {
+    errs() << "ERROR: cannot find position of the root instruction "
+           << *_root->getValue() << "\n";
+    return false;
+  }
+  int64_t distance;
+  for (auto inst : localInsts) {
+    auto inst_pit = instPos.find(inst.first);
+    if (inst_pit == instPos.end()) {
+      errs() << "Warning: cannot find position of instruction " << inst.first
+             << "\n";
+      continue;
+    }
+    distance = inst_pit->second - root_position;
+    for (auto edge : inst.second) {
+      edge->setDistance(distance);
+    }
+  }
+  return true;
+}
+
+bool SliceGraph::sort() {
+  if (!computeDistances()) return false;
+  // sort each slice node's edges, but it's not necessary to sort
+  // the nodes list as we want the root node to be in the first.
+  for (auto node : _nodes) {
+    std::sort(node->edge_begin(), node->edge_end(), SliceEdgeComparator());
+  }
+  return true;
+}
+

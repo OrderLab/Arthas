@@ -69,6 +69,7 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+  slice_graph->sort();
 
   error_code ec;
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);

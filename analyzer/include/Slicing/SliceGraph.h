@@ -60,7 +60,7 @@ class SliceEdge {
 
   SliceNode *getTargetNode() const { return target_node; }
 
-  DistanceTy getDistance() { return distance; }
+  DistanceTy getDistance() const { return distance; }
   void setDistance(DistanceTy dist) { distance = dist; }
 
   EdgeKind getKind() const { return kind; };
@@ -103,16 +103,15 @@ class SliceNode {
   size_t edge_size() const { return _edges.size(); }
   bool empty_edges() const { return _edges.empty(); }
 
-  bool connect(SliceNode *node, SliceEdge::EdgeKind kind);
-  bool disconnect(SliceNode *node);
-
+  inline bool addEdge(SliceEdge *e) {
+    _edges.push_back(e);
+    return true;
+  }
   bool removeEdge(SliceEdge *e);
   // allows two nodes to have multiple edges
   bool findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el);
   bool hasEdgeTo(SliceNode *node);
   void clearEdges() { _edges.clear(); }
-
-  void sort();
 
  protected:
   EdgeListTy _edges;
@@ -144,12 +143,20 @@ class SliceGraph {
   const_node_iterator node_begin() const { return _nodes.begin(); }
   const_node_iterator node_end() const { return _nodes.end(); }
 
+  edge_iterator edge_begin() { return _edges.begin(); }
+  edge_iterator edge_end() { return _edges.end(); }
+  const_edge_iterator edge_begin() const { return _edges.begin(); }
+  const_edge_iterator edge_end() const { return _edges.end(); }
+
   SliceNode *getRoot() { return _root; }
   node_iterator findNode(SliceNode *node);
   const_node_iterator findNode(SliceNode *node) const;
   bool addNode(SliceNode *node);
   bool removeNode(SliceNode *node);
   SliceNode *getOrCreateNode(SliceNode::ValueTy val);
+
+  bool connect(SliceNode *node1, SliceNode *node2, SliceEdge::EdgeKind kind);
+  bool disconnect(SliceNode *node1, SliceNode *node2);
 
   size_t size() const { return _nodes.size(); }
   uint32_t slice_id() const { return _slice_id; }
@@ -158,10 +165,12 @@ class SliceGraph {
   // path in the slice graph.
   bool computeSlices(Slices &slices);
 
-  void sort();
+  bool computeDistances();
+  bool sort();
 
  protected:
   NodeListTy _nodes;
+  EdgeListTy _edges;
   SliceNode *_root;
   SliceDirection _direction;
   NodeMapTy _node_map;

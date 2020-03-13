@@ -9,6 +9,8 @@
 #include <iostream>
 
 #include <llvm/Support/CommandLine.h>
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/InstIterator.h"
 
 #include "Matcher/Matcher.h"
 #include "Utils/LLVM.h"
@@ -31,6 +33,30 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   errs() << "Successfully parsed " << inputFilename << "\n";
+  for (Function &F : *M) {
+    Instruction *first = nullptr;
+    errs() << "=============" << F.getName() << "=============\n";
+    for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+      Instruction *inst = &*I;
+      if (!first) {
+        first = inst;
+        errs() << "0!!!!" << *inst << "\n";
+        continue;
+      } else {
+        errs() << (inst - first) << "!!!!" << *inst << "\n";
+      }
+      /*
+      auto &loc = I->getDebugLoc();
+      if (loc) {
+        errs() << *loc << "!!!!" << *I << "\n";
+      } else {
+        errs() << *I << "\n";
+      }
+      */
+    }
+  }
+  return 0;
+
   vector<string> criteriaList;
   splitList(criteria, ',', criteriaList);
   Matcher matcher;

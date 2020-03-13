@@ -121,7 +121,7 @@ class DgWalkAndBuildSliceGraph: public DgWalkDFS {
       llvm::Instruction *inst = dyn_cast<Instruction>(value);
       if (!inst || !shouldSliceInst(inst)) continue;
       auto sn_next = sg->getOrCreateNode(inst);
-      sn_curr->connect(sn_next, kind);
+      sg->connect(sn_curr, sn_next, kind);
       enqueue(dn_next);
     }
   }
