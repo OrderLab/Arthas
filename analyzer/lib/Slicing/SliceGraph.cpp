@@ -22,48 +22,6 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
-bool SliceEdgeComparator::operator()(SliceEdge *edge1, SliceEdge *edge2) const {
-  auto dist1 = edge1->getDistance();
-  auto dist2 = edge2->getDistance();
-  // with a sequence of -4, -3, -2, -1, 0, 1, 2, 3, where 0 is the target
-  // instruction, the backward sort order is:
-  // 0, -1, -2, -3, -4, 1, 2, 3
-  if (dist1 == 0 && dist2 == 0) return false;
-  if (dist1 < 0) {
-    if (dist2 > 0) return true;
-    return -dist1 < -dist2;
-  } else {
-    if (dist2 < 0) return false;
-    return dist1 < dist2;
-  }
-}
-
-bool SliceNode::findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el) {
-  for (auto *edge : _edges) {
-    if (edge->getTargetNode() == node) el.push_back(edge);
-  }
-  return !el.empty();
-}
-
-bool SliceNode::hasEdgeTo(SliceNode *node) {
-  for (auto *edge : _edges) {
-    if (edge->getTargetNode() == node) return true;
-  }
-  return false;
-}
-
-bool SliceNode::removeEdge(SliceEdge *edge) {
-  iterator it;
-  for (it = _edges.begin(); it != _edges.end(); ++it) {
-    if (*it == edge) break;
-  }
-  if (it != _edges.end()) {
-    _edges.erase(it);
-    return true;
-  }
-  return false;
-}
-
 raw_ostream &operator<<(raw_ostream &os, const SliceEdge::EdgeKind &kind) {
   switch (kind) {
     case SliceEdge::EdgeKind::Unknown:
@@ -112,6 +70,57 @@ raw_ostream &operator<<(raw_ostream &os, const SliceGraph &graph) {
   return os;
 }
 
+bool SliceEdgeComparator::operator()(SliceEdge *edge1, SliceEdge *edge2) const {
+  auto dist1 = edge1->getDistance();
+  auto dist2 = edge2->getDistance();
+  // with a sequence of -4, -3, -2, -1, 0, 1, 2, 3, where 0 is the target
+  // instruction, the backward sort order is:
+  // 0, -1, -2, -3, -4, 1, 2, 3
+  if (dist1 == 0 && dist2 == 0) return false;
+  if (dist1 < 0) {
+    if (dist2 > 0) return true;
+    return -dist1 < -dist2;
+  } else {
+    if (dist2 < 0) return false;
+    return dist1 < dist2;
+  }
+}
+
+bool SliceNode::findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el) {
+  for (auto *edge : _edges) {
+    if (edge->getTargetNode() == node) el.push_back(edge);
+  }
+  return !el.empty();
+}
+
+bool SliceNode::hasEdgeTo(SliceNode *node) {
+  for (auto *edge : _edges) {
+    if (edge->getTargetNode() == node) return true;
+  }
+  return false;
+}
+
+bool SliceNode::removeEdge(SliceEdge *edge) {
+  iterator it;
+  for (it = _edges.begin(); it != _edges.end(); ++it) {
+    if (*it == edge) break;
+  }
+  if (it != _edges.end()) {
+    _edges.erase(it);
+    return true;
+  }
+  return false;
+}
+
+void SliceNode::destroyEdges() {
+  for (SliceEdge *edge : _edges) {
+    delete edge;
+  }
+  _edges.clear();
+}
+
+SliceNode::~SliceNode() { destroyEdges(); }
+
 bool SliceGraph::addNode(SliceNode *node) {
   if (findNode(node) != _nodes.end()) return false;
   _nodes.push_back(node);
@@ -146,17 +155,35 @@ SliceGraph::const_node_iterator SliceGraph::findNode(SliceNode *node) const {
 bool SliceGraph::removeNode(SliceNode *node) {
   node_iterator ni = findNode(node);
   if (ni == _nodes.end()) return false;
-  EdgeListTy el;
   for (auto *n : _nodes) {
     if (n == node) continue;
     // remove all edges to the target node
-    n->findEdgesTo(node, el);
-    for (auto *e : el) n->removeEdge(e);
-    el.clear();
+    edge_iterator eit = n->edge_begin();
+    while (eit != n->edge_end()) {
+      SliceEdge *edge = *eit;
+      if (edge->getTargetNode() == node) {
+        eit = n->edges().erase(eit);
+        delete edge;
+      } else {
+        ++eit;
+      }
+    }
   }
-  node->clearEdges();
+  node->destroyEdges();
   _nodes.erase(ni);
   return true;
+}
+
+bool SliceGraph::removeEdge(SliceEdge *edge) {
+  edge_iterator it;
+  for (it = _edges.begin(); it != _edges.end(); ++it) {
+    if (*it == edge) break;
+  }
+  if (it != _edges.end()) {
+    _edges.erase(it);
+    return true;
+  }
+  return false;
 }
 
 bool SliceGraph::connect(SliceNode *node1, SliceNode *node2,
@@ -199,10 +226,6 @@ bool SliceGraph::disconnect(SliceNode *node1, SliceNode *node2) {
 SliceGraph::~SliceGraph() {
   errs() << "Destructing slice graph " << _slice_id << "\n";
   for (auto *node : _nodes) {
-    for (auto ei = node->edge_begin(); ei != node->edge_end(); ++ei) {
-      SliceEdge *edge = *ei;
-      delete edge;
-    }
     delete node;
   }
 }
@@ -333,5 +356,35 @@ bool SliceGraph::sort() {
     std::sort(node->edge_begin(), node->edge_end(), SliceEdgeComparator());
   }
   return true;
+}
+
+void SliceGraph::mergeNodes(SliceNode *A, SliceNode *B) {
+  SliceEdge *&edgeToFold = A->edges().back();
+  if (edgeToFold->getTargetNode() != B) {
+    errs() << "To merge node " << B << " into node " << A << ", ";
+    errs() << A << " must have a single edge to " << B << "\n";
+    return;
+  }
+
+  // Copy instructions from node B to end of node A
+  A->appendValues(B->getValues());
+
+  // Move the outgoing edges from node B to node A
+  for (auto edge : B->edges()) {
+    connect(A, edge->getTargetNode(), edge->getKind());
+  }
+  // Remove the folded edge in A and from the graph
+  A->removeEdge(edgeToFold);
+  removeEdge(edgeToFold);
+  // Destroy the folded edge
+  delete edgeToFold;
+  // Destroy the node
+  removeNode(B);
+  delete B;
+}
+
+void SliceGraph::compact() {
+  // Make the slice graph more compact by coalescing nodes that have only
+  // outgoing edge
 }
 
