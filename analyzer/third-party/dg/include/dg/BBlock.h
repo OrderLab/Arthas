@@ -124,7 +124,7 @@ public:
         if (nextBBs.size() < 2)
             return true;
 
-        typename SuccContainerT::const_iterator start, iter, end;
+        typename SuccContainerT::const_iterator iter, end;
         iter = nextBBs.begin();
         end = nextBBs.end();
 

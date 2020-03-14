@@ -130,6 +130,7 @@ SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
   dg::LLVMNode *dn_curr;
   while (!queue.empty()) {
     dn_curr = queue.pop();
+    _dfs_order++;
     if (options == 0) continue;
     Instruction *inst = dyn_cast<Instruction>(dn_curr->getValue());
     if (!inst || !shouldSliceInst(inst)) continue;
@@ -138,44 +139,93 @@ SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
     mark(dn_curr, slice_id);
     sn_curr = sg->getOrCreateNode(inst);
     if (options & legacy::NODES_WALK_USE) {
-      processSliceEdges(sg, sn_curr, dn_curr,
-                        SliceEdge::EdgeKind::RegisterDefUse,
-                        dn_curr->use_begin(), dn_curr->use_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::RegisterDefUse,
+                          dn_curr->use_rbegin(), dn_curr->use_rend());
+      } else {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::RegisterDefUse,
+                          dn_curr->use_begin(), dn_curr->use_end());
+      }
     }
     if (options & legacy::NODES_WALK_USER) {
-      processSliceEdges(sg, sn_curr, dn_curr,
-                        SliceEdge::EdgeKind::RegisterDefUse,
-                        dn_curr->user_begin(), dn_curr->user_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::RegisterDefUse,
+                          dn_curr->user_rbegin(), dn_curr->user_rend());
+      } else {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::RegisterDefUse,
+                          dn_curr->user_begin(), dn_curr->user_end());
+      }
     }
     if (options & legacy::NODES_WALK_DD) {
-      processSliceEdges(sg, sn_curr, dn_curr,
-                        SliceEdge::EdgeKind::MemoryDependence,
-                        dn_curr->data_begin(), dn_curr->data_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::MemoryDependence,
+                          dn_curr->data_rbegin(), dn_curr->data_rend());
+      } else {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::MemoryDependence,
+                          dn_curr->data_begin(), dn_curr->data_end());
+      }
     }
     if (options & legacy::NODES_WALK_REV_DD) {
-      processSliceEdges(sg, sn_curr, dn_curr,
-                        SliceEdge::EdgeKind::MemoryDependence,
-                        dn_curr->rev_data_begin(), dn_curr->rev_data_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::MemoryDependence,
+                          dn_curr->rev_data_rbegin(), dn_curr->rev_data_rend());
+      } else {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::MemoryDependence,
+                          dn_curr->rev_data_begin(), dn_curr->rev_data_end());
+      }
     }
     if (options & legacy::NODES_WALK_CD) {
-      processSliceEdges(sg, sn_curr, dn_curr,
-                        SliceEdge::EdgeKind::ControlDependence,
-                        dn_curr->control_begin(), dn_curr->control_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::ControlDependence,
+                          dn_curr->control_rbegin(), dn_curr->control_rend());
+      } else {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::ControlDependence,
+                          dn_curr->control_begin(), dn_curr->control_end());
+      }
     }
     if (options & legacy::NODES_WALK_REV_CD) {
-      processSliceEdges(
-          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
-          dn_curr->rev_control_begin(), dn_curr->rev_control_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(
+            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
+            dn_curr->rev_control_rbegin(), dn_curr->rev_control_rend());
+      } else {
+        processSliceEdges(
+            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
+            dn_curr->rev_control_begin(), dn_curr->rev_control_end());
+      }
     }
     if (options & legacy::NODES_WALK_ID) {
-      processSliceEdges(
-          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
-          dn_curr->interference_begin(), dn_curr->interference_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(
+            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
+            dn_curr->interference_rbegin(), dn_curr->interference_rend());
+      } else {
+        processSliceEdges(
+            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
+            dn_curr->interference_begin(), dn_curr->interference_end());
+      }
     }
     if (options & legacy::NODES_WALK_REV_ID) {
-      processSliceEdges(
-          sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
-          dn_curr->rev_interference_begin(), dn_curr->rev_interference_end());
+      if (sg->getDirection() == SliceDirection::Backward) {
+        processSliceEdges(sg, sn_curr, dn_curr,
+                          SliceEdge::EdgeKind::InterfereDependence,
+                          dn_curr->rev_interference_rbegin(),
+                          dn_curr->rev_interference_rend());
+      } else {
+        processSliceEdges(
+            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
+            dn_curr->rev_interference_begin(), dn_curr->rev_interference_end());
+      }
     }
   }
   errs() << "Slice graph " << slice_id << " is constructed\n";

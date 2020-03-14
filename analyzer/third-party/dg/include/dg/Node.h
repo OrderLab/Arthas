@@ -36,13 +36,26 @@ public:
     using DependenceGraphType = DependenceGraphT;
 
     using control_iterator = typename ControlEdgesT::iterator;
+    using control_reverse_iterator = typename ControlEdgesT::reverse_iterator;
     using const_control_iterator = typename ControlEdgesT::const_iterator;
+    using const_control_reverse_iterator =
+        typename ControlEdgesT::const_reverse_iterator;
     using data_iterator = typename DataEdgesT::iterator;
+    using data_reverse_iterator = typename DataEdgesT::reverse_iterator;
     using const_data_iterator = typename DataEdgesT::const_iterator;
+    using const_data_reverse_iterator =
+        typename DataEdgesT::const_reverse_iterator;
     using use_iterator = typename DataEdgesT::iterator;
+    using use_reverse_iterator = typename DataEdgesT::reverse_iterator;
     using const_use_iterator = typename DataEdgesT::const_iterator;
+    using const_use_reverse_iterator =
+        typename DataEdgesT::const_reverse_iterator;
     using interference_iterator = typename InterferenceEdges::iterator;
+    using interference_reverse_iterator =
+        typename InterferenceEdges::reverse_iterator;
     using const_interference_iterator = typename InterferenceEdges::const_iterator;
+    using const_interference_reverse_iterator =
+        typename InterferenceEdges::const_reverse_iterator;
 
     Node(const KeyT& k) : key(k) {}
 
@@ -225,11 +238,37 @@ public:
     control_iterator control_end(void) { return controlDepEdges.end(); }
     const_control_iterator control_end(void) const { return controlDepEdges.end(); }
 
+    control_reverse_iterator control_rbegin(void) {
+      return controlDepEdges.rbegin();
+    }
+    const_control_reverse_iterator control_rbegin(void) const {
+      return controlDepEdges.rbegin();
+    }
+    control_reverse_iterator control_rend(void) {
+      return controlDepEdges.rend();
+    }
+    const_control_reverse_iterator control_rend(void) const {
+      return controlDepEdges.rend();
+    }
+
     // reverse control dependency edges iterators
     control_iterator rev_control_begin(void) { return revControlDepEdges.begin(); }
     const_control_iterator rev_control_begin(void) const { return revControlDepEdges.begin(); }
     control_iterator rev_control_end(void) { return revControlDepEdges.end(); }
     const_control_iterator rev_control_end(void) const { return revControlDepEdges.end(); }
+
+    control_reverse_iterator rev_control_rbegin(void) {
+      return revControlDepEdges.rbegin();
+    }
+    const_control_reverse_iterator rev_control_rbegin(void) const {
+      return revControlDepEdges.rbegin();
+    }
+    control_reverse_iterator rev_control_rend(void) {
+      return revControlDepEdges.rend();
+    }
+    const_control_reverse_iterator rev_control_rend(void) const {
+      return revControlDepEdges.rend();
+    }
 
     // interference dependency edges iteraotrs
     const_interference_iterator interference_begin(void) const { return interferenceDepEdges.begin(); }
@@ -237,11 +276,37 @@ public:
     const_interference_iterator interference_end(void) const { return interferenceDepEdges.end(); }
     interference_iterator       interference_end(void)       { return interferenceDepEdges.end(); }
 
+    const_interference_reverse_iterator interference_rbegin(void) const {
+      return interferenceDepEdges.rbegin();
+    }
+    interference_reverse_iterator interference_rbegin(void) {
+      return interferenceDepEdges.rbegin();
+    }
+    const_interference_reverse_iterator interference_rend(void) const {
+      return interferenceDepEdges.rend();
+    }
+    interference_reverse_iterator interference_rend(void) {
+      return interferenceDepEdges.rend();
+    }
+
     // reverse interference dependency edges iterators
     const_interference_iterator rev_interference_begin(void) const { return revInterferenceDepEdges.begin(); }
     interference_iterator       rev_interference_begin(void)       { return revInterferenceDepEdges.begin(); }
     const_interference_iterator rev_interference_end(void) const { return revInterferenceDepEdges.end(); }
     interference_iterator       rev_interference_end(void)       { return revInterferenceDepEdges.end(); }
+
+    const_interference_reverse_iterator rev_interference_rbegin(void) const {
+      return revInterferenceDepEdges.rbegin();
+    }
+    interference_reverse_iterator rev_interference_rbegin(void) {
+      return revInterferenceDepEdges.rbegin();
+    }
+    const_interference_reverse_iterator rev_interference_rend(void) const {
+      return revInterferenceDepEdges.rend();
+    }
+    interference_reverse_iterator rev_interference_rend(void) {
+      return revInterferenceDepEdges.rend();
+    }
 
     /// NOTE: we have two kinds of data dependencies.
     // The first one is when a value is used as an argument
@@ -258,11 +323,31 @@ public:
     data_iterator data_end(void) { return dataDepEdges.end(); }
     const_data_iterator data_end(void) const { return dataDepEdges.end(); }
 
+    data_reverse_iterator data_rbegin(void) { return dataDepEdges.rbegin(); }
+    const_data_reverse_iterator data_rbegin(void) const {
+      return dataDepEdges.rbegin();
+    }
+    data_reverse_iterator data_rend(void) { return dataDepEdges.rend(); }
+    const_data_reverse_iterator data_rend(void) const {
+      return dataDepEdges.rend();
+    }
+
     // reverse data dependency edges iterators (indirect dependency)
     data_iterator rev_data_begin(void) { return revDataDepEdges.begin(); }
     const_data_iterator rev_data_begin(void) const { return revDataDepEdges.begin(); }
     data_iterator rev_data_end(void) { return revDataDepEdges.end(); }
     const_data_iterator rev_data_end(void) const { return revDataDepEdges.end(); }
+
+    data_reverse_iterator rev_data_rbegin(void) {
+      return revDataDepEdges.rbegin();
+    }
+    const_data_reverse_iterator rev_data_rbegin(void) const {
+      return revDataDepEdges.rbegin();
+    }
+    data_reverse_iterator rev_data_rend(void) { return revDataDepEdges.rend(); }
+    const_data_reverse_iterator rev_data_rend(void) const {
+      return revDataDepEdges.rend();
+    }
 
     // use dependency edges iterators (indirect data dependency
     // -- uses of this node e.g. in operands)
@@ -271,11 +356,23 @@ public:
     use_iterator use_end() { return useEdges.end(); }
     const_use_iterator use_end() const { return useEdges.end(); }
 
+    use_reverse_iterator use_rbegin() { return useEdges.rbegin(); }
+    const_use_reverse_iterator use_rbegin() const { return useEdges.rbegin(); }
+    use_reverse_iterator use_rend() { return useEdges.rend(); }
+    const_use_reverse_iterator use_rend() const { return useEdges.rend(); }
+
     // user dependency edges iterators (indirect data dependency)
     use_iterator user_begin() { return userEdges.begin(); }
     const_use_iterator user_begin() const { return userEdges.begin(); }
     use_iterator user_end() { return userEdges.end(); }
     const_use_iterator user_end() const { return userEdges.end(); }
+
+    use_reverse_iterator user_rbegin() { return userEdges.rbegin(); }
+    const_use_reverse_iterator user_rbegin() const {
+      return userEdges.rbegin();
+    }
+    use_reverse_iterator user_rend() { return userEdges.rend(); }
+    const_use_reverse_iterator user_rend() const { return userEdges.rend(); }
 
     size_t getControlDependenciesNum() const { return controlDepEdges.size(); }
     size_t getRevControlDependenciesNum() const { return revControlDepEdges.size(); }

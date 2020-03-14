@@ -81,15 +81,27 @@ class SliceEdge {
 class SliceNode {
  public:
   using ValueTy = llvm::Instruction *;
+  using ValueListTy = SmallVectorImpl<ValueTy>;
   using EdgeListTy = SmallVector<SliceEdge *, 8>;
   using iterator = typename EdgeListTy::iterator;
   using const_iterator = typename EdgeListTy::const_iterator;
 
+  enum class NodeKind {
+    SingleInstruction,
+    MultiInstruction,
+  };
+
  public:
-  SliceNode(ValueTy val, uint32_t dep = 0) : _value(val), _depth(dep) {}
+  SliceNode(ValueTy val, uint32_t dep = 0,
+            NodeKind kind = NodeKind::SingleInstruction)
+      : _value(val), _depth(dep), _kind(kind), _valueList{val} {}
+  ~SliceNode();
 
   ValueTy getValue() const { return _value; }
-  uint32_t getDepth() const { return _depth; }
+  const ValueListTy &getValues() const { return _valueList; }
+  ValueListTy &getValues() { return _valueList; }
+  inline uint32_t getDepth() const { return _depth; }
+  void setDepth(uint32_t dep) { _depth = dep; }
 
   inline const_iterator edge_begin() const { return _edges.begin(); }
   inline const_iterator edge_end() const { return _edges.end(); }
@@ -111,12 +123,27 @@ class SliceNode {
   // allows two nodes to have multiple edges
   bool findEdgesTo(SliceNode *node, SmallVectorImpl<SliceEdge *> &el);
   bool hasEdgeTo(SliceNode *node);
-  void clearEdges() { _edges.clear(); }
+  void destroyEdges();
+
+  NodeKind getKind() const { return _kind; }
+
+  void appendValue(ValueTy val) {
+    // once we append new values, this node becomes a MultiInstruction node
+    _valueList.push_back(val);
+    _kind = NodeKind::MultiInstruction;
+  }
+
+  void appendValues(ValueListTy &valList) {
+    _kind = NodeKind::MultiInstruction;
+    _valueList.insert(_valueList.end(), valList.begin(), valList.end());
+  }
 
  protected:
   EdgeListTy _edges;
   ValueTy _value;
   unsigned _depth;
+  NodeKind _kind;
+  SmallVector<ValueTy, 2> _valueList;
 };
 
 class SliceGraph {
@@ -138,6 +165,8 @@ class SliceGraph {
 
   ~SliceGraph();
 
+  SliceDirection getDirection() const { return _direction; }
+
   node_iterator node_begin() { return _nodes.begin(); }
   node_iterator node_end() { return _nodes.end(); }
   const_node_iterator node_begin() const { return _nodes.begin(); }
@@ -154,9 +183,12 @@ class SliceGraph {
   bool addNode(SliceNode *node);
   bool removeNode(SliceNode *node);
   SliceNode *getOrCreateNode(SliceNode::ValueTy val);
+  bool removeEdge(SliceEdge *edge);
 
   bool connect(SliceNode *node1, SliceNode *node2, SliceEdge::EdgeKind kind);
   bool disconnect(SliceNode *node1, SliceNode *node2);
+
+  void mergeNodes(SliceNode *A, SliceNode *B);
 
   size_t size() const { return _nodes.size(); }
   uint32_t slice_id() const { return _slice_id; }
@@ -167,6 +199,9 @@ class SliceGraph {
 
   bool computeDistances();
   bool sort();
+
+  // Make the slice graph much more compact
+  void compact();
 
  protected:
   NodeListTy _nodes;
