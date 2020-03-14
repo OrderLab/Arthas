@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
   void **pmem_addresses = (void **)malloc(num_data * sizeof(void *));
   for (size_t i = 0; i < num_data; ++i) {
     offsets[i] = last_pool.addresses[i]->pool_offset;
-    // cout << "offset is " << offsets[i] << "\n";
+    cout << "offset is " << offsets[i] << "\n";
     addresses[i] = (void *)last_pool.addresses[i]->addr;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
@@ -334,7 +334,7 @@ int main(int argc, char *argv[]) {
   // most likely sequence number to rollback.
 
   // TODO: What to do if starting seq num is not the fault instruction?
-  starting_seq_num = 5;
+  starting_seq_num = 1;
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                             starting_seq_num, curr_version - 1);
