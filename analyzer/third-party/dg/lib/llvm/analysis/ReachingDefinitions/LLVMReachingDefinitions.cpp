@@ -61,43 +61,42 @@ LLVMReachingDefinitions::getNodesMap() const {
 }
 
 // the value 'use' must be an instruction that reads from memory
-std::vector<llvm::Value *>
-LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
+void LLVMReachingDefinitions::getLLVMReachingDefinitions(
+    llvm::Value *use, std::vector<llvm::Value *> &defs) {
+  auto loc = getNode(use);
+  if (!loc) {
+    llvm::errs() << "[RD] error: no node for: " << *use << "\n";
+    return;
+  }
 
-    std::vector<llvm::Value *> defs;
+  if (loc->getUses().empty()) {
+    llvm::errs() << "[RD] error: the queried value has empty uses: " << *use
+                 << "\n";
+    return;
+  }
 
-    auto loc = getNode(use);
-    if (!loc) {
-        llvm::errs() << "[RD] error: no node for: " << *use << "\n";
-        return defs;
+  if (!llvm::isa<llvm::LoadInst>(use) && !llvm::isa<llvm::CallInst>(use)) {
+    llvm::errs() << "[RD] error: the queried value is not a use: " << *use
+                 << "\n";
+  }
+
+  RDNodeSetVector rdDefs;
+  getReachingDefinitions(loc, rdDefs);
+  if (rdDefs.empty()) {
+    static std::set<const llvm::Value *> reported;
+    if (reported.insert(use).second) {
+      llvm::errs() << "[RD] error: no reaching definition for: " << *use
+                   << "\n";
     }
+  }
 
-    if (loc->getUses().empty()) {
-        llvm::errs() << "[RD] error: the queried value has empty uses: " << *use << "\n";
-        return defs;
-    }
-
-    if (!llvm::isa<llvm::LoadInst>(use) && !llvm::isa<llvm::CallInst>(use)) {
-        llvm::errs() << "[RD] error: the queried value is not a use: " << *use << "\n";
-    }
-
-    auto rdDefs = getReachingDefinitions(loc);
-    if (rdDefs.empty()) {
-        static std::set<const llvm::Value *> reported;
-        if (reported.insert(use).second) {
-            llvm::errs() << "[RD] error: no reaching definition for: " << *use << "\n";
-        }
-    }
-
-    //map the values
-    for (RDNode *nd : rdDefs) {
-        assert(nd->getType() != rd::RDNodeType::PHI);
-        auto llvmvalue = nd->getUserData<llvm::Value>();
-        assert(llvmvalue && "RD node has no value");
-        defs.push_back(llvmvalue);
-    }
-
-    return defs;
+  // map the values
+  for (RDNode *nd : rdDefs) {
+    assert(nd->getType() != rd::RDNodeType::PHI);
+    auto llvmvalue = nd->getUserData<llvm::Value>();
+    assert(llvmvalue && "RD node has no value");
+    defs.push_back(llvmvalue);
+  }
 }
 
 } // namespace rd

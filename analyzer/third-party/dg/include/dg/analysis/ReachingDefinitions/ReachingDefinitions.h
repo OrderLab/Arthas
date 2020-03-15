@@ -7,8 +7,9 @@
 #include <cassert>
 #include <memory>
 
-#include "dg/analysis/Offset.h"
+#include "dg/ADT/SetVector.h"
 #include "dg/analysis/BFS.h"
+#include "dg/analysis/Offset.h"
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
@@ -250,14 +251,13 @@ public:
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    virtual std::vector<RDNode *>
-    getReachingDefinitions(RDNode *where, RDNode *mem,
-                           const Offset& off,
-                           const Offset& len);
+    virtual void getReachingDefinitions(RDNode *where, RDNode *mem,
+                                        const Offset &off, const Offset &len,
+                                        RDNodeSetVector &result);
 
     // return reaching definitions of a node that represents
     // the given use
-    virtual std::vector<RDNode *> getReachingDefinitions(RDNode *use);
+    virtual void getReachingDefinitions(RDNode *use, RDNodeSetVector &result);
 };
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
@@ -284,10 +284,10 @@ class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
 
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
-    std::vector<RDNode *> findAllReachingDefinitions(RDNode *from);
-    void findAllReachingDefinitions(DefinitionsMap<RDNode>& defs, RDBBlock *from,
-                                    std::set<RDNode *>& nodes,
-                                    std::set<RDBBlock *>& visitedBlocks);
+    void findAllReachingDefinitions(RDNode *from, RDNodeSetVector &result);
+    void findAllReachingDefinitions(DefinitionsMap<RDNode> &defs,
+                                    RDBBlock *from, RDNodeSetVector &nodes,
+                                    std::set<RDBBlock *> &visitedBlocks);
 
     // all phi nodes added during transformation to SSA
     std::vector<RDNode *> _phis;
@@ -314,15 +314,14 @@ public:
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    std::vector<RDNode *>
-    getReachingDefinitions(RDNode *, RDNode *,
-                           const Offset&,
-                           const Offset&) override {
-        assert(false && "This method is not implemented for this analysis");
-        abort();
+    void getReachingDefinitions(RDNode *, RDNode *, const Offset &,
+                                const Offset &,
+                                RDNodeSetVector &result) override {
+      assert(false && "This method is not implemented for this analysis");
+      abort();
     }
 
-    std::vector<RDNode *> getReachingDefinitions(RDNode *use) override;
+    void getReachingDefinitions(RDNode *use, RDNodeSetVector &result) override;
 };
 
 } // namespace rd

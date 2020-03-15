@@ -203,36 +203,34 @@ bool BasicRDMap::update(const DefSite& p, RDNode *n)
     return ret;
 }
 
-size_t BasicRDMap::get(RDNode *n, const Offset& off,
-                       const Offset& len, std::set<RDNode *>& ret)
-{
-    DefSite ds(n, off, len);
-    return get(ds, ret);
+size_t BasicRDMap::get(RDNode* n, const Offset& off, const Offset& len,
+                       ADT::StdSetVector<RDNode*>& ret) {
+  DefSite ds(n, off, len);
+  return get(ds, ret);
 }
 
-size_t BasicRDMap::get(DefSite& ds, std::set<RDNode *>& ret)
-{
-    if (ds.offset.isUnknown()) {
-        auto range = getObjectRange(ds);
-        for (auto I = range.first; I != range.second; ++I) {
-            assert(I->first.target == ds.target);
-            ret.insert(I->second.begin(), I->second.end());
-        }
-    } else {
-        auto range = getObjectRange(ds);
-        for (auto I = range.first; I != range.second; ++I) {
-            assert(I->first.target == ds.target);
-            // if we found a definition with Offset::UNKNOWN,
-            // it is possibly a definition that we need */
-            if (I->first.offset.isUnknown() ||
-                intervalsOverlap(*I->first.offset, *I->first.len,
-                                *ds.offset, *ds.len)){
-            ret.insert(I->second.begin(), I->second.end());
-            }
-        }
+size_t BasicRDMap::get(DefSite& ds, ADT::StdSetVector<RDNode*>& ret) {
+  if (ds.offset.isUnknown()) {
+    auto range = getObjectRange(ds);
+    for (auto I = range.first; I != range.second; ++I) {
+      assert(I->first.target == ds.target);
+      ret.insert(I->second.begin(), I->second.end());
     }
+  } else {
+    auto range = getObjectRange(ds);
+    for (auto I = range.first; I != range.second; ++I) {
+      assert(I->first.target == ds.target);
+      // if we found a definition with Offset::UNKNOWN,
+      // it is possibly a definition that we need */
+      if (I->first.offset.isUnknown() ||
+          intervalsOverlap(*I->first.offset, *I->first.len, *ds.offset,
+                           *ds.len)) {
+        ret.insert(I->second.begin(), I->second.end());
+      }
+    }
+  }
 
-    return ret.size();
+  return ret.size();
 }
 
 

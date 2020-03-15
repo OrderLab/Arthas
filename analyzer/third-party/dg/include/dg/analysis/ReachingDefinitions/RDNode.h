@@ -2,6 +2,7 @@
 #define DG_RD_NODE_H_
 
 #include <vector>
+#include "dg/ADT/SetVector.h"
 
 #include "dg/analysis/Offset.h"
 #include "dg/analysis/SubgraphNode.h"
@@ -15,6 +16,8 @@ namespace rd {
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
+
+typedef ADT::StdSetVector<RDNode*> RDNodeSetVector;
 
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations

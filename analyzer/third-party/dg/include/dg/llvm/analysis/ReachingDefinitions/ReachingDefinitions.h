@@ -115,19 +115,21 @@ public:
     }
     */
 
-    std::vector<RDNode *> getReachingDefinitions(RDNode *use) {
-        return RDA->getReachingDefinitions(use);
+    inline void getReachingDefinitions(RDNode *use, RDNodeSetVector &result) {
+      RDA->getReachingDefinitions(use, result);
     }
 
-    std::vector<RDNode *> getReachingDefinitions(llvm::Value *use) {
-        auto node = getNode(use);
-        assert(node);
-        return getReachingDefinitions(node);
+    inline void getReachingDefinitions(llvm::Value *use,
+                                       RDNodeSetVector &result) {
+      auto node = getNode(use);
+      assert(node);
+      getReachingDefinitions(node, result);
     }
 
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
-    std::vector<llvm::Value *> getLLVMReachingDefinitions(llvm::Value *use);
+    void getLLVMReachingDefinitions(llvm::Value *use,
+                                    std::vector<llvm::Value *> &defs);
 };
 
 

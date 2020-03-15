@@ -6,6 +6,8 @@
 #include <map>
 #include <cassert>
 
+#include "dg/ADT/SetVector.h"
+
 #include "dg/analysis/Offset.h"
 
 namespace dg {
@@ -22,31 +24,29 @@ class ReachingDefinitionsAnalysis;
 // The start ('a' and 'b') must be concrete numbers.
 // \return true iff intervals are disjunctive
 //         false iff intervals are not disjunctive
-inline bool
-intervalsDisjunctive(uint64_t a, uint64_t a_len,
-                     uint64_t b, uint64_t b_len)
-{
-    assert(a != Offset::UNKNOWN && "Start of an interval is unknown");
-    assert(b != Offset::UNKNOWN && "Start of an interval is unknown");
-    assert(a_len > 0 && "Interval of lenght 0 given");
-    assert(b_len > 0 && "Interval of lenght 0 given");
+inline bool intervalsDisjunctive(uint64_t a, uint64_t a_len, uint64_t b,
+                                 uint64_t b_len) {
+  assert(a != Offset::UNKNOWN && "Start of an interval is unknown");
+  assert(b != Offset::UNKNOWN && "Start of an interval is unknown");
+  assert(a_len > 0 && "Interval of lenght 0 given");
+  assert(b_len > 0 && "Interval of lenght 0 given");
 
-    if (a_len == Offset::UNKNOWN) {
-        if (b_len == Offset::UNKNOWN) {
-            return false;
-        } else {
-            // b_len is concrete and a_len is unknown
-            // use less or equal, because we are starting
-            // from 0 and the bytes are distinct (e.g. 4th byte
-            // is on offset 3)
-            return (a <= b) ? false : b_len <= a - b;
-        }
-    } else if (b_len == Offset::UNKNOWN) {
-        return (a <= b) ? a_len <= b - a : false;
+  if (a_len == Offset::UNKNOWN) {
+    if (b_len == Offset::UNKNOWN) {
+      return false;
+    } else {
+      // b_len is concrete and a_len is unknown
+      // use less or equal, because we are starting
+      // from 0 and the bytes are distinct (e.g. 4th byte
+      // is on offset 3)
+      return (a <= b) ? false : b_len <= a - b;
     }
+  } else if (b_len == Offset::UNKNOWN) {
+    return (a <= b) ? a_len <= b - a : false;
+  }
 
-    // the lenghts and starts are both concrete
-    return ((a <= b) ? (a_len <= b - a) : (b_len <= a - b));
+  // the lenghts and starts are both concrete
+  return ((a <= b) ? (a_len <= b - a) : (b_len <= a - b));
 }
 
 ///
@@ -54,185 +54,163 @@ intervalsDisjunctive(uint64_t a, uint64_t a_len,
 // (over non-negative whole numbers) and check
 //  whether they overlap (not sharply, i.e.
 //  if a2 == b1, then itervals already overlap)
-inline bool
-intervalsOverlap(uint64_t a1, uint64_t a2,
-                 uint64_t b1, uint64_t b2)
-{
-    return !intervalsDisjunctive(a1, a2, b1, b2);
+inline bool intervalsOverlap(uint64_t a1, uint64_t a2, uint64_t b1,
+                             uint64_t b2) {
+  return !intervalsDisjunctive(a1, a2, b1, b2);
 }
 
 template <typename NodeT>
-struct GenericDefSite
-{
-    GenericDefSite(NodeT *t,
-                   const Offset& o = Offset::UNKNOWN,
-                   const Offset& l = Offset::UNKNOWN)
-        : target(t), offset(o), len(l)
-    {
-        assert((o.isUnknown() || l.isUnknown() ||
-               *o + *l > 0) && "Invalid offset and length given");
-    }
+struct GenericDefSite {
+  GenericDefSite(NodeT* t, const Offset& o = Offset::UNKNOWN,
+                 const Offset& l = Offset::UNKNOWN)
+      : target(t), offset(o), len(l) {
+    assert((o.isUnknown() || l.isUnknown() || *o + *l > 0) &&
+           "Invalid offset and length given");
+  }
 
-    bool operator<(const GenericDefSite& oth) const
-    {
-        return target == oth.target ?
-                (offset == oth.offset ? len < oth.len : offset < oth.offset)
-                : target < oth.target;
-    }
+  bool operator<(const GenericDefSite& oth) const {
+    return target == oth.target
+               ? (offset == oth.offset ? len < oth.len : offset < oth.offset)
+               : target < oth.target;
+  }
 
-    bool operator==(const GenericDefSite& oth) const {
-        return target == oth.target && offset == oth.offset && len == oth.len;
-    }
+  bool operator==(const GenericDefSite& oth) const {
+    return target == oth.target && offset == oth.offset && len == oth.len;
+  }
 
-    // what memory this node defines
-    NodeT *target;
-    // on what offset
-    Offset offset;
-    // how many bytes
-    Offset len;
+  // what memory this node defines
+  NodeT* target;
+  // on what offset
+  Offset offset;
+  // how many bytes
+  Offset len;
 };
 
 // for compatibility until we need to change it
 using DefSite = GenericDefSite<RDNode>;
 
-extern RDNode *UNKNOWN_MEMORY;
+extern RDNode* UNKNOWN_MEMORY;
 
 // wrapper around std::set<> with few
 // improvements that will be handy in our set-up
 class RDNodesSet {
-    using ContainerTy = std::set<RDNode *>;
+  using ContainerTy = ADT::StdSetVector<RDNode*>;
 
-    ContainerTy nodes;
-    bool is_unknown;
+  ContainerTy nodes;
+  bool is_unknown;
 
-public:
-    RDNodesSet() : is_unknown(false) {}
+ public:
+  RDNodesSet() : is_unknown(false) {}
 
-    // the set contains unknown mem. location
-    void makeUnknown()
-    {
-        nodes.clear();
-        nodes.insert(UNKNOWN_MEMORY);
-        is_unknown = true;
+  // the set contains unknown mem. location
+  void makeUnknown() {
+    nodes.clear();
+    nodes.insert(UNKNOWN_MEMORY);
+    is_unknown = true;
+  }
+
+  bool insert(RDNode* n) {
+    if (is_unknown) return false;
+
+    if (n == UNKNOWN_MEMORY) {
+      makeUnknown();
+      return true;
+    } else {
+      return nodes.insert(n);
     }
+  }
 
-    bool insert(RDNode *n)
-    {
-        if (is_unknown)
-            return false;
+  size_t count(RDNode* n) const { return nodes.count(n); }
 
-        if (n == UNKNOWN_MEMORY) {
-            makeUnknown();
-            return true;
-        } else
-            return nodes.insert(n).second;
-    }
+  size_t size() const { return nodes.size(); }
 
-    size_t count(RDNode *n) const
-    {
-        return nodes.count(n);
-    }
+  void clear() {
+    nodes.clear();
+    is_unknown = false;
+  }
 
-    size_t size() const
-    {
-        return nodes.size();
-    }
+  bool isUnknown() const { return is_unknown; }
 
-    void clear()
-    {
-        nodes.clear();
-        is_unknown = false;
-    }
+  ContainerTy::iterator begin() { return nodes.begin(); }
+  ContainerTy::iterator end() { return nodes.end(); }
+  ContainerTy::const_iterator begin() const { return nodes.begin(); }
+  ContainerTy::const_iterator end() const { return nodes.end(); }
 
-    bool isUnknown() const
-    {
-        return is_unknown;
-    }
-
-    ContainerTy::iterator begin() { return nodes.begin(); }
-    ContainerTy::iterator end() { return nodes.end(); }
-    ContainerTy::const_iterator begin() const { return nodes.begin(); }
-    ContainerTy::const_iterator end() const { return nodes.end(); }
-
-    ContainerTy& getNodes() {
-        return nodes;
-    };
-
+  ContainerTy& getNodes() { return nodes; }
 };
 
 using DefSiteSetT = std::set<DefSite>;
 
-class BasicRDMap
-{
-public:
-    using MapT = std::map<DefSite, RDNodesSet>;
+class BasicRDMap {
+ public:
+  using MapT = std::map<DefSite, RDNodesSet>;
 
-    BasicRDMap() = default;
-    BasicRDMap(const BasicRDMap& o) {
-        merge(&o);
+  BasicRDMap() = default;
+  BasicRDMap(const BasicRDMap& o) { merge(&o); }
+
+  bool merge(const BasicRDMap* o, DefSiteSetT* without = nullptr,
+             bool strong_update_unknown = true,
+             Offset::type max_set_size = Offset::UNKNOWN,
+             bool merge_unknown = false);
+
+  bool add(const DefSite&, RDNode* n);
+  bool update(const DefSite&, RDNode* n);
+  bool empty() const { return _defs.empty(); }
+
+  // gather reaching definitions of memory [n + off, n + off + len]
+  // and store them to the @ret
+  size_t get(RDNode* n, const Offset& off, const Offset& len,
+             ADT::StdSetVector<RDNode*>& ret);
+  size_t get(DefSite& ds, ADT::StdSetVector<RDNode*>& ret);
+
+  template <typename IteratorT>
+  class _map_iterator {
+    IteratorT it;
+    _map_iterator(const IteratorT& I) : it(I) {}
+    friend class BasicRDMap;
+
+   public:
+    auto operator*() -> decltype(*it) { return *it; }
+
+    auto operator*() const -> decltype(*it) { return *it; }
+
+    _map_iterator& operator++() {
+      ++it;
+      return *this;
     }
+    _map_iterator operator++(int) {
+      auto tmp = *this;
+      ++it;
+      return tmp;
+    }
+    bool operator==(const _map_iterator& oth) const { return it == oth.it; }
+    bool operator!=(const _map_iterator& oth) const { return !operator==(oth); }
+  };
 
-    bool merge(const BasicRDMap *o,
-               DefSiteSetT *without = nullptr,
-               bool strong_update_unknown = true,
-               Offset::type max_set_size  = Offset::UNKNOWN,
-               bool merge_unknown     = false);
+  using map_iterator = _map_iterator<MapT::iterator>;
+  using const_map_iterator = _map_iterator<MapT::const_iterator>;
 
-    bool add(const DefSite&, RDNode *n);
-    bool update(const DefSite&, RDNode *n);
-    bool empty() const { return _defs.empty(); }
+  map_iterator begin() { return map_iterator(_defs.begin()); }
+  map_iterator end() { return map_iterator(_defs.end()); }
+  const_map_iterator begin() const { return const_map_iterator(_defs.begin()); }
+  const_map_iterator end() const { return const_map_iterator(_defs.end()); }
 
-    // gather reaching definitions of memory [n + off, n + off + len]
-    // and store them to the @ret
-    size_t get(RDNode *n, const Offset& off,
-               const Offset& len, std::set<RDNode *>& ret);
-    size_t get(DefSite& ds, std::set<RDNode *>& ret);
+ private:
+  // @return iterators for the range of pointers that has the same object
+  // as the given def site
+  std::pair<BasicRDMap::MapT::iterator, BasicRDMap::MapT::iterator>
+  getObjectRange(const DefSite&);
 
-    template <typename IteratorT>
-    class _map_iterator {
-        IteratorT it;
-        _map_iterator(const IteratorT& I) : it(I) {}
-        friend class BasicRDMap;
+  std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
+  getObjectRange(const DefSite&) const;
 
-        public:
-        auto operator*() -> decltype(*it) {
-            return *it;
-        }
-
-        auto operator*() const -> decltype(*it) {
-            return *it;
-        }
-
-        _map_iterator& operator++() { ++it; return *this; }
-        _map_iterator operator++(int) { auto tmp = *this; ++it; return tmp; }
-        bool operator==(const _map_iterator& oth) const { return it == oth.it; }
-        bool operator!=(const _map_iterator& oth) const { return !operator==(oth); }
-    };
-
-    using map_iterator = _map_iterator<MapT::iterator>;
-    using const_map_iterator = _map_iterator<MapT::const_iterator>;
-
-    map_iterator begin() { return map_iterator(_defs.begin()); }
-    map_iterator end() { return map_iterator(_defs.end()); }
-    const_map_iterator begin() const { return const_map_iterator(_defs.begin()); }
-    const_map_iterator end() const { return const_map_iterator(_defs.end()); }
-
-private:
-    // @return iterators for the range of pointers that has the same object
-    // as the given def site
-    std::pair<BasicRDMap::MapT::iterator, BasicRDMap::MapT::iterator>
-    getObjectRange(const DefSite&);
-
-    std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
-    getObjectRange(const DefSite&) const;
-
-    MapT _defs{};
+  MapT _defs{};
 };
 
 using RDMap = BasicRDMap;
 
-} // rd
-} // analysis
-} // dg
+}  // rd
+}  // analysis
+}  // dg
 
 #endif

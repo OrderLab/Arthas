@@ -132,10 +132,16 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
         }
         return;
     }
-
+    // llvm::errs() << "--- data dependence from " << *node->getValue() << "\n";
     // add data dependence
     for (auto def : defs) {
-        addDataDependence(node, def);
+      /*
+      if (auto inst = dyn_cast<llvm::Instruction>(def)) {
+        // llvm::errs() << "\t\t to " << inst->getFunction()->getName() << "():"
+        // << *def << "\n";
+      }
+      */
+      addDataDependence(node, def);
     }
 }
 
@@ -152,7 +158,9 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
     }
 
     if (RD->isUse(val)) {
-        addDataDependence(node, RD->getLLVMReachingDefinitions(val));
+      std::vector<llvm::Value *> defs;
+      RD->getLLVMReachingDefinitions(val, defs);
+      addDataDependence(node, defs);
     }
 
     // we will run only once

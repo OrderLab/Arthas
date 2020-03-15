@@ -69,7 +69,6 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
-  slice_graph->sort();
 
   error_code ec;
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
@@ -145,6 +144,9 @@ int main(int argc, char *argv[]) {
     errs() << "Failed to compute the slices for the fault instructions\n";
     return 1;
   }
+
+  errs() << "Computed " << faultSlices.size()
+         << " slices of the fault instruction\n";
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
