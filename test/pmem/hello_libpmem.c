@@ -71,6 +71,7 @@ void write_hello_string (char *buf, char *path)
 
   char new_buf[MAX_BUF_LEN] = "Second String NEW VALUE HERE!!!";
   pmem_memcpy_persist(pmemaddr, new_buf, strlen(new_buf) + 1);
+  printf("pmemaddr is %p\n", pmemaddr);
 	/* output a string from the persistent memory to console */
 	printf("Write the (%s) string to persistent memory.\n", pmemaddr);	
 			
