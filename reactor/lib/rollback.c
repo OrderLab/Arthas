@@ -103,10 +103,12 @@ void revert_by_sequence_number(void **sorted_pmem_addresses,
            *(double *)sorted_pmem_addresses[seq_num],
            ordered_data[seq_num].offset);
   else
-    printf("Value before seq num %d is %d offset %ld\n", seq_num,
+    printf("Value before seq num %d is %d or %s offset %ld\n", seq_num,
            *(int *)sorted_pmem_addresses[seq_num],
+           (char *)sorted_pmem_addresses[seq_num],
            ordered_data[seq_num].offset);
-
+  printf("revert address %p %ld\n", sorted_pmem_addresses[seq_num],
+         (uint64_t)sorted_pmem_addresses[seq_num]);
   memcpy(sorted_pmem_addresses[seq_num],
          ordered_data[seq_num].old_data[rollback_version],
          ordered_data[seq_num].old_size[rollback_version]);
@@ -121,8 +123,9 @@ void revert_by_sequence_number(void **sorted_pmem_addresses,
            *(double *)sorted_pmem_addresses[seq_num],
            ordered_data[seq_num].offset);
   else
-    printf("REVERTED Value before seq num %d is %d offset %ld\n", seq_num,
+    printf("REVERTED Value before seq num %d is %d or %s offset %ld\n", seq_num,
            *(int *)sorted_pmem_addresses[seq_num],
+           (char *)sorted_pmem_addresses[seq_num],
            ordered_data[seq_num].offset);
 }
 
