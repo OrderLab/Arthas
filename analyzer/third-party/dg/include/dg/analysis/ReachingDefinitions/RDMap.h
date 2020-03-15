@@ -1,10 +1,11 @@
 #ifndef DG_RD_MAP_H_
 #define DG_RD_MAP_H_
 
-#include <set>
-#include <vector>
-#include <map>
 #include <cassert>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <vector>
 
 #include "dg/ADT/SetVector.h"
 
@@ -139,7 +140,7 @@ class RDNodesSet {
   ContainerTy& getNodes() { return nodes; }
 };
 
-using DefSiteSetT = std::set<DefSite>;
+using DefSiteSetT = ADT::StdSetVector<DefSite>;
 
 class BasicRDMap {
  public:
@@ -156,6 +157,8 @@ class BasicRDMap {
   bool add(const DefSite&, RDNode* n);
   bool update(const DefSite&, RDNode* n);
   bool empty() const { return _defs.empty(); }
+
+  size_t size() const { return _defs.size(); }
 
   // gather reaching definitions of memory [n + off, n + off + len]
   // and store them to the @ret

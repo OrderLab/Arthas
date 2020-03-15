@@ -87,6 +87,15 @@ class StdSetVector {
     return result;
   }
 
+  iterator find(const value_type &X) const {
+    if (set_.find(X) == set_.end()) return vector_.end();
+    iterator it = vector_.begin();
+    iterator ie = vector_.end();
+    for (; it != ie; ++it)
+      if (*it == X) return it;
+    return it;
+  }
+
   /// \brief Insert a range of elements into the SetVector.
   template <typename It>
   void insert(It Start, It End) {

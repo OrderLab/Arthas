@@ -132,15 +132,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
         }
         return;
     }
-    // llvm::errs() << "--- data dependence from " << *node->getValue() << "\n";
     // add data dependence
     for (auto def : defs) {
-      /*
-      if (auto inst = dyn_cast<llvm::Instruction>(def)) {
-        // llvm::errs() << "\t\t to " << inst->getFunction()->getName() << "():"
-        // << *def << "\n";
-      }
-      */
       addDataDependence(node, def);
     }
 }

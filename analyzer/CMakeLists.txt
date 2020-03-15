@@ -1,6 +1,7 @@
 # we need to add the two definitions in order to compile and use dg
 add_definitions(-DHAVE_LLVM)
 add_definitions(-DENABLE_CFG)
+add_definitions(-DNDEBUG)
 
 include_directories(include)
 include_directories(lib)
