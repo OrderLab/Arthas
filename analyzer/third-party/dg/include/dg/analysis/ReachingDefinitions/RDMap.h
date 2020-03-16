@@ -2,11 +2,13 @@
 #define DG_RD_MAP_H_
 
 #include <cassert>
+#include <list>
 #include <map>
 #include <set>
 #include <unordered_map>
 #include <vector>
 
+#include "dg/ADT/MapVector.h"
 #include "dg/ADT/SetVector.h"
 
 #include "dg/analysis/Offset.h"
@@ -101,7 +103,7 @@ class RDNodesSet {
   bool is_unknown;
 
  public:
-  RDNodesSet() : is_unknown(false) {}
+  RDNodesSet() : is_unknown(false), order(0) {}
 
   // the set contains unknown mem. location
   void makeUnknown() {
@@ -138,6 +140,9 @@ class RDNodesSet {
   ContainerTy::const_iterator end() const { return nodes.end(); }
 
   ContainerTy& getNodes() { return nodes; }
+
+ public:
+  unsigned int order;
 };
 
 using DefSiteSetT = ADT::StdSetVector<DefSite>;
@@ -145,9 +150,15 @@ using DefSiteSetT = ADT::StdSetVector<DefSite>;
 class BasicRDMap {
  public:
   using MapT = std::map<DefSite, RDNodesSet>;
+  using MapKeysT = std::list<DefSite>;
+  using key_iterator = MapKeysT::iterator;
+  using const_key_iterator = MapKeysT::const_iterator;
 
-  BasicRDMap() = default;
-  BasicRDMap(const BasicRDMap& o) { merge(&o); }
+  BasicRDMap() : order(0){};
+  BasicRDMap(const BasicRDMap& o) {
+    merge(&o);
+    order = o.order;
+  }
 
   bool merge(const BasicRDMap* o, DefSiteSetT* without = nullptr,
              bool strong_update_unknown = true,
@@ -165,6 +176,15 @@ class BasicRDMap {
   size_t get(RDNode* n, const Offset& off, const Offset& len,
              ADT::StdSetVector<RDNode*>& ret);
   size_t get(DefSite& ds, ADT::StdSetVector<RDNode*>& ret);
+
+  RDNodesSet& operator[](const DefSite& key) {
+    auto result = _defs.emplace(key, RDNodesSet());
+    if (result.second) {
+      _keys.push_back(key);
+      result.first->second.order = ++order;
+    }
+    return result.first->second;
+  }
 
   template <typename IteratorT>
   class _map_iterator {
@@ -198,6 +218,11 @@ class BasicRDMap {
   const_map_iterator begin() const { return const_map_iterator(_defs.begin()); }
   const_map_iterator end() const { return const_map_iterator(_defs.end()); }
 
+  key_iterator key_begin() { return _keys.begin(); }
+  key_iterator key_end() { return _keys.end(); }
+  const_key_iterator key_begin() const { return _keys.begin(); }
+  const_key_iterator key_end() const { return _keys.end(); }
+
  private:
   // @return iterators for the range of pointers that has the same object
   // as the given def site
@@ -208,6 +233,8 @@ class BasicRDMap {
   getObjectRange(const DefSite&) const;
 
   MapT _defs{};
+  MapKeysT _keys{};
+  unsigned int order;
 };
 
 using RDMap = BasicRDMap;

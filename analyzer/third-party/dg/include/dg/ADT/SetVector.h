@@ -238,7 +238,8 @@ class StdSetVector {
   set_type set_;        ///< The set.
   vector_type vector_;  ///< The vector.
 };
-}
-}
+
+}  // namespace ADT
+}  // namespace dg
 
 #endif /* DG_ADT_SETVECTOR_H_ */
