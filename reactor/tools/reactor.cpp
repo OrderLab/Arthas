@@ -217,6 +217,12 @@ int main(int argc, char *argv[]) {
     addresses[i] = (void *)last_pool.addresses[i]->addr;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
+  if(strcmp(options.pmem_library, "libpmem") == 0){
+    offsets[num_data] = 0;
+    addresses[num_data] = (void *)last_pool.pool_addr;
+    pmem_addresses[num_data] = pop;
+    num_data++;
+  }
 
   // Step 3: Opening Checkpoint Component PMEM File
   struct checkpoint_log *c_log =
@@ -250,7 +256,6 @@ int main(int argc, char *argv[]) {
                           sorted_pmem_addresses, offsets);
 
   // Step 5d: revert by sequence number
-
   for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
     PmemAddrTraceItem *traceItem = *it;
     if (traceItem->instr == faultInstr) {
@@ -284,6 +289,8 @@ int main(int argc, char *argv[]) {
           for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
                 ordered_data[i].sequence_number != starting_seq_num) {
+              //cout << "add to vector " << ordered_data[i].address << 
+              //" " << i << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -304,7 +311,6 @@ int main(int argc, char *argv[]) {
                                     decided_slice_seq_numbers, *decided_total);
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       pmemobj_close((PMEMobjpool *)pop);
-    // TODO: Not sure of consequences of pmem_unmap + pmem_map again, will test
     if (*decided_total > 0) {
       req_flag2 =
           re_execute(options.reexecute_cmd, options.version_num, addresses,

@@ -59,18 +59,18 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
 
     uint64_t offset;
     variable_count = c_log->variable_count;
-    printf("variable_count %d\n", c_log->variable_count);
-    printf("old pool ptr is %ld\n", old_pool);
+    //printf("variable_count %d\n", c_log->variable_count);
+    //printf("old pool ptr is %ld\n", old_pool);
     // offset = (uint64_t)c_log->c_data[0].data[0] - old_pool;
     for (int i = 0; i < 1; i++) {
-      printf("version is %d\n", c_log->c_data[i].version);
-      printf("address is %p\n", c_log->c_data[i].address);
+      //printf("version is %d\n", c_log->c_data[i].version);
+      //printf("address is %p\n", c_log->c_data[i].address);
       for (int j = 0; j <= c_log->c_data[i].version; j++) {
         offset = (uint64_t)c_log->c_data[i].data[j] - old_pool;
-        printf("offset is %ld\n", offset);
-        printf("size is %ld\n", c_log->c_data[i].size[j]);
+        //printf("offset is %ld\n", offset);
+        //printf("size is %ld\n", c_log->c_data[i].size[j]);
         c_log->c_data[i].data[j] = (void *)((uint64_t)c_log + offset);
-        printf("data is %s\n", (char *)c_log->c_data[i].data[j]);
+        //printf("data is %s\n", (char *)c_log->c_data[i].data[j]);
       }
     }
   }
@@ -139,6 +139,6 @@ void order_by_sequence_num(single_data *ordered_data, size_t *total_size,
       *total_size = *total_size + 1;
     }
   }
-  printf("seq num total size is %ld\n", *total_size);
   qsort(ordered_data, *total_size, sizeof(single_data), sequence_comparator);
+  //printf("seq num total size is %ld\n", *total_size);
 }

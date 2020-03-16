@@ -80,6 +80,7 @@ void revert_by_sequence_number_array(void **sorted_pmem_addresses,
     if (rollback_version < 0) {
       continue;
     }
+    //printf("rollback version is %d\n", rollback_version);
     revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                               seq_numbers[i], rollback_version);
   }
@@ -92,8 +93,8 @@ void revert_by_sequence_number(void **sorted_pmem_addresses,
   // printf("value here is %d \n", *(int
   // *)ordered_data[seq_num].old_data[rollback_version]);
   // printf("value here is %d \n", *(int *)sorted_pmem_addresses[seq_num]);
-  // printf("%p \n", ordered_data[seq_num].old_data[rollback_version]);
-  // printf("%ld \n", ordered_data[seq_num].old_size[rollback_version]);
+  //printf("%p \n", ordered_data[seq_num].old_data[rollback_version]);
+  //printf("%ld \n", ordered_data[seq_num].old_size[rollback_version]);
   if (ordered_data[seq_num].old_size[rollback_version] == 4)
     printf("Value before seq num %d is %d offset %ld\n", seq_num,
            *(int *)sorted_pmem_addresses[seq_num],
@@ -135,6 +136,8 @@ void sort_by_sequence_number(void **addresses, single_data *ordered_data,
                              void **sorted_pmem_addresses, uint64_t *offsets) {
   for (int i = 0; i < total_size; i++) {
     for (int j = 0; j < num_data; j++) {
+      //printf("ordered data offset is %ld, offset is %ld\n", 
+      //ordered_data[i].offset, offsets[j]);
       if (ordered_data[i].offset == offsets[j]) {
         sorted_addresses[i] = ordered_data[i].address;
         sorted_pmem_addresses[i] = pmem_addresses[j];
