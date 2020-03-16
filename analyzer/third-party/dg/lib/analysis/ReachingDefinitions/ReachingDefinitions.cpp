@@ -1,3 +1,4 @@
+#include <iostream>
 #include <set>
 #include <vector>
 
@@ -118,11 +119,31 @@ void ReachingDefinitionsAnalysis::getReachingDefinitions(
   for (auto &ds : use->uses) {
     if (ds.target->isUnknown()) {
       // gather all definitions of memory
+
+      // Arthas CHANGES:
+      //  iterate the def map based on insertion order
+      //
+      // std::cerr << "use " << use << "\n";
+      auto kit = use->def_map.key_begin();
+      auto kend = use->def_map.key_end();
+      while (kit != kend) {
+        auto &def = use->def_map[*kit];
+        // std::cerr << "-- def insertion order " << def.order << "\n";
+        result.insert(def.begin(), def.end());
+        ++kit;
+      }
+      // Arthas CHANGES:
+      //  previously the def map is iterated based on sorted key order
+      //
+      /*
       for (auto &it : use->def_map) {
+        std::cerr << "-- def insertion order " << it.second.order << "\n";
         result.insert(it.second.begin(), it.second.end());
       }
+      */
       break;  // we may bail out as we added everything
     }
+    // std::cerr << "use " << use << " known target " << ds.target << "\n";
     use->def_map.get(ds.target, ds.offset, ds.len, result);
   }
   use->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, result);

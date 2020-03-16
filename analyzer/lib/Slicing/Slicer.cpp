@@ -21,6 +21,8 @@
 #include "Slicing/DgWalk.h"
 #include "Slicing/Slicer.h"
 
+#include "dg/analysis/Offset.h"
+
 using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
@@ -39,6 +41,8 @@ bool DgSlicer::computeDependencies() {
   // use data-flow reaching definition analysis, another option is memory-ssa
   dg_options.RDAOptions.analysisType = dg::llvmdg::
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
+  // dg_options.RDAOptions.maxSetSize =
+  // static_cast<dg::analysis::Offset::type>(5);
 
   _builder = make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(_module, dg_options);
 
