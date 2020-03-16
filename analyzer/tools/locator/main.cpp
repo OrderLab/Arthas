@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   errs() << "Successfully parsed " << inputFilename << "\n";
-  for (Function &F : *M) {
+  /*for (Function &F : *M) {
     Instruction *first = nullptr;
     errs() << "=============" << F.getName() << "=============\n";
     for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
@@ -45,17 +45,17 @@ int main(int argc, char *argv[]) {
       } else {
         errs() << (inst - first) << "!!!!" << *inst << "\n";
       }
-      /*
+      
       auto &loc = I->getDebugLoc();
       if (loc) {
         errs() << *loc << "!!!!" << *I << "\n";
       } else {
         errs() << *I << "\n";
       }
-      */
+      
     }
-  }
-  return 0;
+  }*/
+  //return 0;
 
   vector<string> criteriaList;
   splitList(criteria, ',', criteriaList);
