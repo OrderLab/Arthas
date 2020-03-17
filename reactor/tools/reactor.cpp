@@ -73,12 +73,17 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   error_code ec;
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
   slice_graph->computeSlices(slices);
+  out_stream << "=================Slice graph " << slice_graph->slice_id();
+  out_stream << "=================\n";
   out_stream << *slice_graph << "\n";
-  out_stream.close();
+  out_stream << "=================Slice list " << slice_graph->slice_id();
+  out_stream << "=================\n";
   for (Slice *slice : slices) {
     auto persistent_vars = locator->vars().getArrayRef();
     slice->setPersistence(persistent_vars);
+    slice->dump(out_stream);
   }
+  out_stream.close();
   return true;
 }
 

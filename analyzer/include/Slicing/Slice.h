@@ -24,6 +24,14 @@ enum class SlicePersistence { NA, Persistent, Volatile, Mixed };
 
 enum class SliceDirection { Backward, Forward, Full };
 
+enum class SliceDependence {
+  Unknown,
+  RegisterDefUse,
+  MemoryDependence,
+  ControlDependence,
+  InterfereDependence,
+};
+
 inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
     const SlicePersistence & persistence)
 {
@@ -49,11 +57,15 @@ class Slice {
   llvm::Instruction *root;
   SliceDirection direction;
   SlicePersistence persistence;
+  SliceDependence dependence;
+
   DependentValueList dep_vals;
 
   Slice(uint64_t slice_id, ValueTy root_val, SliceDirection dir,
-        SlicePersistence kind = SlicePersistence::NA)
-      : id(slice_id), root(root_val), direction(dir), persistence(kind) {
+        SlicePersistence kind = SlicePersistence::NA,
+        SliceDependence dep = SliceDependence::Unknown)
+      : id(slice_id), root(root_val), direction(dir), persistence(kind),
+        dependence(dep) {
     dep_vals.push_back(root_val);  // root val depends on itself
   }
 

@@ -230,13 +230,15 @@ SliceGraph::~SliceGraph() {
   }
 }
 
-bool SliceGraph::computeSlices(Slices &slices) {
+bool SliceGraph::computeSlices(Slices &slices, bool inter_procedurual,
+                               bool separate_dependence) {
   SmallPtrSet<SliceNode *, 8> visited;
   stack<SliceNode *> vstack;
   SliceNode *elem, *next;
   Slice *curr_slice, *next_slice, *forked_slice;
   uint64_t curr_slice_id = 1;
   size_t unexplored_edges;
+  SliceEdge *edge;
 
   curr_slice = new Slice(curr_slice_id, _root->getValue(), _direction);
   vstack.push(_root);
@@ -253,13 +255,48 @@ bool SliceGraph::computeSlices(Slices &slices) {
     // current slice to proceed on one edge, and fork new slices
     // for exploring the remaining edges.
     unexplored_edges = 0;
+    bool current_dependence_unknown =
+        (curr_slice->dependence == SliceDependence::Unknown);
     for (auto ei = elem->edge_begin(); ei != elem->edge_end(); ++ei) {
-      next = (*ei)->getTargetNode();
+      edge = *ei;
+      if (separate_dependence) {
+        // if separate_dependence flag is on, it means we only compute
+        // slice that has the same dependency kind, e.g., a slice
+        // that only has def-use relationship or a slice where each
+        // element is connected through memory dependency only
+        if (!current_dependence_unknown &&
+            edge->getKind() == curr_slice->dependence) {
+          // if we are on one dependency kind of a slice and the outgoing
+          // edge is of a different kind, we should skip this edge
+          continue;
+        }
+      }
+      if (!inter_procedurual) {
+        if (edge->getTargetNode()->getValue()->getFunction() !=
+            (*curr_slice->begin())->getFunction()) {
+          continue;
+        }
+      }
+      next = edge->getTargetNode();
       if (visited.insert(next).second) {
+        if (separate_dependence &&
+            curr_slice->dependence == SliceDependence::Unknown) {
+          // here we must use curr_slice->dependence instead of
+          // current_dependence_unknown to test in the if so that
+          // the current slice's dependence is only set once
+          curr_slice->dependence = edge->getKind();
+        }
         vstack.push(next);
         unexplored_edges++;
         if (unexplored_edges > 1) {
           forked_slice = curr_slice->fork();
+          if (separate_dependence && current_dependence_unknown) {
+            // normally the forked slice will inherit the current
+            // slice's dependence, so we don't need to set it.
+            // but if the current slice's dependence was *previously*
+            // unknown, we must reset the forked slice's dependence
+            forked_slice->dependence = edge->getKind();
+          }
           ++curr_slice_id;
           forked_slice->id = curr_slice_id;
           DEBUG(dbgs() << "Forked slice " << curr_slice->id << " to slice "
@@ -292,6 +329,9 @@ bool SliceGraph::computeSlices(Slices &slices) {
   // slices, add it in this case.
   if (!slices.has(curr_slice->id)) {
     slices.add(curr_slice);
+  }
+
+  if (separate_dependence) {
   }
   return true;
 }
@@ -386,5 +426,8 @@ void SliceGraph::mergeNodes(SliceNode *A, SliceNode *B) {
 void SliceGraph::compact() {
   // Make the slice graph more compact by coalescing nodes that have only
   // outgoing edge
+  // TODO: implement compaction algorithm
+  //
+  // For now, the compaction does not really seem necessary
 }
 

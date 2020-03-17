@@ -37,13 +37,7 @@ class SliceEdge;
 
 class SliceEdge {
  public:
-  enum class EdgeKind {
-    Unknown,
-    RegisterDefUse,
-    MemoryDependence,
-    ControlDependence,
-    InterfereDependence,
-  };
+  typedef SliceDependence EdgeKind;
 
   typedef int64_t DistanceTy;
 
@@ -195,7 +189,8 @@ class SliceGraph {
 
   // convert the slice graph into a list of slices, each slice representing one
   // path in the slice graph.
-  bool computeSlices(Slices &slices);
+  bool computeSlices(Slices &slices, bool inter_procedurual = true,
+                     bool separate_dependence = false);
 
   bool computeDistances();
   bool sort();

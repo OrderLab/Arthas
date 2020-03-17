@@ -40,16 +40,19 @@ raw_ostream &operator<<(raw_ostream &os, const SliceDirection & direction)
 
 void Slice::dump(raw_ostream &os)
 {
-  os << "Slice " << id << ":\n";
+  os << "Slice " << id << "(" << persistence << "):\n";
   for (auto i = begin(); i != end(); ++i) {
     Value *val = *i;
+    os << "~";
+    if (auto inst = dyn_cast<Instruction>(val)) {
+      os << inst->getFunction()->getName() << "()=>";
+    }
     os << *val << "\n";
   }
-  os << "Slice " << id << " is " << persistence << "\n";
 }
 
 Slice *Slice::fork() {
-  Slice *copy = new Slice(id, root, direction, persistence);
+  Slice *copy = new Slice(id, root, direction, persistence, dependence);
   for (ValueTy dep : *this) {
     // root has been inserted in the dep_vals, skip it
     if (dep == root)
