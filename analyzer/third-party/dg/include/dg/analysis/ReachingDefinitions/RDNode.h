@@ -1,6 +1,7 @@
 #ifndef DG_RD_NODE_H_
 #define DG_RD_NODE_H_
 
+#include <iostream>
 #include <vector>
 #include "dg/ADT/SetVector.h"
 

@@ -57,8 +57,10 @@ bool BasicRDMap::merge(const BasicRDMap* oth, DefSiteSetT* no_update,
   if (this == oth) return false;
 
   bool changed = false;
-  for (const auto& it : *oth) {
-    const DefSite& ds = it.first;
+  const_key_iterator okit, okend;
+  for (okit = oth->key_begin(), okend = oth->key_end(); okit != okend; ++okit) {
+    const DefSite& ds = *okit;
+    const RDNodesSet* nodesset = oth->get(ds);
     bool is_unknown = ds.offset.isUnknown();
 
     // STRONG UPDATE
@@ -177,7 +179,8 @@ bool BasicRDMap::merge(const BasicRDMap* oth, DefSiteSetT* no_update,
     assert(our_vals && "BUG");
 
     // copy values that have the map 'oth' for the defsite 'ds' to our map
-    for (RDNode* defnode : it.second) changed |= our_vals->insert(defnode);
+
+    for (RDNode* defnode : *nodesset) changed |= our_vals->insert(defnode);
 
     // crop the set to UNKNOWN_MEMORY if it is too big.
     // But only in the case that the  DefSite is not also UNKNOWN,

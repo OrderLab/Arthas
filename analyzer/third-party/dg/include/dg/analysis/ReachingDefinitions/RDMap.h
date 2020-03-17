@@ -103,7 +103,7 @@ class RDNodesSet {
   bool is_unknown;
 
  public:
-  RDNodesSet() : is_unknown(false), order(0) {}
+  RDNodesSet() : is_unknown(false) {}
 
   // the set contains unknown mem. location
   void makeUnknown() {
@@ -140,9 +140,6 @@ class RDNodesSet {
   ContainerTy::const_iterator end() const { return nodes.end(); }
 
   ContainerTy& getNodes() { return nodes; }
-
- public:
-  unsigned int order;
 };
 
 using DefSiteSetT = ADT::StdSetVector<DefSite>;
@@ -154,10 +151,9 @@ class BasicRDMap {
   using key_iterator = MapKeysT::iterator;
   using const_key_iterator = MapKeysT::const_iterator;
 
-  BasicRDMap() : order(0){};
+  BasicRDMap() = default;
   BasicRDMap(const BasicRDMap& o) {
     merge(&o);
-    order = o.order;
   }
 
   bool merge(const BasicRDMap* o, DefSiteSetT* without = nullptr,
@@ -181,9 +177,14 @@ class BasicRDMap {
     auto result = _defs.emplace(key, RDNodesSet());
     if (result.second) {
       _keys.push_back(key);
-      result.first->second.order = ++order;
     }
     return result.first->second;
+  }
+
+  const RDNodesSet* get(const DefSite& key) const {
+    auto it = _defs.find(key);
+    if (it == _defs.end()) return nullptr;
+    return &it->second;
   }
 
   template <typename IteratorT>
@@ -234,7 +235,6 @@ class BasicRDMap {
 
   MapT _defs{};
   MapKeysT _keys{};
-  unsigned int order;
 };
 
 using RDMap = BasicRDMap;

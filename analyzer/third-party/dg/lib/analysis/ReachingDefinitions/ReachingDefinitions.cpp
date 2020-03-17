@@ -43,13 +43,14 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node) {
   bool changed = false;
 
   // merge maps from predecessors
-  for (RDNode *n : node->getPredecessors())
+  for (RDNode *n : node->getPredecessors()) {
     changed |= node->def_map.merge(
         &n->def_map, &node->overwrites /* strong update */,
         options.strongUpdateUnknown,
         *options.maxSetSize, /* max size of set of reaching definition
                                of one definition site */
         false /* merge unknown */);
+  }
 
   return changed;
 }
@@ -122,13 +123,10 @@ void ReachingDefinitionsAnalysis::getReachingDefinitions(
 
       // Arthas CHANGES:
       //  iterate the def map based on insertion order
-      //
-      // std::cerr << "use " << use << "\n";
       auto kit = use->def_map.key_begin();
       auto kend = use->def_map.key_end();
       while (kit != kend) {
         auto &def = use->def_map[*kit];
-        // std::cerr << "-- def insertion order " << def.order << "\n";
         result.insert(def.begin(), def.end());
         ++kit;
       }
@@ -137,7 +135,6 @@ void ReachingDefinitionsAnalysis::getReachingDefinitions(
       //
       /*
       for (auto &it : use->def_map) {
-        std::cerr << "-- def insertion order " << it.second.order << "\n";
         result.insert(it.second.begin(), it.second.end());
       }
       */
