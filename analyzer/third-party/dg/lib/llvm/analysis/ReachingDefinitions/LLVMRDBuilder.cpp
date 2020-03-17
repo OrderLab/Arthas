@@ -348,6 +348,13 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
         // function pointer call - we need that
         return true;
 
+    // Arthas CHANGES:
+    //
+    //   ignoring pmemobject_direct
+    if (func->getName().equals("pmemobj_direct_inline")) {
+      return false;
+    }
+
     if (func->size() == 0) {
         // we have a model for this function
         if (opts.getFunctionModel(func->getName()))
@@ -385,49 +392,46 @@ LLVMRDBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock
     Block& block = subg.createBlock(&llvmBlock);
 
     for (const Instruction& Inst : llvmBlock) {
-        // we may created this node when searching for an operand
-        auto node = getNode(&Inst);
-        if (!node) {
-           switch(Inst.getOpcode()) {
-                case Instruction::Alloca:
-                    // we need alloca's as target to DefSites
-                    node = createAlloc(&Inst);
-                    break;
-                case Instruction::Store:
-                    node = createStore(&Inst);
-                    break;
-                case Instruction::Load:
-                    if (buildUses)
-                        node = createLoad(&Inst);
-                    break;
-                case Instruction::Ret:
-                    // we need create returns, since
-                    // these modify CFG and thus data-flow
-                    // FIXME: add new type of node NOOP,
-                    // and optimize it away later
-                    node = createReturn(&Inst);
-                    break;
-                case Instruction::Call:
-                    if (!isRelevantCall(&Inst, _options))
-                        break;
+      // we may created this node when searching for an operand
+      auto node = getNode(&Inst);
+      if (!node) {
+        switch (Inst.getOpcode()) {
+          case Instruction::Alloca:
+            // we need alloca's as target to DefSites
+            node = createAlloc(&Inst);
+            break;
+          case Instruction::Store:
+            node = createStore(&Inst);
+            break;
+          case Instruction::Load:
+            if (buildUses) node = createLoad(&Inst);
+            break;
+          case Instruction::Ret:
+            // we need create returns, since
+            // these modify CFG and thus data-flow
+            // FIXME: add new type of node NOOP,
+            // and optimize it away later
+            node = createReturn(&Inst);
+            break;
+          case Instruction::Call:
+            if (!isRelevantCall(&Inst, _options)) break;
 
-                    auto call = createCall(&Inst);
-                    assert(call.first != nullptr);
+            auto call = createCall(&Inst);
+            assert(call.first != nullptr);
 
-                    // the call does not return, bail out
-                    if (!call.second)
-                        return block;
+            // the call does not return, bail out
+            if (!call.second) return block;
 
-                    if (call.first != call.second) {
-                        // this call does return something
-                        block.nodes.push_back(call.first);
-                        block.nodes.push_back(call.second);
-                        node = nullptr;
-                    } else {
-                        node = call.first;
-                    }
-                    break;
+            if (call.first != call.second) {
+              // this call does return something
+              block.nodes.push_back(call.first);
+              block.nodes.push_back(call.second);
+              node = nullptr;
+            } else {
+              node = call.first;
             }
+            break;
+        }
         }
 
         if (node) {
