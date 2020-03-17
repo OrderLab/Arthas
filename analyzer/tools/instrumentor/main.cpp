@@ -45,7 +45,7 @@ bool runOnFunction(PmemAddrInstrumenter *instrumenter, Function &F) {
       instrumented |= instrumenter->instrumentInstr(instr);
     }
   } else {
-    pmem::PMemVariableLocator locator;
+    PMemVariableLocator locator;
     locator.runOnFunction(F);
     if (locator.var_size() == 0) {
       return false;

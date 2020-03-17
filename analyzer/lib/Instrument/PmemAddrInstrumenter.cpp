@@ -135,7 +135,6 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
                  << ") as it has been instrumented before\n");
     return false;
   }
-
   Value *addr;
   bool pool = false;
   if (isa<LoadInst>(instr)) {
