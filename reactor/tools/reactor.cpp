@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     addresses[i] = (void *)last_pool.addresses[i]->addr;
     pmem_addresses[i] = (void *)((uint64_t)pop + offsets[i]);
   }
-  if(strcmp(options.pmem_library, "libpmem") == 0){
+  if (strcmp(options.pmem_library, "libpmem") == 0) {
     offsets[num_data] = 0;
     addresses[num_data] = (void *)last_pool.pool_addr;
     pmem_addresses[num_data] = pop;
@@ -248,7 +248,8 @@ int main(int argc, char *argv[]) {
   size_t *total_size = (size_t *)malloc(sizeof(size_t));
   *total_size = 0;
   order_by_sequence_num(ordered_data, total_size, c_log);
-
+  int *reverted_sequence_numbers = (int *)malloc(sizeof(int) * *total_size);
+  memset(reverted_sequence_numbers, 0, *total_size * sizeof(int));
   // Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
   int starting_seq_num = -1;
@@ -278,6 +279,7 @@ int main(int argc, char *argv[]) {
   if (starting_seq_num != -1) {
     slice_seq_iterator = 1;
     slice_seq_numbers[0] = starting_seq_num;
+    reverted_sequence_numbers[starting_seq_num] = 1;
   }
   for (Slice *slice : faultSlices) {
     for (auto &slice_item : *slice) {
@@ -295,12 +297,15 @@ int main(int argc, char *argv[]) {
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
-                ordered_data[i].sequence_number != starting_seq_num) {
-              //cout << "add to vector " << ordered_data[i].address << 
+                ordered_data[i].sequence_number != starting_seq_num &&
+                reverted_sequence_numbers[ordered_data[i].sequence_number] !=
+                    1) {
+              // cout << "add to vector " << ordered_data[i].address <<
               //" " << i << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
+              reverted_sequence_numbers[ordered_data[i].sequence_number] = 1;
             }
           }
         }
