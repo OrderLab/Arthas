@@ -305,7 +305,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     }
 
     for (const auto& ds : defSites) {
-        node->addDef(ds, strong_update);
+      node->addDef(ds, strong_update);
     }
 
     assert(node);

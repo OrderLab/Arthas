@@ -79,6 +79,8 @@ class SliceNode {
   using EdgeListTy = SmallVector<SliceEdge *, 8>;
   using iterator = typename EdgeListTy::iterator;
   using const_iterator = typename EdgeListTy::const_iterator;
+  using reverse_iterator = typename EdgeListTy::reverse_iterator;
+  using const_reverse_iterator = typename EdgeListTy::const_reverse_iterator;
 
   enum class NodeKind {
     SingleInstruction,
@@ -97,10 +99,16 @@ class SliceNode {
   inline uint32_t getDepth() const { return _depth; }
   void setDepth(uint32_t dep) { _depth = dep; }
 
-  inline const_iterator edge_begin() const { return _edges.begin(); }
-  inline const_iterator edge_end() const { return _edges.end(); }
-  inline iterator edge_begin() { return _edges.begin(); }
-  inline iterator edge_end() { return _edges.end(); }
+  inline iterator begin() { return _edges.begin(); }
+  inline iterator end() { return _edges.end(); }
+  inline const_iterator begin() const { return _edges.begin(); }
+  inline const_iterator end() const { return _edges.end(); }
+
+  inline reverse_iterator rbegin() { return _edges.rbegin(); }
+  inline reverse_iterator rend() { return _edges.rend(); }
+  inline const_reverse_iterator rbegin() const { return _edges.rbegin(); }
+  inline const_reverse_iterator rend() const { return _edges.rend(); }
+
   const SliceEdge &edge_front() const { return *_edges[0]; }
   SliceEdge &edge_front() { return *_edges[0]; }
   const SliceEdge &edge_back() const { return *_edges.back(); }

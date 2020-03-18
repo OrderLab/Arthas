@@ -47,14 +47,16 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 class Slice {
  public:
   using ValueTy = llvm::Instruction *;
+  typedef int64_t DistanceTy;
+  using CompleteValueTy = std::pair<ValueTy, DistanceTy>;
 
-  typedef llvm::SmallVector<ValueTy, 20> DependentValueList;
+  typedef llvm::SmallVector<CompleteValueTy, 20> DependentValueList;
 
   typedef DependentValueList::iterator dep_iterator;
   typedef DependentValueList::const_iterator dep_const_iterator;
 
   uint64_t id;
-  llvm::Instruction *root;
+  ValueTy root;
   SliceDirection direction;
   SlicePersistence persistence;
   SliceDependence dependence;
@@ -66,12 +68,13 @@ class Slice {
         SliceDependence dep = SliceDependence::Unknown)
       : id(slice_id), root(root_val), direction(dir), persistence(kind),
         dependence(dep) {
-    dep_vals.push_back(root_val);  // root val depends on itself
+    dep_vals.push_back(
+        std::make_pair(root_val, 0));  // root val depends on itself
   }
 
   Slice *fork();
 
-  inline void add(llvm::Instruction *inst) { dep_vals.push_back(inst); }
+  inline void add(ValueTy inst) { dep_vals.push_back(std::make_pair(inst, 0)); }
 
   inline dep_iterator begin() { return dep_vals.begin(); }
   inline dep_iterator end() { return dep_vals.end(); }
@@ -82,6 +85,11 @@ class Slice {
 
   void setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars);
   void dump(llvm::raw_ostream &os);
+};
+
+struct SliceValueComparator {
+  bool operator()(const Slice::CompleteValueTy &val1,
+                  const Slice::CompleteValueTy &val2) const;
 };
 
 class Slices {

@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <set>
 
 using namespace std;
 using namespace llvm;
@@ -38,11 +39,30 @@ raw_ostream &operator<<(raw_ostream &os, const SliceDirection & direction)
   }
 }
 
+bool SliceValueComparator::operator()(
+    const Slice::CompleteValueTy &val1,
+    const Slice::CompleteValueTy &val2) const {
+  auto dist1 = val1.second;
+  auto dist2 = val2.second;
+  // with a sequence of -4, -3, -2, -1, 0, 1, 2, 3, where 0 is the target
+  // instruction, the backward sort order is:
+  // 0, -1, -2, -3, -4, 1, 2, 3
+  if (dist1 == 0 && dist2 == 0) return false;
+  if (dist1 < 0) {
+    if (dist2 > 0) return true;
+    return -dist1 < -dist2;
+  } else {
+    if (dist2 < 0) return false;
+    return dist1 < dist2;
+  }
+  return true;
+}
+
 void Slice::dump(raw_ostream &os)
 {
-  os << "Slice " << id << "(" << persistence << "):\n";
+  os << "Slice " << id << " (" << persistence << "):\n";
   for (auto i = begin(); i != end(); ++i) {
-    Value *val = *i;
+    Value *val = i->first;
     os << "~";
     if (auto inst = dyn_cast<Instruction>(val)) {
       os << inst->getFunction()->getName() << "()=>";
@@ -53,7 +73,8 @@ void Slice::dump(raw_ostream &os)
 
 Slice *Slice::fork() {
   Slice *copy = new Slice(id, root, direction, persistence, dependence);
-  for (ValueTy dep : *this) {
+  for (auto &val : *this) {
+    ValueTy dep = val.first;
     // root has been inserted in the dep_vals, skip it
     if (dep == root)
       continue;
@@ -66,7 +87,7 @@ void Slice::setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars) {
   bool vol = false;
   bool persistent = false;
   for (auto si = begin(); si != end(); ++si) {
-    Value *val = *si;
+    Value *val = si->first;
     for (auto pi = persist_vars.begin(); pi != persist_vars.end(); ++pi) {
       if (val == *pi) {
         persistent = true;
@@ -89,8 +110,7 @@ void Slice::sort() {
   // program order. otherwise sort it based on program order
   //
   // FIXME: simply file:line sorting is insufficient
-  std::sort(dep_vals.begin(), dep_vals.end(),
-            InstSourceLocComparator(direction == SliceDirection::Backward));
+  std::sort(dep_vals.begin(), dep_vals.end(), SliceValueComparator());
 }
 
 Slices::~Slices() {

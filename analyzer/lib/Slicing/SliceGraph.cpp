@@ -55,7 +55,7 @@ raw_ostream &operator<<(raw_ostream &os, const SliceEdge &edge) {
 
 raw_ostream &operator<<(raw_ostream &os, const SliceNode &node) {
   os << "* node: " << *node.getValue() << "\n";
-  for (auto ei = node.edge_begin(); ei != node.edge_end(); ++ei) {
+  for (auto ei = node.begin(); ei != node.end(); ++ei) {
     SliceEdge *edge = *ei;
     os << *edge;
   }
@@ -158,8 +158,8 @@ bool SliceGraph::removeNode(SliceNode *node) {
   for (auto *n : _nodes) {
     if (n == node) continue;
     // remove all edges to the target node
-    edge_iterator eit = n->edge_begin();
-    while (eit != n->edge_end()) {
+    edge_iterator eit = n->begin();
+    while (eit != n->end()) {
       SliceEdge *edge = *eit;
       if (edge->getTargetNode() == node) {
         eit = n->edges().erase(eit);
@@ -203,10 +203,10 @@ bool SliceGraph::connect(SliceNode *node1, SliceNode *node2,
 
 bool SliceGraph::disconnect(SliceNode *node1, SliceNode *node2) {
   SliceNode::iterator it;
-  for (it = node1->edge_begin(); it != node1->edge_end(); ++it) {
+  for (it = node1->begin(); it != node1->end(); ++it) {
     if ((*it)->getTargetNode() == node2) break;
   }
-  if (it != node1->edge_end()) {
+  if (it != node1->end()) {
     node1->edges().erase(it);
     edge_iterator eit;
     for (eit = _edges.begin(); eit != _edges.end(); ++eit) {
@@ -257,7 +257,11 @@ bool SliceGraph::computeSlices(Slices &slices, bool inter_procedurual,
     unexplored_edges = 0;
     bool current_dependence_unknown =
         (curr_slice->dependence == SliceDependence::Unknown);
-    for (auto ei = elem->edge_begin(); ei != elem->edge_end(); ++ei) {
+    // because we are doing DFS, when we push the edges into the stack
+    // if it's backward slice, we need to push the edges in reverse distance
+    // order (rbegin instead of begin), so that the closest element can be
+    // explored first.
+    for (auto ei = elem->rbegin(); ei != elem->rend(); ++ei) {
       edge = *ei;
       if (separate_dependence) {
         // if separate_dependence flag is on, it means we only compute
@@ -273,7 +277,7 @@ bool SliceGraph::computeSlices(Slices &slices, bool inter_procedurual,
       }
       if (!inter_procedurual) {
         if (edge->getTargetNode()->getValue()->getFunction() !=
-            (*curr_slice->begin())->getFunction()) {
+            curr_slice->begin()->first->getFunction()) {
           continue;
         }
       }
@@ -331,57 +335,102 @@ bool SliceGraph::computeSlices(Slices &slices, bool inter_procedurual,
     slices.add(curr_slice);
   }
 
-  if (separate_dependence) {
-  }
   return true;
 }
 
 bool SliceGraph::computeDistances() {
-  Instruction *root_inst = _root->getValue();
-  Function *root_func = root_inst->getFunction();
-  map<Instruction *, EdgeListTy> localInsts;
-  for (auto edge : _edges) {
-    Instruction *target = edge->getTargetNode()->getValue();
-    Function *func = target->getFunction();
-    if (root_func == func) {
-      auto lit = localInsts.find(target);
-      if (lit != localInsts.end()) {
-        lit->second.push_back(edge);
-      } else {
-        localInsts.emplace(target, EdgeListTy{edge});
-      }
+  // NOTE: this is a different algorithm to compute distances compared to
+  // the initial version.
+  //
+  // In our initial version, we compute the distances by counting the
+  // position of the root node in the root node's function and subtracting
+  // from that position with the positions of all other nodes. If some
+  // slice nodes reside in a function that is different from the root
+  // node's function, we set its position to be a larger number indicating
+  // instructions that are far away.
+  //
+  // In this new version, we compute the edge distances relative to the
+  // slice node, which is not necessarily a root node. If some edge
+  // belongs to a function that is different from the slice node's function,
+  // we'll compute the relative distance w.r.t. that function. For example,
+  //
+  // assuming a slice node---foo() inst no.7---has edges e1 := foo() inst no. 3,
+  // e2 := foo() inst no. 5, e3 := bar() inst no. 10, e4 := bar() inst no.8,
+  // e5 := bar() inst no. 13.
+  //
+  // The distances are: -4, -2, 10-N, 8-N, 13-N, where N is a large number
+  //
+  // With backward slicing, the sorted edges are: e2, e1, e5, e4, e3
+  //
+  map<Instruction *, uint64_t> instPosMap;
+  map<Function *, set<Instruction *>> funcInsts;
+  for (auto node : _nodes) {
+    Instruction *root_inst = node->getValue();
+    Function *root_func = root_inst->getFunction();
+    auto fit = funcInsts.find(root_func);
+    if (fit == funcInsts.end()) {
+      funcInsts.emplace(root_func, set<Instruction *>{root_inst});
     } else {
-      // FIXME: dirty, assuming they are from callers
-      edge->setDistance(-10000000);
+      fit->second.insert(root_inst);
+    }
+    for (auto edge : *node) {
+      Instruction *target = edge->getTargetNode()->getValue();
+      Function *func = target->getFunction();
+      auto fit = funcInsts.find(func);
+      if (fit == funcInsts.end()) {
+        funcInsts.emplace(func, set<Instruction *>{target});
+      } else {
+        fit->second.insert(target);
+      }
     }
   }
-  map<Instruction *, uint64_t> instPos;
-  uint64_t root_position = 0;
-  uint64_t position = 0;
-  for (inst_iterator ii = inst_begin(root_func), ie = inst_end(root_func);
-       ii != ie; ++ii) {
-    ++position;
-    Instruction *inst = &*ii;
-    if (localInsts.find(inst) != localInsts.end()) {
-      instPos.emplace(inst, position);
+  for (auto &entry : funcInsts) {
+    Function *func = entry.first;
+    auto inst_set = entry.second;
+    uint64_t position = 0;
+    for (inst_iterator ii = inst_begin(func), ie = inst_end(func); ii != ie;
+         ++ii) {
+      ++position;
+      Instruction *inst = &*ii;
+      if (inst_set.find(inst) != inst_set.end()) {
+        instPosMap.emplace(inst, position);
+      }
     }
-    if (inst == root_inst) root_position = position;
   }
-  if (root_position == 0) {
-    errs() << "ERROR: cannot find position of the root instruction "
-           << *_root->getValue() << "\n";
-    return false;
-  }
+
+  uint64_t ref_position;
   int64_t distance;
-  for (auto inst : localInsts) {
-    auto inst_pit = instPos.find(inst.first);
-    if (inst_pit == instPos.end()) {
-      errs() << "Warning: cannot find position of instruction " << inst.first
-             << "\n";
-      continue;
+  for (auto node : _nodes) {
+    Instruction *root_inst = node->getValue();
+    Function *root_func = root_inst->getFunction();
+    auto pit = instPosMap.find(root_inst);
+    if (pit == instPosMap.end()) {
+      errs() << "Warning: cannot find position of " << *root_inst << "\n";
+      return false;
     }
-    distance = inst_pit->second - root_position;
-    for (auto edge : inst.second) {
+    map<Function *, uint64_t> refPosMap;
+    uint64_t external_funcs = 1;
+    // remember root function's reference position
+    refPosMap.emplace(root_func, pit->second);
+    for (auto edge : *node) {
+      Instruction *target_inst = edge->getTargetNode()->getValue();
+      Function *target_func = target_inst->getFunction();
+      pit = instPosMap.find(target_inst);
+      if (pit == instPosMap.end()) {
+        errs() << "Warning: cannot find position of " << *target_inst << "\n";
+        return false;
+      }
+      auto rit = refPosMap.find(target_func);
+      if (rit == refPosMap.end()) {
+        // assuming a function has at most 100,000 instructions
+        ref_position = (_direction == SliceDirection::Backward)
+                           ? (100000 * external_funcs++)
+                           : 0;
+        refPosMap.emplace(target_func, ref_position);
+      } else {
+        ref_position = rit->second;
+      }
+      distance = pit->second - ref_position;
       edge->setDistance(distance);
     }
   }
@@ -393,7 +442,7 @@ bool SliceGraph::sort() {
   // sort each slice node's edges, but it's not necessary to sort
   // the nodes list as we want the root node to be in the first.
   for (auto node : _nodes) {
-    std::sort(node->edge_begin(), node->edge_end(), SliceEdgeComparator());
+    std::sort(node->begin(), node->end(), SliceEdgeComparator());
   }
   return true;
 }

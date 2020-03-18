@@ -196,7 +196,7 @@ bool PmemAddrInstrumenter::instrumentSlice(
     // For each node, check if instruction is a persistent value. If it is
     // then get definition point. The root node is also in the iterator (the
     // first one), so we don't need to specially handle it.
-    if (Instruction *inst = dyn_cast<Instruction>(*i)) {
+    if (Instruction *inst = dyn_cast<Instruction>(i->first)) {
       auto pmi = useDefMap.find(inst);
       if (pmi != useDefMap.end()) {
         DEBUG(errs() << "Found definition point for " << *inst << ":\n");
