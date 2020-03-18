@@ -69,6 +69,7 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+  slice_graph->sort();
 
   error_code ec;
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
@@ -279,7 +280,8 @@ int main(int argc, char *argv[]) {
     slice_seq_numbers[0] = starting_seq_num;
   }
   for (Slice *slice : faultSlices) {
-    for (auto dep_inst = slice->begin(); dep_inst != slice->end(); dep_inst++) {
+    for (auto &slice_item : *slice) {
+      auto dep_inst = slice_item.first;
       // Iterate through addTraceList, find relevant address
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
@@ -287,8 +289,8 @@ int main(int argc, char *argv[]) {
         // cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
         // cout << traceItem->instr << "\n";
-        // cout << *dep_inst << "\n";
-        if (traceItem->instr == *dep_inst) {
+        // cout << dep_inst << "\n";
+        if (traceItem->instr == dep_inst) {
           // cout << "FOUND INSTRUCTION\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
