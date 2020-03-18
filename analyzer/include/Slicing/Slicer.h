@@ -59,7 +59,11 @@ class DgSlicer {
       : _module(m), _direction(d), _last_slice_id(0), 
         _dependency_computed(false), _dg(nullptr), _funcDgMap(nullptr) {}
 
-  bool computeDependencies();
+  bool computeDependencies(dg::llvmdg::LLVMDependenceGraphOptions &options);
+
+  static dg::llvmdg::LLVMDependenceGraphOptions createDgOptions(
+      bool intraprocedural = false, llvm::Function *entry = nullptr);
+
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 
   SliceGraph *slice(dg::LLVMNode *start, uint32_t &slice_id,

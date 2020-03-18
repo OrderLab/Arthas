@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
     options.threads = threads;
     options.PTAOptions.threads = threads;
     options.RDAOptions.threads = threads;
-    options.PTAOptions.entryFunction = entry_func;
-    options.RDAOptions.entryFunction = entry_func;
+    options.PTAOptions.entryFunctionName = entry_func;
+    options.RDAOptions.entryFunctionName = entry_func;
     if (strcmp(pts, "fs") == 0) {
         options.PTAOptions.analysisType
             = LLVMPointerAnalysisOptions::AnalysisType::fs;

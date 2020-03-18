@@ -210,12 +210,13 @@ public:
         // create new function body
         llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
 
-        if (call_entry && _options.dgOptions.entryFunction != "main") {
-            llvm::Function *entry = M->getFunction(_options.dgOptions.entryFunction);
-            assert(entry && "The entry function is not present in the module");
+        if (call_entry && _options.dgOptions.entryFunctionName != "main") {
+          llvm::Function* entry =
+              M->getFunction(_options.dgOptions.entryFunctionName);
+          assert(entry && "The entry function is not present in the module");
 
-            // TODO: we should set the arguments to undef
-            llvm::CallInst::Create(entry, "entry", blk);
+          // TODO: we should set the arguments to undef
+          llvm::CallInst::Create(entry, "entry", blk);
         }
 
         llvm::Type *Ty = main_func->getReturnType();

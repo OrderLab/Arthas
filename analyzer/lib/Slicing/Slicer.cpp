@@ -29,22 +29,33 @@ using namespace llvm::slicing;
 using namespace llvm::pmem;
 using namespace llvm::defuse;
 
-bool DgSlicer::computeDependencies() {
-  if (_dependency_computed) {
-    return true;
-  }
+dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
+    bool intraprocedural, llvm::Function *entry) {
   // dependency graph options
   dg::llvmdg::LLVMDependenceGraphOptions dg_options;
+  dg_options.intraprocedural = intraprocedural;
+  dg_options.entryFunction = entry;
+  dg_options.PTAOptions.intraprocedural = intraprocedural;
+  dg_options.RDAOptions.intraprocedural = intraprocedural;
+  dg_options.PTAOptions.entryFunction = entry;
+  dg_options.RDAOptions.entryFunction = entry;
   // use flow-sensitive pointer analysis
   dg_options.PTAOptions.analysisType =
       dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;
   // use data-flow reaching definition analysis, another option is memory-ssa
   dg_options.RDAOptions.analysisType = dg::llvmdg::
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
-  // dg_options.RDAOptions.maxSetSize =
-  // static_cast<dg::analysis::Offset::type>(5);
+  return dg_options;
+}
 
-  _builder = make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(_module, dg_options);
+bool DgSlicer::computeDependencies(
+    dg::llvmdg::LLVMDependenceGraphOptions &options) {
+  if (_dependency_computed) {
+    return true;
+  }
+
+  _builder =
+      make_unique<dg::llvmdg::LLVMDependenceGraphBuilder>(_module, options);
 
   _dg = std::move(_builder->constructCFGOnly());
   if (!_dg) {

@@ -50,7 +50,10 @@ bool slice_fault_instruction(Module *M, Slices &slices,
                              Instruction *fault_inst) {
   unique_ptr<DgSlicer> _dgSlicer =
       make_unique<DgSlicer>(M, SliceDirection::Backward);
-  _dgSlicer->computeDependencies();
+  // for intra-procedural slicing, uncomment the following:
+  // auto options = _dgSlicer->createDgOptions(true, fault_inst->getFunction());
+  auto options = _dgSlicer->createDgOptions();
+  _dgSlicer->computeDependencies(options);
 
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
   Function *F = fault_inst->getFunction();
@@ -64,6 +67,10 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   uint32_t slice_id = 0;
   SliceGraph *sg =
       _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
+  if (sg == nullptr) {
+    errs() << "Failed to construct the slice graph for " << *fault_inst << "\n";
+    return false;
+  }
   auto &st = _dgSlicer->getStatistics();
   unique_ptr<SliceGraph> slice_graph(sg);
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal

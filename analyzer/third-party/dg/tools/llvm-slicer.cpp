@@ -228,7 +228,7 @@ private:
         // do not slice away these functions no matter what
         // FIXME do it a vector and fill it dynamically according
         // to what is the setup (like for sv-comp or general..)
-        const char *keep[] = {options.dgOptions.entryFunction.c_str()};
+        const char *keep[] = {options.dgOptions.entryFunctionName.c_str()};
 
         // when erasing while iterating the slicer crashes
         // so set the to be erased values into container
@@ -496,10 +496,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!M->getFunction(options.dgOptions.entryFunction)) {
-        llvm::errs() << "The entry function not found: "
-                     << options.dgOptions.entryFunction << "\n";
-        return 1;
+    if (!M->getFunction(options.dgOptions.entryFunctionName)) {
+      llvm::errs() << "The entry function not found: "
+                   << options.dgOptions.entryFunction << "\n";
+      return 1;
     }
 
     maybe_print_statistics(M.get(), "Statistics before ");

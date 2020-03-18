@@ -102,7 +102,8 @@ bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
-  slicer->computeDependencies();
+  auto options = slicer->createDgOptions();
+  slicer->computeDependencies(options);
 
   std::error_code ec;
   raw_fd_ostream out_stream(sliceOutput, ec, sys::fs::F_Text);

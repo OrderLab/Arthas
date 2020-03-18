@@ -8,15 +8,32 @@ namespace dg {
 namespace analysis {
 
 struct LLVMAnalysisOptions {
-    // Number of bytes in objects to track precisely
-    std::string entryFunction{"main"};
+  // set either the entry function name
+  std::string entryFunctionName{"main"};
+  // or directly the entry function
+  llvm::Function* entryFunction{nullptr};
 
-    LLVMAnalysisOptions& setEntryFunction(const std::string& e) {
-        entryFunction = e; return *this;
-    }
+  // is the analysis intraprocedural (that is, only of the
+  // entry function?)
+  bool intraprocedural{false};
+
+  LLVMAnalysisOptions& setEntryFunctionName(const std::string& e) {
+    entryFunctionName = e;
+    return *this;
+  }
+
+  LLVMAnalysisOptions& setEntryFunction(llvm::Function* e) {
+    entryFunction = e;
+    return *this;
+  }
+
+  LLVMAnalysisOptions& setIntraprocedural(bool b) {
+    intraprocedural = b;
+    return *this;
+  }
 };
 
-} // namespace analysis
-} // namespace dg
+}  // namespace analysis
+}  // namespace dg
 
 #endif // _DG_LLVM_ANALYSIS_OPTIONS_H_
