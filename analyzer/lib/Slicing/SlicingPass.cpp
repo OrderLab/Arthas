@@ -140,14 +140,6 @@ unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst,
 }
 
 bool SlicingPass::runOnModule(Module &M) {
-  for (Function &func : M) {
-    if (func.getName().equals("event_handler")) {
-      for (auto ii = inst_begin(func), ie = inst_end(func); ii != ie; ++ii) {
-        errs() << *ii << "\n";
-      }
-    }
-  }
-  return false;
   if (!SliceOutput.empty()) {
     std::error_code ec;
     _out_stream = new raw_fd_ostream(SliceOutput, ec, sys::fs::F_Text);
