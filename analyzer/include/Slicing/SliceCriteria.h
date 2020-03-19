@@ -23,15 +23,16 @@ struct SliceInstCriteriaOpt {
   std::string inst; // string representation of the target instruction
   std::string func; // function name for the target instruction
   int inst_no; // target instruction is the i-th instruction in the given function
+  bool fuzzy_match;  // whether to fuzzily match or not
+  bool ignore_dbg;   // whether to ignore the !dbg metadata
 
   SliceInstCriteriaOpt() {}
 
   SliceInstCriteriaOpt(std::string fileLines, std::string instruction,
-                       std::string functionName, int instrNo)
-      : file_lines(fileLines),
-        inst(instruction),
-        func(functionName),
-        inst_no(instrNo) {}
+                       std::string functionName, int instrNo, bool fuzzy,
+                       bool nodbg)
+      : file_lines(fileLines), inst(instruction), func(functionName),
+        inst_no(instrNo), fuzzy_match(fuzzy), ignore_dbg(nodbg) {}
 };
 
 bool parseSlicingCriteriaOpt(SliceInstCriteriaOpt &opt, Module &M, 

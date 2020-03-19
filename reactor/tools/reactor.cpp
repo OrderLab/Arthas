@@ -113,8 +113,8 @@ Instruction *locate_fault_instruction(Module *M, Matcher *matcher) {
     errs() << "invalid fault location specifier " << options.fault_loc << "\n";
     return nullptr;
   }
-  // enable fuzzy matching
-  return matcher->matchInstr(fileLine, options.fault_instr, true);
+  // enable fuzzy matching and ignore !dbg metadata if necessary
+  return matcher->matchInstr(fileLine, options.fault_instr, true, true);
 }
 
 void parse_args(int argc, char *argv[]) {

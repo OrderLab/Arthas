@@ -42,27 +42,28 @@ bool llvm::slicing::parseSlicingCriteriaOpt(
       return false;
     }
     for (MatchResult &result : matchResults) {
-      for (Instruction *instr : result.instrs) {
-        if (opt.inst.empty()) {
-          // if the string form of instruction is not specified, we will treat
-          // all the instructions in this file:line to be matching
+      if (opt.inst.empty()) {
+        // if the string form of instruction is not specified, we will treat
+        // all the instructions in this file:line to be matching
+        for (Instruction *instr : result.instrs) {
+          errs() << "Found slice instruction " << *instr << "\n";
+          match_insts.push_back(instr);
+        }
+        found = true;
+      } else {
+        // if the string form of instruction is specified, we will only
+        // match if an instruction's string form matches
+        Instruction *instr = matcher.matchInstr(
+            result.instrs, opt.inst, opt.fuzzy_match, opt.ignore_dbg);
+        if (instr != nullptr) {
           match_insts.push_back(instr);
           errs() << "Found slice instruction " << *instr << "\n";
           found = true;
-        } else {
-          // if the string form of instruction is specified, we will only
-          // match if an instruction's string form matches
-          std::string str_instr;
-          llvm::raw_string_ostream rso(str_instr);
-          instr->print(rso);
-          trim(str_instr);
-          if (opt.inst.compare(str_instr) == 0) {
-            match_insts.push_back(instr);
-            errs() << "Found slice instruction " << str_instr << "\n";
-            found = true;
-          }
         }
       }
+    }
+    if (!found) {
+      errs() << "Failed to find the target instruction " << opt.inst << "\n";
     }
     return found;
   }

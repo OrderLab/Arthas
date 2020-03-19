@@ -308,41 +308,48 @@ Instruction *Matcher::matchInstr(FunctionInstSeq opt) {
   return nullptr;
 }
 
-Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
-                                 bool fuzzy, bool *is_result_fuzzy) {
-  if (instr_str.empty()) return nullptr;
-  MatchResult result;
-  if (!matchInstrsCriterion(opt, &result)) return nullptr;
+Instruction *Matcher::matchInstr(SmallVectorImpl<Instruction *> &candidates,
+                                 std::string target_instr_str, bool fuzzy,
+                                 bool ignore_dbg, bool *is_result_exact) {
   Instruction *fuzzy_instr = nullptr;
-  // FIXME: Reactor wasn't able to find matches because
-  // inputted string wasn't being trimmed, not sure if
-  // this is best place to trim it, but added in here
-  // for now
-  trim(instr_str);
-  for (Instruction *instr : result.instrs) {
+  for (Instruction *instr : candidates) {
     std::string str_instr;
     llvm::raw_string_ostream rso(str_instr);
     instr->print(rso);
     trim(str_instr);
-    if (instr_str.compare(str_instr) == 0) {
-      if (is_result_fuzzy) *is_result_fuzzy = false;
+    if (target_instr_str.compare(str_instr) == 0) {
+      // this is an exact match
+      if (is_result_exact) *is_result_exact = true;
       return instr;
     } else {
-      // errs() << "Fuzzy matching time\n";
       // If the string instruction does not match, we'll check
-      // if the instruction can be fuzzily matched.
-      if (fuzzy && fuzzilyMatch(str_instr, instr_str)) {
+      // if the instruction can be fuzzily matched or matched
+      // without the dbg slot number.
+      if (fuzzy && fuzzilyMatch(str_instr, target_instr_str, ignore_dbg)) {
         fuzzy_instr = instr;
         // don't break here so that if we can find exact matching in the
         // loop, exact matching is still preferred
       }
     }
   }
-  if (is_result_fuzzy) *is_result_fuzzy = true;
+  // this is a fuzzy result
+  if (is_result_exact) *is_result_exact = false;
   return fuzzy_instr;
 }
 
-bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str) {
+Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
+                                 bool fuzzy, bool ignore_dbg,
+                                 bool *is_result_exact) {
+  if (instr_str.empty()) return nullptr;
+  MatchResult result;
+  if (!matchInstrsCriterion(opt, &result)) return nullptr;
+  trim(instr_str);
+  return matchInstr(result.instrs, instr_str, fuzzy, ignore_dbg,
+                    is_result_exact);
+}
+
+bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
+                           bool ignore_dbg) {
   // The reason that the fuzzy matching is necessary is because
   // the debug information recorded in the Instrumenter is
   // based on the **instrumented** bitcode, which will shift
@@ -363,6 +370,13 @@ bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str) {
   // the register regular expression, and then only if all the parts
   // of the split string match will the two strings match.
 
+  if (ignore_dbg) {
+    size_t dbg_pos1 = inst1_str.find("!dbg");
+    size_t dbg_pos2 = inst2_str.find("!dbg");
+    inst1_str = inst1_str.substr(0, dbg_pos1);
+    inst2_str = inst1_str.substr(0, dbg_pos2);
+  }
+
   std::sregex_token_iterator iter1(inst1_str.begin(), inst1_str.end(),
                                    register_regex, -1);
   std::sregex_token_iterator iter2(inst2_str.begin(), inst2_str.end(),
@@ -376,5 +390,27 @@ bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str) {
   if (iter1 == end && iter2 == end) {
     return true;
   }
+  return false;
+}
+
+bool Matcher::matchWithoutDbg(std::string &inst1_str, std::string &inst2_str) {
+  // here we assume the two input strings are not exact matching
+  // in other words, the caller should take care of doing a
+  // inst1_str.compare(inst2_str) == 0 test first before calling this function
+  size_t dbg_pos1 = inst1_str.find("!dbg");
+  size_t dbg_pos2 = inst2_str.find("!dbg");
+  if (dbg_pos1 != string::npos && dbg_pos2 != string::npos) {
+    // a quick check that if the dbg position is different
+    // then they definitely won't match
+    if (dbg_pos1 != dbg_pos2) return false;
+    // slightly more efficient than using string.substr...
+    size_t i = 0, j = 0;
+    for (; i < dbg_pos1 && j < dbg_pos2; i++, j++) {
+      if (inst1_str.at(i) != inst2_str.at(j)) return false;
+    }
+    return true;
+  }
+  // if one has !dbg and the other don't have a !dbg, we can
+  // also try to compare, but it's safer to just reject them
   return false;
 }

@@ -60,8 +60,10 @@ int main(int argc, char *argv[]) {
     Function &F = *I;
     if (!F.isDeclaration()) {
       if (targetFunctionSet.empty() ||
-          targetFunctionSet.count(F.getName()) != 0)
+          targetFunctionSet.count(F.getName()) != 0) {
+        errs() << "Extracting pmem variables from " << F.getName() << "()\n";
         extractPmemVarInFunc(&F);
+      }
     }
   }
 }

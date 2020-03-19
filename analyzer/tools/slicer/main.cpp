@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 
+#include "llvm/IR/InstIterator.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 
@@ -162,7 +163,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   errs() << "Successfully parsed " << inputFilename << "\n";
-  SliceInstCriteriaOpt opt(sliceCriteria, sliceInst, sliceFunc, sliceInstNo);
+  // enable fuzzy matching and ignoring !dbg if necessary
+  SliceInstCriteriaOpt opt(sliceCriteria, sliceInst, sliceFunc, sliceInstNo,
+                           true, true);
   vector<Instruction *> startInstrs;
   if (!parseSlicingCriteriaOpt(opt, *M, startInstrs)) {
     errs() << "Please supply the correct slicing criteria (see --help)\n";

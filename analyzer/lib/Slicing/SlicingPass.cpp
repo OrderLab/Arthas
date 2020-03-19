@@ -72,7 +72,7 @@ namespace {
 class SlicingPass : public ModulePass {
  public:
   static char ID;
-  SlicingPass() : ModulePass(ID) {}
+  SlicingPass() : ModulePass(ID), _out_stream(nullptr) {}
 
   ~SlicingPass();
 
@@ -140,6 +140,14 @@ unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst,
 }
 
 bool SlicingPass::runOnModule(Module &M) {
+  for (Function &func : M) {
+    if (func.getName().equals("event_handler")) {
+      for (auto ii = inst_begin(func), ie = inst_end(func); ii != ie; ++ii) {
+        errs() << *ii << "\n";
+      }
+    }
+  }
+  return false;
   if (!SliceOutput.empty()) {
     std::error_code ec;
     _out_stream = new raw_fd_ostream(SliceOutput, ec, sys::fs::F_Text);
@@ -152,7 +160,9 @@ bool SlicingPass::runOnModule(Module &M) {
   // Step 1: Getting the initial fault instruction
   //  Fault instruction is specified through the slicing criteria in command line.
   //  See the opt declaration at the beginning of this file.
-  SliceInstCriteriaOpt opt(SliceFileLines, SliceInst, SliceFunc, SliceInstNo);
+  //  Enable fuzzy matching and ignoring !dbg if necessary
+  SliceInstCriteriaOpt opt(SliceFileLines, SliceInst, SliceFunc, SliceInstNo,
+                           true, true);
   if (!parseSlicingCriteriaOpt(opt, M, _startSliceInstrs)) {
     errs() << "Please supply the correct slicing criteria (see --help)\n";
     return false;
