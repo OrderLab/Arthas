@@ -78,6 +78,7 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
     return NULL;
   }
   printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
+  printf("variable count is %d\n", variable_count);
   for (int i = 0; i < variable_count; i++) {
     printf("address is %p offset is %ld\n", c_log->c_data[i].address,
            c_log->c_data[i].offset);
