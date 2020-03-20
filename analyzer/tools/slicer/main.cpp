@@ -70,6 +70,21 @@ cl::opt<string> pmemHookGuidFile(
     "hook-guid-ouput", cl::desc("File to write the pmem hook GUID map file"),
     cl::init("hook_guids.dat"), cl::value_desc("file"));
 
+cl::opt<bool> enablePTA("pta", cl::desc("Enabling pointer analysis"),
+                        cl::init(true));
+cl::opt<bool> enableCtrl("ctrl",
+                         cl::desc("Enabling control dependency analysis"),
+                         cl::init(false));
+cl::opt<bool> enableThd("thread",
+                        cl::desc("Enabling thread support in analysis"),
+                        cl::init(true));
+cl::opt<bool> intraProcedural("intra",
+                              cl::desc("Enabling intra-procedural analysis"),
+                              cl::init(false));
+cl::opt<bool> interProcedural("inter",
+                              cl::desc("Enabling inter-procedural analysis"),
+                              cl::init(true));
+
 void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
                       PMemVariableLocator &locator, Slices &slices,
                       raw_ostream &out_stream) {
@@ -99,14 +114,23 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
   errs() << "The list of slices are written to " << sliceOutput << "\n";
 }
 
+uint32_t createDgFlags() {
+  uint32_t flags = 0;
+  if (enablePTA) flags |= SlicerDgFlags::ENABLE_PTA;
+  if (enableCtrl) flags |= SlicerDgFlags::ENABLE_CONTROL_DEP;
+  if (enableThd) flags |= SlicerDgFlags::SUPPORT_THREADS;
+  if (intraProcedural) flags |= SlicerDgFlags::INTRA_PROCEDURAL;
+  if (interProcedural) flags |= SlicerDgFlags::INTER_PROCEDURAL;
+  return flags;
+}
+
 bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
   // enabling pointer analysis, inter-procedural analysis and threading support
   // control dependency analysis is disabled
-  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
-                   SlicerDgFlags::SUPPORT_THREADS;
+  uint32_t flags = createDgFlags();
   auto options = slicer->createDgOptions(flags);
   slicer->computeDependencies(options);
 

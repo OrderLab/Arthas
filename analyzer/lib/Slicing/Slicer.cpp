@@ -71,7 +71,6 @@ bool DgSlicer::computeDependencies(
     errs() << "Building the dependence graph failed!\n";
     return false;
   }
-  errs() << "Finished\n";
   // compute both data dependencies (def-use) and control dependencies
   _dg = _builder->computeDependencies(std::move(_dg));
   errs() << "Finished building the dependence graph\n";
