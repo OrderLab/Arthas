@@ -1,7 +1,7 @@
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
-SUBDIRS = basic dg pmem memkind
+SUBDIRS = basic dg pmem memcached memkind
 
 .PHONY: all clean subdir
 
