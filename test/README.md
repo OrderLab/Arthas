@@ -120,3 +120,7 @@ Slice 1 (n/a):
 ~event_handler()=>  %25 = load %struct.conn*, %struct.conn** %7, align 8, !dbg !4194
 ~event_handler()=>  %7 = alloca %struct.conn*, align 8
 ```
+The entire process will take around 3 minutes now. For this case, the slicing 
+result is fine without pointer analysis. But note that in general we **should**
+enable PTA even if it is time-consuming. Without PTA, the analysis on real
+system like memcached will be very inaccurate.
