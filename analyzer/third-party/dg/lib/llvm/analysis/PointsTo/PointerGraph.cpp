@@ -616,12 +616,9 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph() {
   DBG_SECTION_BEGIN(pta, "building pointer graph");
 
   // get entry function
-  llvm::Function *F = _options.entryFunction
-                          ? _options.entryFunction
-                          : M->getFunction(_options.entryFunctionName);
+  llvm::Function *F = _options.entryFunction;
   if (!F) {
-    llvm::errs() << "Did not find " << _options.entryFunctionName
-                 << " function in module\n";
+    llvm::errs() << "Did not find entry function in module\n";
     abort();
   }
 

@@ -30,17 +30,22 @@ using namespace llvm::pmem;
 using namespace llvm::defuse;
 
 dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
-    bool intraprocedural, llvm::Function *entry) {
+    llvm::Function *entry, bool entry_only, bool intra_procedural) {
   // dependency graph options
   dg::llvmdg::LLVMDependenceGraphOptions dg_options;
-  dg_options.intraProcedural = intraprocedural;
+  dg_options.intraProcedural = intra_procedural;
   dg_options.entryFunction = entry;
+  dg_options.entryOnly = entry_only;
+  // we could disable pointer analysis for efficiency at the cost of
+  // not being able to identify points-to set for pointers
+  dg_options.pointerAnalysis = true;
+  dg_options.controlDependency = false;
   dg_options.verifyGraph = false;
   // we would do inter-procedural dg but intra-procedural PTA or RDA..
-  dg_options.PTAOptions.intraProcedural = true;
-  dg_options.RDAOptions.intraProcedural = intraprocedural;
-  dg_options.PTAOptions.entryFunction = entry;
-  dg_options.RDAOptions.entryFunction = entry;
+  dg_options.PTAOptions.intraProcedural = intra_procedural;
+  dg_options.RDAOptions.intraProcedural = intra_procedural;
+  dg_options.PTAOptions.entryOnly = entry_only;
+  dg_options.RDAOptions.entryOnly = entry_only;
   // use flow-sensitive pointer analysis
   dg_options.PTAOptions.analysisType =
       dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;

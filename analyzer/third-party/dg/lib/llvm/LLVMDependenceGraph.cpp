@@ -449,7 +449,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
     // if func is nullptr, then this is indirect call
     // via function pointer. If we have the points-to information,
     // create the subgraph
-    if (!func && !CInst->isInlineAsm() && PTA) {
+    if (!func && !CInst->isInlineAsm() && PTA && !entryOnly) {
       using namespace analysis::pta;
       if (PSNode *op = PTA->getPointsTo(strippedValue)) {
         for (const Pointer &ptr : op->pointsTo) {
@@ -491,7 +491,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
       gatheredCallsites->insert(node);
     }
 
-    if (is_func_defined(func)) {
+    if (is_func_defined(func) && !entryOnly) {
       LLVMDependenceGraph *subg = buildSubgraph(node, func);
       node->addSubgraph(subg);
     }
@@ -760,10 +760,12 @@ bool LLVMDependenceGraph::build(llvm::Function *func) {
 
 bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPointerAnalysis *pts,
                                 LLVMReachingDefinitions *rda,
-                                llvm::Function *entry, bool intra_procedural) {
+                                llvm::Function *entry, bool entry_only,
+                                bool intra_procedural) {
   this->PTA = pts;
   this->RDA = rda;
   this->intraProcedural = intra_procedural;
+  this->entryOnly = entry_only;
   return build(m, entry);
 }
 

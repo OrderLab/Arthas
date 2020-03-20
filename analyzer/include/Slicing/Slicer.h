@@ -62,7 +62,8 @@ class DgSlicer {
   bool computeDependencies(dg::llvmdg::LLVMDependenceGraphOptions &options);
 
   static dg::llvmdg::LLVMDependenceGraphOptions createDgOptions(
-      bool intraprocedural = false, llvm::Function *entry = nullptr);
+      llvm::Function *entry = nullptr, bool entry_only = false,
+      bool intra_procedural = false);
 
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 

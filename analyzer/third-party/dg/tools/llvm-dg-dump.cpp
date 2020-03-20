@@ -147,12 +147,11 @@ int main(int argc, char *argv[])
 
     llvmdg::LLVMDependenceGraphOptions options;
 
+    options.entryFunctionName = entry_func;
     options.cdAlgorithm = cd_alg;
     options.threads = threads;
     options.PTAOptions.threads = threads;
     options.RDAOptions.threads = threads;
-    options.PTAOptions.entryFunctionName = entry_func;
-    options.RDAOptions.entryFunctionName = entry_func;
     if (strcmp(pts, "fs") == 0) {
         options.PTAOptions.analysisType
             = LLVMPointerAnalysisOptions::AnalysisType::fs;
