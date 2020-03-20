@@ -103,6 +103,8 @@ bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
+  // enabling pointer analysis, inter-procedural analysis and threading support
+  // control dependency analysis is disabled
   uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
                    SlicerDgFlags::SUPPORT_THREADS;
   auto options = slicer->createDgOptions(flags);

@@ -34,21 +34,14 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
   // dependency graph options
   dg::llvmdg::LLVMDependenceGraphOptions dg_options;
   dg_options.entryFunction = entry;
-  if (dg_flags & SlicerDgFlags::INTRA_PROCEDURAL) {
-    dg_options.intraProcedural = true;
-  } else if (dg_flags & SlicerDgFlags::INTER_PROCEDURAL) {
-    dg_options.intraProcedural = false;
-  }
+  dg_options.intraProcedural = (dg_flags & SlicerDgFlags::INTRA_PROCEDURAL) ||
+                               !(dg_flags & SlicerDgFlags::INTER_PROCEDURAL);
   dg_options.entryOnly = dg_flags & SlicerDgFlags::ENTRY_ONLY;
   // we could disable pointer analysis for efficiency at the cost of
   // not being able to identify points-to set for pointers
-  dg_options.pointerAnalysis = (dg_flags & SlicerDgFlags::ENABLE_PTA) ||
-                               !(dg_flags & SlicerDgFlags::DISABLE_PTA);
-  dg_options.controlDependency =
-      (dg_flags & SlicerDgFlags::ENABLE_CONTROL_DEP) ||
-      !(dg_flags & SlicerDgFlags::DISABLE_CONTROL_DEP);
-  dg_options.threads = (dg_flags & SlicerDgFlags::SUPPORT_THREADS) ||
-                       !(dg_flags & SlicerDgFlags::DISABLE_THREADS);
+  dg_options.pointerAnalysis = dg_flags & SlicerDgFlags::ENABLE_PTA;
+  dg_options.controlDependency = dg_flags & SlicerDgFlags::ENABLE_CONTROL_DEP;
+  dg_options.threads = dg_flags & SlicerDgFlags::SUPPORT_THREADS;
   dg_options.verifyGraph = false;
   // we would do inter-procedural dg but intra-procedural PTA or RDA..
   dg_options.PTAOptions.intraProcedural = dg_options.intraProcedural;
@@ -75,12 +68,13 @@ bool DgSlicer::computeDependencies(
 
   _dg = std::move(_builder->constructCFGOnly());
   if (!_dg) {
-    llvm::errs() << "Building the dependence graph failed!\n";
+    errs() << "Building the dependence graph failed!\n";
     return false;
   }
+  errs() << "Finished\n";
   // compute both data dependencies (def-use) and control dependencies
   _dg = _builder->computeDependencies(std::move(_dg));
-  _dg->verify();
+  errs() << "Finished building the dependence graph\n";
 
   const auto &stats = _builder->getStatistics();
   errs() << "[slicer] CPU time of pointer analysis: "

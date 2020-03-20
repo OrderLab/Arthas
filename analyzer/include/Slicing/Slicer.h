@@ -51,13 +51,8 @@ enum SlicerDgFlags {
   INTRA_PROCEDURAL = 1 << 1,
   INTER_PROCEDURAL = 1 << 2,
   ENABLE_PTA = 1 << 3,
-  // we do not really need DISABLE_* flags as ENABLE_* = 0 represents disabling
-  // still adding them here for readability of the flags
-  DISABLE_PTA = 1 << 4,
-  ENABLE_CONTROL_DEP = 1 << 5,
-  DISABLE_CONTROL_DEP = 1 << 6,
-  SUPPORT_THREADS = 1 << 7,
-  DISABLE_THREADS = 1 << 8,
+  ENABLE_CONTROL_DEP = 1 << 4,
+  SUPPORT_THREADS = 1 << 5,
 };
 
 // Slicer based on dependency graph
