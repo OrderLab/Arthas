@@ -39,7 +39,8 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
   // we could disable pointer analysis for efficiency at the cost of
   // not being able to identify points-to set for pointers
   dg_options.pointerAnalysis = true;
-  dg_options.controlDependency = false;
+  dg_options.controlDependency = true;
+  dg_options.threads = true;
   dg_options.verifyGraph = false;
   // we would do inter-procedural dg but intra-procedural PTA or RDA..
   dg_options.PTAOptions.intraProcedural = intra_procedural;

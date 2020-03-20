@@ -179,6 +179,11 @@ class LLVMDependenceGraphBuilder {
     assert(_options.entryFunction && "The entry function not found");
     _options.PTAOptions.entryFunction = _options.entryFunction;
     _options.RDAOptions.entryFunction = _options.entryFunction;
+    _options.PTAOptions.threads = _options.threads;
+    _options.RDAOptions.threads = _options.threads;
+    _options.RDAOptions.entryOnly = _options.entryOnly;
+    _options.RDAOptions.entryOnly = _options.entryOnly;
+
     _PTA = std::unique_ptr<LLVMPointerAnalysis>(
         new LLVMPointerAnalysis(M, _options.PTAOptions));
     _RD = std::unique_ptr<LLVMReachingDefinitions>(

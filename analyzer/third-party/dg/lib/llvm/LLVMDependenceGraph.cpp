@@ -507,12 +507,15 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
     if (threads && func && func->getName() == "pthread_create") {
       auto possibleFunctions =
           PTA->getPointsToFunctions(CInst->getArgOperand(2));
+      errs() << "Found pthread_create of ";
       for (auto &function : possibleFunctions) {
+        errs() << function->getName() << "() ";
         LLVMDependenceGraph *subg =
             buildSubgraph(node, const_cast<llvm::Function *>(function),
                           true /*this is fork*/);
         node->addSubgraph(subg);
       }
+      errs() << "\n";
     }
 
     // no matter what is the function, this is a CallInst,
