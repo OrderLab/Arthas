@@ -1,14 +1,14 @@
 #ifndef HAVE_LLVM
-# error "Need LLVM for LLVMDependenceGraph"
+#error "Need LLVM for LLVMDependenceGraph"
 #endif
 
 #ifndef ENABLE_CFG
- #error "Need CFG enabled for building LLVM Dependence Graph"
+#error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
-#include <utility>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <utility>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -22,32 +22,32 @@
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
 
 #if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
+#pragma clang diagnostic pop  // ignore -Wunused-parameter
 #else
 #pragma GCC diagnostic pop
 #endif
 
+#include "../lib/llvm/analysis/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "../lib/llvm/analysis/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
 
+#include "llvm-utils.h"
 #include "llvm/LLVMDGVerifier.h"
 #include "llvm/analysis/ControlExpression.h"
-#include "llvm-utils.h"
 
 #include "dg/ADT/Queue.h"
 
@@ -161,6 +161,46 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
   // build recursively DG from entry point
   build(entryFunction);
 
+  // Arthas Changes:
+  //
+  //  This is a fail-safe step that constructs dependency graph for
+  //  any function that does not have a dg. The reason this could happen
+  //  includes (1) we disabled pointer analysis for efficiency; (2)
+  //  we enabled intra-procedural analysis and wanted to query dg
+  //  for functions other than the entry function; (3) we enabled
+  //  pointer analysis but the PA missed some potential elements
+  //  in the point-to set for some call instruction (thus the
+  //  actual call target does not have a dg)
+  auto mainFunc = m->getFunction("main");
+  for (llvm::Function &func : *module) {
+    if (func.isDeclaration() || func.size() == 0) continue;
+    if (constructedFunctions.find(&func) == constructedFunctions.end()) {
+      if (mainFunc) {
+        errs() << "Trying to create one subgraph for " << func.getName()
+               << "() that is connected to main()\n";
+        // here we first create a fake call instruction to the
+        // functions without a constructed dg
+        llvm::CallInst *ci = llvm::CallInst::Create(&func);
+        // then we create a phony LLVMNode
+        LLVMNode *phony = new LLVMNode(ci, true);
+        // then we add this node to the current dg
+        addNode(phony);
+        LLVMBBlock *exitBB = getExitBB();
+        // then we assign this phony LLVMNode to the exit BB of main
+        // we must do so because other places will call getBBlock for a node
+        phony->setBasicBlock(exitBB);
+        // then we build the subgraph for the func
+        LLVMDependenceGraph *subg = buildSubgraph(phony, &func);
+        // then we add this subdg to the phony node, without this step
+        // we won't be able to iterate through the subdg, e.g., when
+        // adding def-use edges
+        phony->addSubgraph(subg);
+      } else {
+        errs() << "No dependency graph constructed for " << func.getName()
+               << "()\n";
+      }
+    }
+  }
   return true;
 };
 
@@ -409,7 +449,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
     // if func is nullptr, then this is indirect call
     // via function pointer. If we have the points-to information,
     // create the subgraph
-    if (!func && !CInst->isInlineAsm() && PTA && !intraprocedural) {
+    if (!func && !CInst->isInlineAsm() && PTA) {
       using namespace analysis::pta;
       if (PSNode *op = PTA->getPointsTo(strippedValue)) {
         for (const Pointer &ptr : op->pointsTo) {
@@ -451,7 +491,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
       gatheredCallsites->insert(node);
     }
 
-    if (is_func_defined(func) && !intraprocedural) {
+    if (is_func_defined(func)) {
       LLVMDependenceGraph *subg = buildSubgraph(node, func);
       node->addSubgraph(subg);
     }
@@ -720,10 +760,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func) {
 
 bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPointerAnalysis *pts,
                                 LLVMReachingDefinitions *rda,
-                                llvm::Function *entry, bool intraprocedural) {
+                                llvm::Function *entry, bool intra_procedural) {
   this->PTA = pts;
   this->RDA = rda;
-  this->intraprocedural = intraprocedural;
+  this->intraProcedural = intra_procedural;
   return build(m, entry);
 }
 

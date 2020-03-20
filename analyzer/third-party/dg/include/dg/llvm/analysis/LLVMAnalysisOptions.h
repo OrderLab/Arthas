@@ -15,7 +15,7 @@ struct LLVMAnalysisOptions {
 
   // is the analysis intraprocedural (that is, only of the
   // entry function?)
-  bool intraprocedural{false};
+  bool intraProcedural{false};
 
   LLVMAnalysisOptions& setEntryFunctionName(const std::string& e) {
     entryFunctionName = e;
@@ -28,7 +28,7 @@ struct LLVMAnalysisOptions {
   }
 
   LLVMAnalysisOptions& setIntraprocedural(bool b) {
-    intraprocedural = b;
+    intraProcedural = b;
     return *this;
   }
 };

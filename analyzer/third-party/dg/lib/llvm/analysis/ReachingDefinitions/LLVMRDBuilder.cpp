@@ -501,7 +501,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::createCallToFunction(
     auto node = funcFromModel(model, CInst);
     addNode(CInst, node);
     return {node, node};
-  } else if (F->size() == 0 || _options.intraprocedural) {
+  } else if (F->size() == 0 || _options.intraProcedural) {
     auto node = createCallToZeroSizeFunction(F, CInst);
     return {node, node};
   } else if (!llvmutils::callIsCompatible(F, CInst)) {
@@ -948,7 +948,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::createCall(
     RDNode *node = createUndefinedCall(CInst);
     return {node, node};
   }
-  if (_options.intraprocedural) {
+  if (_options.intraProcedural) {
     RDNode *n = createUndefinedCall(CInst);
     return std::make_pair(n, n);
   }

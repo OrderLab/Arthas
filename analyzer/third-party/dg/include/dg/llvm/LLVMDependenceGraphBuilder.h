@@ -54,9 +54,14 @@ struct LLVMDependenceGraphOptions {
 
   bool terminationSensitive{true};
   CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
-  bool intraprocedural{false};
 
-  bool verifyGraph{true};
+  bool intraProcedural{false};
+
+  bool pointerAnalysis{true};
+
+  bool controlDependency{false};
+
+  bool verifyGraph{false};
 
   bool threads{false};
 
@@ -182,7 +187,9 @@ class LLVMDependenceGraphBuilder {
   // construct the whole graph with all edges
   std::unique_ptr<LLVMDependenceGraph>&& build() {
     // compute data dependencies
-    _runPointerAnalysis();
+    if (_options.pointerAnalysis) {
+      _runPointerAnalysis();
+    }
     _runReachingDefinitionsAnalysis();
 
     if (_PTA->getForks().empty()) {
@@ -191,13 +198,15 @@ class LLVMDependenceGraphBuilder {
 
     // build the graph itself (the nodes, but without edges)
     _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction,
-               _options.intraprocedural);
+               _options.intraProcedural);
 
     // insert the data dependencies edges
     _dg->addDefUseEdges();
 
     // compute and fill-in control dependencies
-    _runControlDependenceAnalysis();
+    if (_options.controlDependency) {
+      _runControlDependenceAnalysis();
+    }
 
     if (_options.threads) {
       _controlFlowGraph->buildFunction(_entryFunction);
@@ -223,7 +232,9 @@ class LLVMDependenceGraphBuilder {
   // for sound construction of CFG in the presence of function pointer calls.
   std::unique_ptr<LLVMDependenceGraph>&& constructCFGOnly() {
     // data dependencies
-    _runPointerAnalysis();
+    if (_options.pointerAnalysis) {
+      _runPointerAnalysis();
+    }
 
     if (_PTA->getForks().empty()) {
       _dg->setThreads(false);
@@ -231,7 +242,7 @@ class LLVMDependenceGraphBuilder {
 
     // build the graph itself
     _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction,
-               _options.intraprocedural);
+               _options.intraProcedural);
 
     if (_options.threads) {
       _controlFlowGraph->buildFunction(_entryFunction);
@@ -261,7 +272,9 @@ class LLVMDependenceGraphBuilder {
     _dg->addDefUseEdges();
 
     // fill-in control dependencies
-    _runControlDependenceAnalysis();
+    if (_options.controlDependency) {
+      _runControlDependenceAnalysis();
+    }
 
     if (_options.threads) {
       _runInterferenceDependenceAnalysis();

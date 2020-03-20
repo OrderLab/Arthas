@@ -33,10 +33,12 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
     bool intraprocedural, llvm::Function *entry) {
   // dependency graph options
   dg::llvmdg::LLVMDependenceGraphOptions dg_options;
-  dg_options.intraprocedural = intraprocedural;
+  dg_options.intraProcedural = intraprocedural;
   dg_options.entryFunction = entry;
-  dg_options.PTAOptions.intraprocedural = intraprocedural;
-  dg_options.RDAOptions.intraprocedural = intraprocedural;
+  dg_options.verifyGraph = false;
+  // we would do inter-procedural dg but intra-procedural PTA or RDA..
+  dg_options.PTAOptions.intraProcedural = true;
+  dg_options.RDAOptions.intraProcedural = intraprocedural;
   dg_options.PTAOptions.entryFunction = entry;
   dg_options.RDAOptions.entryFunction = entry;
   // use flow-sensitive pointer analysis
