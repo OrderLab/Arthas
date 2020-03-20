@@ -278,6 +278,11 @@ bool GraphBuilder::matchLocksAndUnlocks() {
     bool changed = false;
     for (auto lock : llvmToLocks_) {
         auto lockMutexPtr = pointsToAnalysis_->getPointsTo(lock.first);
+        if (lockMutexPtr == nullptr) {
+          llvm::errs() << "[CFG] Warning: No points-to-set for " << *lock.first
+                       << " in " << lock.first->getFunction() << "\n";
+          continue;
+        }
         for (auto unlock : llvmToUnlocks_) {
             auto unlockMutexPtr = pointsToAnalysis_->getPointsTo(unlock.first);
 
