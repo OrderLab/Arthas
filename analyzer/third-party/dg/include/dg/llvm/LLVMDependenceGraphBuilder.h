@@ -54,7 +54,14 @@ struct LLVMDependenceGraphOptions {
 
   bool terminationSensitive{true};
   CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
-  bool intraprocedural{false};
+
+  bool entryOnly{false};
+
+  bool intraProcedural{false};
+
+  bool pointerAnalysis{true};
+
+  bool controlDependency{true};
 
   bool verifyGraph{true};
 
@@ -74,7 +81,7 @@ struct LLVMDependenceGraphOptions {
 
 class LLVMDependenceGraphBuilder {
   llvm::Module* _M;
-  const LLVMDependenceGraphOptions _options;
+  LLVMDependenceGraphOptions _options;
   std::unique_ptr<LLVMPointerAnalysis> _PTA{};
   std::unique_ptr<LLVMReachingDefinitions> _RD{};
   std::unique_ptr<LLVMDependenceGraph> _dg{};
@@ -163,15 +170,29 @@ class LLVMDependenceGraphBuilder {
 
   LLVMDependenceGraphBuilder(llvm::Module* M,
                              const LLVMDependenceGraphOptions& opts)
-      : _M(M), _options(opts),
-        _PTA(new LLVMPointerAnalysis(M, _options.PTAOptions)),
-        _RD(new LLVMReachingDefinitions(M, _PTA.get(), _options.RDAOptions)),
-        _dg(new LLVMDependenceGraph(opts.threads)),
-        _controlFlowGraph(new ControlFlowGraph(_PTA.get())) {
-    _entryFunction = _options.entryFunction
-                         ? _options.entryFunction
-                         : M->getFunction(_options.entryFunctionName);
-    assert(_entryFunction && "The entry function not found");
+      : _M(M), _options(opts) {
+    if (_options.entryFunction) {
+      _options.entryFunctionName = _options.entryFunction->getName().str();
+    } else {
+      _options.entryFunction = M->getFunction(_options.entryFunctionName);
+    }
+    assert(_options.entryFunction && "The entry function not found");
+    _options.PTAOptions.entryFunction = _options.entryFunction;
+    _options.RDAOptions.entryFunction = _options.entryFunction;
+    _options.PTAOptions.threads = _options.threads;
+    _options.RDAOptions.threads = _options.threads;
+    _options.RDAOptions.entryOnly = _options.entryOnly;
+    _options.RDAOptions.entryOnly = _options.entryOnly;
+
+    _PTA = std::unique_ptr<LLVMPointerAnalysis>(
+        new LLVMPointerAnalysis(M, _options.PTAOptions));
+    _RD = std::unique_ptr<LLVMReachingDefinitions>(
+        new LLVMReachingDefinitions(M, _PTA.get(), _options.RDAOptions));
+    _dg = std::unique_ptr<LLVMDependenceGraph>(
+        new LLVMDependenceGraph(opts.threads));
+    _controlFlowGraph =
+        std::unique_ptr<ControlFlowGraph>(new ControlFlowGraph(_PTA.get()));
+    _entryFunction = _options.entryFunction;
   }
 
   LLVMPointerAnalysis* getPTA() { return _PTA.get(); }
@@ -182,7 +203,9 @@ class LLVMDependenceGraphBuilder {
   // construct the whole graph with all edges
   std::unique_ptr<LLVMDependenceGraph>&& build() {
     // compute data dependencies
-    _runPointerAnalysis();
+    if (_options.pointerAnalysis) {
+      _runPointerAnalysis();
+    }
     _runReachingDefinitionsAnalysis();
 
     if (_PTA->getForks().empty()) {
@@ -190,14 +213,16 @@ class LLVMDependenceGraphBuilder {
     }
 
     // build the graph itself (the nodes, but without edges)
-    _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction,
-               _options.intraprocedural);
+    _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction, _options.entryOnly,
+               _options.intraProcedural);
 
     // insert the data dependencies edges
     _dg->addDefUseEdges();
 
     // compute and fill-in control dependencies
-    _runControlDependenceAnalysis();
+    if (_options.controlDependency) {
+      _runControlDependenceAnalysis();
+    }
 
     if (_options.threads) {
       _controlFlowGraph->buildFunction(_entryFunction);
@@ -223,15 +248,17 @@ class LLVMDependenceGraphBuilder {
   // for sound construction of CFG in the presence of function pointer calls.
   std::unique_ptr<LLVMDependenceGraph>&& constructCFGOnly() {
     // data dependencies
-    _runPointerAnalysis();
+    if (_options.pointerAnalysis) {
+      _runPointerAnalysis();
+    }
 
     if (_PTA->getForks().empty()) {
       _dg->setThreads(false);
     }
 
     // build the graph itself
-    _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction,
-               _options.intraprocedural);
+    _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction, _options.entryOnly,
+               _options.intraProcedural);
 
     if (_options.threads) {
       _controlFlowGraph->buildFunction(_entryFunction);
@@ -261,7 +288,9 @@ class LLVMDependenceGraphBuilder {
     _dg->addDefUseEdges();
 
     // fill-in control dependencies
-    _runControlDependenceAnalysis();
+    if (_options.controlDependency) {
+      _runControlDependenceAnalysis();
+    }
 
     if (_options.threads) {
       _runInterferenceDependenceAnalysis();

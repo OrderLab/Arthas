@@ -8,27 +8,27 @@ namespace dg {
 namespace analysis {
 
 struct LLVMAnalysisOptions {
-  // set either the entry function name
-  std::string entryFunctionName{"main"};
   // or directly the entry function
   llvm::Function* entryFunction{nullptr};
 
-  // is the analysis intraprocedural (that is, only of the
-  // entry function?)
-  bool intraprocedural{false};
+  // is the analysis only of the entry function?
+  bool entryOnly{false};
 
-  LLVMAnalysisOptions& setEntryFunctionName(const std::string& e) {
-    entryFunctionName = e;
-    return *this;
-  }
+  // is the analysis intraprocedural
+  bool intraProcedural{false};
 
   LLVMAnalysisOptions& setEntryFunction(llvm::Function* e) {
     entryFunction = e;
     return *this;
   }
 
+  LLVMAnalysisOptions& setEntryOnly(bool b) {
+    entryOnly = b;
+    return *this;
+  }
+
   LLVMAnalysisOptions& setIntraprocedural(bool b) {
-    intraprocedural = b;
+    intraProcedural = b;
     return *this;
   }
 };

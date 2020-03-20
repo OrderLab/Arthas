@@ -50,7 +50,7 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst,
   // is undefined and after that if it is memory allocation,
   // because some programs may define function named
   // 'malloc' etc.
-  if (func->size() == 0 || _options.intraprocedural) {
+  if (func->size() == 0 || _options.entryOnly) {
     /// memory allocation (malloc, calloc, etc.)
     auto type = _options.getAllocationFunction(func->getName());
     if (type != AllocationFunction::NONE) {

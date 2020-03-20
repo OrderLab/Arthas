@@ -501,7 +501,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::createCallToFunction(
     auto node = funcFromModel(model, CInst);
     addNode(CInst, node);
     return {node, node};
-  } else if (F->size() == 0 || _options.intraprocedural) {
+  } else if (F->size() == 0 || _options.entryOnly) {
     auto node = createCallToZeroSizeFunction(F, CInst);
     return {node, node};
   } else if (!llvmutils::callIsCompatible(F, CInst)) {
@@ -948,7 +948,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::createCall(
     RDNode *node = createUndefinedCall(CInst);
     return {node, node};
   }
-  if (_options.intraprocedural) {
+  if (_options.entryOnly) {
     RDNode *n = createUndefinedCall(CInst);
     return std::make_pair(n, n);
   }
@@ -1028,12 +1028,9 @@ RDNode *LLVMRDBuilder::createPthreadExitCall(const llvm::CallInst *CInst) {
 
 ReachingDefinitionsGraph &&LLVMRDBuilder::build() {
   // get entry function
-  llvm::Function *F = _options.entryFunction
-                          ? _options.entryFunction
-                          : M->getFunction(_options.entryFunctionName);
+  llvm::Function *F = _options.entryFunction;
   if (!F) {
-    llvm::errs() << "The function '" << _options.entryFunctionName
-                 << "' was not found in the module\n";
+    llvm::errs() << "The entry function was not found in the module\n";
     abort();
   }
 

@@ -212,7 +212,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.forwardSlicing = forwardSlicing;
 
     options.dgOptions.entryFunctionName = entryFunction;
-    options.dgOptions.PTAOptions.entryFunctionName = entryFunction;
     options.dgOptions.PTAOptions.fieldSensitivity
                                     = dg::analysis::Offset(ptaFieldSensitivity);
     options.dgOptions.PTAOptions.analysisType = ptaType;
@@ -221,7 +220,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.PTAOptions.threads = threads;
     options.dgOptions.RDAOptions.threads = threads;
 
-    options.dgOptions.RDAOptions.entryFunctionName = entryFunction;
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
     options.dgOptions.RDAOptions.undefinedArePure = undefinedArePure;
     options.dgOptions.RDAOptions.analysisType = rdaType;

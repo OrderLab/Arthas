@@ -57,8 +57,9 @@ using LLVMBBlock = dg::BBlock<LLVMNode>;
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
   // our artificial unified exit block
   std::unique_ptr<LLVMBBlock> unifiedExitBB{};
-  bool intraprocedural{false};
   llvm::Function *entryFunction{nullptr};
+  bool entryOnly{false};
+  bool intraProcedural{false};
 
  public:
   LLVMDependenceGraph(bool threads = false)
@@ -76,7 +77,8 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
   bool build(llvm::Module *m, llvm::Function *entry = nullptr);
   bool build(llvm::Module *m, LLVMPointerAnalysis *pts = nullptr,
              LLVMReachingDefinitions *rda = nullptr,
-             llvm::Function *entry = nullptr, bool intraprocedural = false);
+             llvm::Function *entry = nullptr, bool entry_only = false,
+             bool intra_procedural = false);
 
   // build DependenceGraph for a function. This will automatically
   // build subgraphs of called functions

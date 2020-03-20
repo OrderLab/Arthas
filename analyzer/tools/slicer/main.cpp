@@ -103,7 +103,9 @@ bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
-  auto options = slicer->createDgOptions();
+  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
+                   SlicerDgFlags::SUPPORT_THREADS;
+  auto options = slicer->createDgOptions(flags);
   slicer->computeDependencies(options);
 
   std::error_code ec;

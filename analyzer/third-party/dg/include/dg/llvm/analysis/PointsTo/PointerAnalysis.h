@@ -130,18 +130,12 @@ class LLVMPointerAnalysis {
   PointerGraph *PS = nullptr;
   std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
-  LLVMPointerAnalysisOptions createOptions(const char *entry_func_name,
-                                           llvm::Function *entry_func,
+  LLVMPointerAnalysisOptions createOptions(llvm::Function *entry_func,
                                            uint64_t field_sensitivity,
                                            bool threads = false) {
     LLVMPointerAnalysisOptions opts;
     opts.threads = threads;
     opts.setFieldSensitivity(field_sensitivity);
-    if (entry_func) {
-      opts.setEntryFunctionName(entry_func->getName());
-    } else {
-      opts.setEntryFunctionName(entry_func_name);
-    }
     opts.setEntryFunction(entry_func);
     return opts;
   }
@@ -153,13 +147,11 @@ class LLVMPointerAnalysis {
   }
 
  public:
-  LLVMPointerAnalysis(const llvm::Module *m,
-                      const char *entry_func_name = "main",
-                      llvm::Function *entry_func = nullptr,
+  LLVMPointerAnalysis(const llvm::Module *m, llvm::Function *entry_func,
                       uint64_t field_sensitivity = Offset::UNKNOWN,
                       bool threads = false)
-      : LLVMPointerAnalysis(m, createOptions(entry_func_name, entry_func,
-                                             field_sensitivity, threads)) {}
+      : LLVMPointerAnalysis(
+            m, createOptions(entry_func, field_sensitivity, threads)) {}
 
   LLVMPointerAnalysis(const llvm::Module *m,
                       const LLVMPointerAnalysisOptions opts)
