@@ -164,7 +164,9 @@ bool SlicingPass::runOnModule(Module &M) {
   errs() << "Slice direction is " << _sliceDir << "\n";
   // Step 2: Compute dependence graph and slicer for the module
   _dgSlicer = make_unique<DgSlicer>(&M, _sliceDir);
-  auto options = _dgSlicer->createDgOptions();
+  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
+                   SlicerDgFlags::SUPPORT_THREADS;
+  auto options = _dgSlicer->createDgOptions(flags);
   // compute the dependence graph for module M
   _dgSlicer->computeDependencies(options);
 

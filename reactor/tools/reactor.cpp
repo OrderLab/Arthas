@@ -51,9 +51,12 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   unique_ptr<DgSlicer> _dgSlicer =
       make_unique<DgSlicer>(M, SliceDirection::Backward);
   // for intra-procedural slicing, uncomment the following:
-  // auto options = _dgSlicer->createDgOptions(fault_inst->getFunction(), false,
-  // true);
-  auto options = _dgSlicer->createDgOptions();
+  // uint32_t flags = SlicerDgFlags::ENABLE_PTA |
+  //                 SlicerDgFlags::INTRA_PROCEDURAL |
+  //                 SlicerDgFlags::SUPPORT_THREADS;
+  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
+                   SlicerDgFlags::SUPPORT_THREADS;
+  auto options = _dgSlicer->createDgOptions(flags);
   _dgSlicer->computeDependencies(options);
 
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
