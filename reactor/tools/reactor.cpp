@@ -51,7 +51,8 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   unique_ptr<DgSlicer> _dgSlicer =
       make_unique<DgSlicer>(M, SliceDirection::Backward);
   // for intra-procedural slicing, uncomment the following:
-  // auto options = _dgSlicer->createDgOptions(true, fault_inst->getFunction());
+  // auto options = _dgSlicer->createDgOptions(fault_inst->getFunction(), false,
+  // true);
   auto options = _dgSlicer->createDgOptions();
   _dgSlicer->computeDependencies(options);
 
