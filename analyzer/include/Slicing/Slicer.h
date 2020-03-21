@@ -76,16 +76,20 @@ class DgSlicer {
   dg::LLVMDependenceGraph *getDependenceGraph(llvm::Function *func);
 
   SliceGraph *slice(dg::LLVMNode *start, uint32_t &slice_id,
-                    SlicingApproachKind kind);
+                    SlicingApproachKind kind,
+                    uint32_t slice_dep_flags = DEFAULT_DEPENDENCY_FLAGS);
 
   SliceGraph *slice(llvm::Instruction *start, uint32_t &slice_id,
-                    SlicingApproachKind kind);
+                    SlicingApproachKind kind,
+                    uint32_t slice_dep_flags = DEFAULT_DEPENDENCY_FLAGS);
 
-  SliceGraph *buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id);
+  SliceGraph *buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id,
+                              uint32_t slice_dep_flags);
 
   // functions for the marking approach -- only slide id is set on the
   // dependency graph node, no additional graph is constructed.
-  uint32_t markSliceId(dg::LLVMNode *start, uint32_t slice_id);
+  uint32_t markSliceId(dg::LLVMNode *start, uint32_t slice_id,
+                       uint32_t slice_dep_flags);
   void walkSliceId(uint32_t slice_id, dg::LLVMDependenceGraph *graph = nullptr,
                    NodeSliceFunc nodeFunc = nullptr,
                    BasicBlockSliceFunc bbFunc = nullptr,

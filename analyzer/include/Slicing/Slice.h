@@ -32,6 +32,20 @@ enum class SliceDependence {
   InterfereDependence,
 };
 
+enum SliceDependenceFlags {
+  DEF_USE = 1 << 0,
+  MEMORY = 1 << 1,
+  CONTROL = 1 << 2,
+  INTERFERENCE = 1 << 3,
+};
+
+#define DEFAULT_DEPENDENCY_FLAGS \
+  SliceDependenceFlags::DEF_USE | SliceDependenceFlags::MEMORY
+
+#define FULL_DEPENDENCY_FLAGS                                    \
+  SliceDependenceFlags::DEF_USE | SliceDependenceFlags::MEMORY | \
+      SliceDependenceFlags::CONTROL | SliceDependenceFlags::INTERFERENCE
+
 inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
     const SlicePersistence & persistence)
 {

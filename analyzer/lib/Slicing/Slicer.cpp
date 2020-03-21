@@ -98,10 +98,10 @@ dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
   return dgit->second;
 }
 
-uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id)
-{
+uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id,
+                               uint32_t slice_dep_flags) {
   // only walk the data and use dependencies
-  DgWalkAndMark wm(_direction, false);
+  DgWalkAndMark wm(_direction, slice_dep_flags);
   wm.mark(start, slice_id);
 
   return slice_id;
@@ -118,32 +118,32 @@ uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id)
       }
     }
     if (!branchings.empty()) {
-      DgWalkAndMark wm2(SliceDirection::Backward);
+      DgWalkAndMark wm2(SliceDirection::Backward, DEFAULT_DEPENDENCY_FLAGS);
       wm2.mark(branchings, slice_id);
     }
   }
   return slice_id;
 }
 
-SliceGraph *DgSlicer::buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id)
-{
-  DgWalkAndBuildSliceGraph wb(_direction, false);
+SliceGraph *DgSlicer::buildSliceGraph(dg::LLVMNode *start, uint32_t slice_id,
+                                      uint32_t slice_dep_flags) {
+  DgWalkAndBuildSliceGraph wb(_direction, slice_dep_flags);
   return wb.build(start, slice_id);
 }
 
 SliceGraph *DgSlicer::slice(dg::LLVMNode *start, uint32_t &slice_id,
-                            SlicingApproachKind kind) 
-{
+                            SlicingApproachKind kind,
+                            uint32_t slice_dep_flags) {
   // If a slice id is not supplied, we use the last_slice_id + 1 as the new id
   if (slice_id == 0) slice_id = ++_last_slice_id;
 
   SliceGraph *result = nullptr;
   switch (kind) {
     case SlicingApproachKind::Storing:
-      result = buildSliceGraph(start, slice_id);
+      result = buildSliceGraph(start, slice_id, slice_dep_flags);
       break;
     case SlicingApproachKind::Marking:
-      markSliceId(start, slice_id);
+      markSliceId(start, slice_id, slice_dep_flags);
       break;
     default:
       return nullptr;
@@ -156,8 +156,8 @@ SliceGraph *DgSlicer::slice(dg::LLVMNode *start, uint32_t &slice_id,
 }
 
 SliceGraph *DgSlicer::slice(llvm::Instruction *start, uint32_t &slice_id,
-                            SlicingApproachKind kind)
-{
+                            SlicingApproachKind kind,
+                            uint32_t slice_dep_flags) {
   Function *F = start->getFunction();
   dg::LLVMDependenceGraph *subdg = getDependenceGraph(F);
   if (subdg == nullptr) {
@@ -171,7 +171,7 @@ SliceGraph *DgSlicer::slice(llvm::Instruction *start, uint32_t &slice_id,
     return nullptr;
   }
   errs() << "Computing slice for fault instruction " << *start << "\n";
-  return slice(node, slice_id, kind);
+  return slice(node, slice_id, kind, slice_dep_flags);
 }
 
 void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,

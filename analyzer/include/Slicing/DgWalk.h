@@ -42,7 +42,7 @@ class DgWalkBase {
   inline bool isBackward() const { return _dir == SliceDirection::Backward; }
   inline bool isFull() const { return _dir == SliceDirection::Full; }
 
-  static uint32_t sliceRelationOpts(SliceDirection dir, bool full_relation);
+  static uint32_t sliceRelationOpts(SliceDirection dir, uint32_t dep_flags);
   static bool shouldSliceInst(const llvm::Instruction *inst);
 
  protected: 
@@ -51,9 +51,9 @@ class DgWalkBase {
 
 class DgWalkDFS : public DgWalkBase, public DgDfsNodeWalkT {
  public:
-  DgWalkDFS(SliceDirection dir, bool full_depdencies = false)
+  DgWalkDFS(SliceDirection dir, uint32_t slice_dep_flags)
       : DgWalkBase(dir),
-        DgDfsNodeWalkT(sliceRelationOpts(dir, full_depdencies)),
+        DgDfsNodeWalkT(sliceRelationOpts(dir, slice_dep_flags)),
         _dfs_order(0){};
 
  protected:
@@ -62,9 +62,9 @@ class DgWalkDFS : public DgWalkBase, public DgDfsNodeWalkT {
 
 class DgWalkBFS : public DgWalkBase, public DgBfsNodeWalkT {
  public:
-  DgWalkBFS(SliceDirection dir, bool full_depdencies = false)
+  DgWalkBFS(SliceDirection dir, uint32_t slice_dep_flags)
       : DgWalkBase(dir),
-        DgBfsNodeWalkT(sliceRelationOpts(dir, full_depdencies)),
+        DgBfsNodeWalkT(sliceRelationOpts(dir, slice_dep_flags)),
         _bfs_order(0){};
 
  protected:
@@ -76,8 +76,8 @@ class DgWalkBFS : public DgWalkBase, public DgBfsNodeWalkT {
 // or BFS marking. We just use BFS like the original WalkAndMark in dg.
 class DgWalkAndMark : public DgWalkBFS {
  public:
-  DgWalkAndMark(SliceDirection dir, bool full_depdencies = false)
-      : DgWalkBFS(dir, full_depdencies) {}
+  DgWalkAndMark(SliceDirection dir, uint32_t slice_dep_flags)
+      : DgWalkBFS(dir, slice_dep_flags) {}
 
   void mark(const std::set<dg::LLVMNode *> &start, uint32_t slice_id);
   void mark(dg::LLVMNode *start, uint32_t slice_id);
@@ -105,16 +105,16 @@ class DgWalkAndMark : public DgWalkBFS {
 // determine heuristics of which slice to use first.
 class DgWalkAndBuildSliceGraph: public DgWalkDFS {
  public:
-  DgWalkAndBuildSliceGraph(SliceDirection dir, bool full_depdencies = false)
-      : DgWalkDFS(dir, full_depdencies) {}
+  DgWalkAndBuildSliceGraph(SliceDirection dir, uint32_t slice_dep_flags)
+      : DgWalkDFS(dir, slice_dep_flags) {}
 
   SliceGraph *build(dg::LLVMNode *start, uint32_t slice_id);
 
  protected:
   template <typename EdgeIterT>
   void processSliceEdges(SliceGraph *sg, SliceNode *sn_curr,
-                         dg::LLVMNode *dn_curr, SliceEdge::EdgeKind kind,
-                         EdgeIterT begin, EdgeIterT end) {
+                         SliceEdge::EdgeKind kind, EdgeIterT begin,
+                         EdgeIterT end) {
     for (EdgeIterT ei = begin; ei != end; ++ei) {
       auto dn_next = *ei;
       llvm::Value *value = dn_next->getValue();
@@ -123,6 +123,22 @@ class DgWalkAndBuildSliceGraph: public DgWalkDFS {
       auto sn_next = sg->getOrCreateNode(inst);
       sg->connect(sn_curr, sn_next, kind);
       enqueue(dn_next);
+    }
+  }
+
+  template <typename BlockIterT>
+  void processControlBlocks(SliceGraph *sg, SliceNode *sn_curr,
+                            BlockIterT begin, BlockIterT end) {
+    for (BlockIterT bit = begin; bit != end; ++bit) {
+      dg::LLVMBBlock *dep_block = *bit;
+      dg::LLVMNode *last_node = dep_block->getLastNode();
+      if (!last_node) continue;
+      llvm::Value *value = last_node->getValue();
+      llvm::Instruction *inst = dyn_cast<Instruction>(value);
+      if (!inst || !shouldSliceInst(inst)) continue;
+      auto sn_next = sg->getOrCreateNode(inst);
+      sg->connect(sn_curr, sn_next, SliceEdge::EdgeKind::ControlDependence);
+      enqueue(last_node);
     }
   }
 

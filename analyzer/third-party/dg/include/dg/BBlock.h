@@ -70,6 +70,12 @@ public:
     using PredContainerT = EdgesContainer<BBlock<NodeT>>;
     using SuccContainerT = DGContainer<BBlockEdge>;
 
+    using bb_iterator = typename BBlockContainerT::iterator;
+    using const_bb_iterator = typename BBlockContainerT::const_iterator;
+    using bb_reverse_iterator = typename BBlockContainerT::reverse_iterator;
+    using const_bb_reverse_iterator =
+        typename BBlockContainerT::const_reverse_iterator;
+
     SuccContainerT& successors() { return nextBBs; }
     const SuccContainerT& successors() const { return nextBBs; }
 
@@ -78,6 +84,40 @@ public:
 
     const BBlockContainerT& controlDependence() const { return controlDeps; }
     const BBlockContainerT& revControlDependence() const { return revControlDeps; }
+
+    bb_iterator control_begin() { return controlDeps.begin(); }
+    const_bb_iterator const_control_begin() const {
+      return controlDeps.begin();
+    }
+    bb_iterator control_end() { return controlDeps.end(); }
+    const_bb_iterator const_control_end() const { return controlDeps.end(); }
+
+    bb_reverse_iterator control_rbegin() { return controlDeps.rbegin(); }
+    const_bb_reverse_iterator const_control_rbegin() const {
+      return controlDeps.rbegin();
+    }
+    bb_reverse_iterator control_rend() { return controlDeps.rend(); }
+    const_bb_reverse_iterator const_control_rend() const {
+      return controlDeps.rend();
+    }
+
+    bb_iterator rev_control_begin() { return revControlDeps.begin(); }
+    const_bb_iterator rev_const_control_begin() const {
+      return revControlDeps.begin();
+    }
+    bb_iterator rev_control_end() { return revControlDeps.end(); }
+    const_bb_iterator rev_const_control_end() const {
+      return revControlDeps.end();
+    }
+
+    bb_reverse_iterator rev_control_rbegin() { return revControlDeps.rbegin(); }
+    const_bb_reverse_iterator rev_const_control_rbegin() const {
+      return revControlDeps.rbegin();
+    }
+    bb_reverse_iterator rev_control_rend() { return revControlDeps.rend(); }
+    const_bb_reverse_iterator rev_const_control_rend() const {
+      return revControlDeps.rend();
+    }
 
     // similary to nodes, basic blocks can have keys
     // they are not stored anywhere, it is more due to debugging

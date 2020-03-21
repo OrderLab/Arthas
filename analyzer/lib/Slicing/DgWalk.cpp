@@ -16,41 +16,42 @@ using namespace llvm;
 using namespace llvm::slicing;
 using namespace dg::analysis;
 
-uint32_t DgWalkBase::sliceRelationOpts(SliceDirection dir, bool full_relation)
-{
+uint32_t DgWalkBase::sliceRelationOpts(SliceDirection dir,
+                                       uint32_t slice_dep_flags) {
+  uint32_t flags = 0;
   switch (dir) {
     case SliceDirection::Backward:
-      if (full_relation) {
-        return legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
-          legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
-          legacy::NODES_WALK_REV_ID;
-      } else {
-        // for simple relation, we only need data and user dependencies
-        return legacy::NODES_WALK_REV_DD | legacy::NODES_WALK_USER;
-      }
+      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+        flags |= legacy::NODES_WALK_USER;
+      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+        flags |= legacy::NODES_WALK_REV_DD;
+      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+        flags |= legacy::NODES_WALK_REV_CD;
+      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+        flags |= legacy::NODES_WALK_REV_ID;
+      break;
     case SliceDirection::Forward:
-      if (full_relation) {
-        return legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
-               legacy::NODES_WALK_USE | legacy::NODES_WALK_ID;
-      } else {
-        // for simple relation, we only need data and use dependencies
-        return legacy::NODES_WALK_DD | legacy::NODES_WALK_USE;
-      }
+      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+        flags |= legacy::NODES_WALK_USE;
+      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+        flags |= legacy::NODES_WALK_DD;
+      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+        flags |= legacy::NODES_WALK_CD;
+      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+        flags |= legacy::NODES_WALK_ID;
+      break;
     case SliceDirection::Full:
-      // for full slicing, the bi-directional relationships need to be walked
-      if (full_relation) {
-        return legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
-          legacy::NODES_WALK_USE | legacy::NODES_WALK_ID |
-          legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
-          legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
-          legacy::NODES_WALK_REV_ID;
-      } else {
-        return legacy::NODES_WALK_DD | legacy::NODES_WALK_USE | 
-          legacy::NODES_WALK_REV_DD | legacy::NODES_WALK_USER;
-      }
-    default:
-      return 0;
+      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+        flags |= (legacy::NODES_WALK_USE | legacy::NODES_WALK_USER);
+      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+        flags |= (legacy::NODES_WALK_DD | legacy::NODES_WALK_REV_DD);
+      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+        flags |= (legacy::NODES_WALK_CD | legacy::NODES_WALK_REV_CD);
+      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+        flags |= (legacy::NODES_WALK_ID | legacy::NODES_WALK_REV_ID);
+      break;
   }
+  return flags;
 }
 
 bool DgWalkBase::shouldSliceInst(const Instruction *inst) {
@@ -140,91 +141,108 @@ SliceGraph *DgWalkAndBuildSliceGraph::build(dg::LLVMNode *start,
     sn_curr = sg->getOrCreateNode(inst);
     if (options & legacy::NODES_WALK_USE) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::RegisterDefUse,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::RegisterDefUse,
                           dn_curr->use_rbegin(), dn_curr->use_rend());
       } else {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::RegisterDefUse,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::RegisterDefUse,
                           dn_curr->use_begin(), dn_curr->use_end());
       }
     }
     if (options & legacy::NODES_WALK_USER) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::RegisterDefUse,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::RegisterDefUse,
                           dn_curr->user_rbegin(), dn_curr->user_rend());
       } else {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::RegisterDefUse,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::RegisterDefUse,
                           dn_curr->user_begin(), dn_curr->user_end());
       }
     }
     if (options & legacy::NODES_WALK_DD) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::MemoryDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::MemoryDependence,
                           dn_curr->data_rbegin(), dn_curr->data_rend());
       } else {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::MemoryDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::MemoryDependence,
                           dn_curr->data_begin(), dn_curr->data_end());
       }
     }
     if (options & legacy::NODES_WALK_REV_DD) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::MemoryDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::MemoryDependence,
                           dn_curr->rev_data_rbegin(), dn_curr->rev_data_rend());
       } else {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::MemoryDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::MemoryDependence,
                           dn_curr->rev_data_begin(), dn_curr->rev_data_end());
       }
     }
     if (options & legacy::NODES_WALK_CD) {
+      dg::LLVMBBlock *block = dn_curr->getBBlock();
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::ControlDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::ControlDependence,
                           dn_curr->control_rbegin(), dn_curr->control_rend());
+        processControlBlocks(sg, sn_curr, block->control_rbegin(),
+                             block->control_rend());
       } else {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::ControlDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::ControlDependence,
                           dn_curr->control_begin(), dn_curr->control_end());
+        processControlBlocks(sg, sn_curr, block->control_begin(),
+                             block->control_end());
       }
     }
+    // Note: we need to properly handle control dependencies.
+    //
+    // The control dependencies of a LLVMNode is not really stored in the node's
+    // control dependency list. Rather, it the control dependencies such as
+    //      if (flag) {
+    //        a = 10;
+    //        b = 5;
+    //      }
+    // are stored at the basic block (LLVMBBlock) granularity in the dg.
+    // This is reasonable as all instructions in the same basic block share
+    // the same control dependencies. The implication is that when building
+    // the slice graph, we need to re-establish the control dependencies
+    // at the instruction granularity by creating an edge from the instruction
+    // to the last node of the control-dependent basic block.
+    //
     if (options & legacy::NODES_WALK_REV_CD) {
+      // find the basic block of the current node
+      dg::LLVMBBlock *block = dn_curr->getBBlock();
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(
-            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
-            dn_curr->rev_control_rbegin(), dn_curr->rev_control_rend());
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::ControlDependence,
+                          dn_curr->rev_control_rbegin(),
+                          dn_curr->rev_control_rend());
+        // establish control dependencies between the last nodes of the
+        // control dependent blocks and the current node
+        processControlBlocks(sg, sn_curr, block->rev_control_rbegin(),
+                             block->rev_control_rend());
       } else {
-        processSliceEdges(
-            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::ControlDependence,
-            dn_curr->rev_control_begin(), dn_curr->rev_control_end());
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::ControlDependence,
+                          dn_curr->rev_control_begin(),
+                          dn_curr->rev_control_end());
+        processControlBlocks(sg, sn_curr, block->rev_control_begin(),
+                             block->rev_control_end());
       }
     }
     if (options & legacy::NODES_WALK_ID) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(
-            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
-            dn_curr->interference_rbegin(), dn_curr->interference_rend());
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::InterfereDependence,
+                          dn_curr->interference_rbegin(),
+                          dn_curr->interference_rend());
       } else {
-        processSliceEdges(
-            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
-            dn_curr->interference_begin(), dn_curr->interference_end());
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::InterfereDependence,
+                          dn_curr->interference_begin(),
+                          dn_curr->interference_end());
       }
     }
     if (options & legacy::NODES_WALK_REV_ID) {
       if (sg->getDirection() == SliceDirection::Backward) {
-        processSliceEdges(sg, sn_curr, dn_curr,
-                          SliceEdge::EdgeKind::InterfereDependence,
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::InterfereDependence,
                           dn_curr->rev_interference_rbegin(),
                           dn_curr->rev_interference_rend());
       } else {
-        processSliceEdges(
-            sg, sn_curr, dn_curr, SliceEdge::EdgeKind::InterfereDependence,
-            dn_curr->rev_interference_begin(), dn_curr->rev_interference_end());
+        processSliceEdges(sg, sn_curr, SliceEdge::EdgeKind::InterfereDependence,
+                          dn_curr->rev_interference_begin(),
+                          dn_curr->rev_interference_end());
       }
     }
   }

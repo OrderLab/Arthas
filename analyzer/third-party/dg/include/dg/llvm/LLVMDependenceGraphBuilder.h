@@ -221,6 +221,7 @@ class LLVMDependenceGraphBuilder {
 
     // compute and fill-in control dependencies
     if (_options.controlDependency) {
+      llvm::errs() << "Filling in control dependencies\n";
       _runControlDependenceAnalysis();
     }
 
@@ -289,6 +290,7 @@ class LLVMDependenceGraphBuilder {
 
     // fill-in control dependencies
     if (_options.controlDependency) {
+      llvm::errs() << "Filling in control dependencies\n";
       _runControlDependenceAnalysis();
     }
 

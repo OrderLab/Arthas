@@ -89,7 +89,13 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
                       PMemVariableLocator &locator, Slices &slices,
                       raw_ostream &out_stream) {
   uint32_t slice_id = 0;
-  SliceGraph *sg = slicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
+  uint32_t flags = DEFAULT_DEPENDENCY_FLAGS;
+  if (enableCtrl) {
+    // if enabled control dependencies, add it to the slice flags
+    flags |= SliceDependenceFlags::CONTROL;
+  }
+  SliceGraph *sg =
+      slicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing, flags);
   if (sg == nullptr) {
     return;
   }
