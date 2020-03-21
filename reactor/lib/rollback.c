@@ -255,13 +255,15 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
                void **sorted_pmem_addresses, single_data *ordered_data) {
   int ret_val;
   int reexecute_flag = 0;
+  char timeout[1000] = "timeout 5 ";
+  strcat(timeout, reexecution_cmd);
   // the reexcution command is a single line command string
   // if multiple commands are needed, they can be specified
   // with 'cmd1 && cmd2 && cmd3' just like how multi-commands are
   // executed in bash. if the rexecution command is so complex,
   // it can also be put into a script and then the rexecution
   // command is simply './rx_script.sh'
-  ret_val = system(reexecution_cmd);
+  ret_val = system(timeout);
   // printf( "********************\n");
   // printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
   if (WIFEXITED(ret_val)) {
