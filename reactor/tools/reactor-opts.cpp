@@ -28,10 +28,26 @@
 
 const char *program = "reactor";  // by default it's reactor
 static int show_help = 0;
+static int skip_check = 0;
+
+static int enable_pta = 1;  // by default PTA is enabled
+static int enable_control = 0;
+static int support_thread = 0;
+static int intra_procedural = 0;
+static int inter_procedural = 1;  // by default inter-procedural
 
 static struct option long_options[] = {
     /* These options set a flag. */
     {"help", no_argument, &show_help, 1},
+    {"skip-check", no_argument, &skip_check, 1},
+    {"pta", no_argument, &enable_pta, 1},
+    {"no-pta", no_argument, &enable_pta, 0},
+    {"ctrl", no_argument, &enable_control, 1},
+    {"no-ctrl", no_argument, &enable_control, 0},
+    {"thd", no_argument, &support_thread, 1},
+    {"no-thd", no_argument, &support_thread, 0},
+    {"intra", no_argument, &intra_procedural, 1},
+    {"inter", no_argument, &inter_procedural, 1},
     /* These options don't set a flag.
        We distinguish them by their indices. */
     {"pmem-file", required_argument, 0, 'p'},
@@ -52,6 +68,8 @@ void usage() {
       "Usage: %s [-h] [OPTION] \n\n"
       "Options:\n"
       "  -h, --help                   : show this help\n"
+      "      --skip-check             : do not validate options\n"
+      "                                 useful for testing\n"
       "  -p, --pmem-file <file>       : path to the target system's "
       "persistent memory file\n"
       "  -t, --pmem-layout <layout>   : the PM file's layout name\n"
@@ -64,16 +82,24 @@ void usage() {
       "  -g, --guid-map <file>        : path to the static GUID map file\n"
       "  -a, --addresses <file>       : path to the dynamic address trace "
       "file\n"
-      "criterion\n"
       "  -i  --fault-inst <string>    : the fault instruction\n"
       "  -c  --fault-loc  <file:line\n"
       "                   [:func]>    : location of the fault instruction \n"
-      "  -b  --bc-file <file>         : bytecode file "
+      "  -b  --bc-file <file>         : bytecode file \n"
+      "\nSlicer Options:\n"
+      "      --pta                    : enable pointer analysis\n"
+      "      --no-pta                 : disable pointer analysis\n"
+      "      --ctrl                   : enable pointer analysis\n"
+      "      --no-ctrl                : disable pointer analysis\n"
+      "      --thd                    : analyze thread operations\n"
+      "      --no-thd                 : do not analyze thread operations\n"
+      "      --intra                  : intra-procedural analysis\n"
+      "      --inter                  : inter-procedural analysis\n"
       "\n\n",
       program);
 }
 
-bool parse_options(int argc, char *argv[], reactor_options &options) {
+bool parse_options(int argc, char *argv[], reactor_options_t &options) {
   // reset the options
   memset(&options, 0, sizeof(options));
   int option_index = 0;
@@ -137,10 +163,19 @@ bool parse_options(int argc, char *argv[], reactor_options &options) {
     while (optind < argc) printf("%s ", argv[optind++]);
     putchar('\n');
   }
+  options.dg_options.enable_pta = enable_pta != 0;
+  options.dg_options.enable_ctrl = enable_control != 0;
+  options.dg_options.support_thread = support_thread != 0;
+  options.dg_options.inter_procedural = inter_procedural != 0;
+  options.dg_options.intra_procedural = intra_procedural != 0;
+  // defaults
+  if (!options.pmem_library) options.pmem_library = "libpmem";
+  if (skip_check != 0) return true;
+  // only check options if skip_check is not specified
   return check_options(options);
 }
 
-bool check_options(reactor_options &options) {
+bool check_options(reactor_options_t &options) {
   if (!options.pmem_file) {
     fprintf(stderr,
             "pmem file option is not set, specify it with -p or --pmem-file\n");

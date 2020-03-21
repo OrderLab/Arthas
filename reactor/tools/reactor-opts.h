@@ -11,6 +11,14 @@
 
 #include <string>
 
+typedef struct dg_options {
+  bool enable_pta;
+  bool enable_ctrl;
+  bool support_thread;
+  bool intra_procedural;
+  bool inter_procedural;
+} dg_options_t;
+
 typedef struct reactor_options {
   /* argument options */
   const char *address_file;
@@ -28,7 +36,9 @@ typedef struct reactor_options {
   std::string fault_loc;
   // the path to the bitcode file
   std::string bc_file;
-} reactor_options;
+
+  dg_options_t dg_options;
+} reactor_options_t;
 
 extern const char *program;
 

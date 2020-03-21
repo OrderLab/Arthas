@@ -46,6 +46,16 @@ PmemAddrTrace addrTrace;
 
 struct reactor_options options;
 
+uint32_t createDgFlags(struct dg_options &options) {
+  uint32_t flags = 0;
+  if (options.enable_pta) flags |= SlicerDgFlags::ENABLE_PTA;
+  if (options.enable_ctrl) flags |= SlicerDgFlags::ENABLE_CONTROL_DEP;
+  if (options.support_thread) flags |= SlicerDgFlags::SUPPORT_THREADS;
+  if (options.intra_procedural) flags |= SlicerDgFlags::INTRA_PROCEDURAL;
+  if (options.inter_procedural) flags |= SlicerDgFlags::INTER_PROCEDURAL;
+  return flags;
+}
+
 bool slice_fault_instruction(Module *M, Slices &slices,
                              Instruction *fault_inst) {
   unique_ptr<DgSlicer> _dgSlicer =
@@ -54,8 +64,7 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   // uint32_t flags = SlicerDgFlags::ENABLE_PTA |
   //                 SlicerDgFlags::INTRA_PROCEDURAL |
   //                 SlicerDgFlags::SUPPORT_THREADS;
-  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
-                   SlicerDgFlags::SUPPORT_THREADS;
+  uint32_t flags = createDgFlags(options.dg_options);
   auto options = _dgSlicer->createDgOptions(flags);
   _dgSlicer->computeDependencies(options);
 
@@ -164,6 +173,11 @@ int main(int argc, char *argv[]) {
 
   errs() << "Computed " << faultSlices.size()
          << " slices of the fault instruction\n";
+
+  if (!options.hook_guid_file) {
+    errs() << "No hook GUID file specified, abort reaction\n";
+    return 1;
+  }
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
