@@ -84,6 +84,11 @@ cl::opt<bool> intraProcedural("intra",
 cl::opt<bool> interProcedural("inter",
                               cl::desc("Enabling inter-procedural analysis"),
                               cl::init(true));
+// the difference between entry-only and intra-procedural option is that
+// entry-only will truly only build a single dependence graph, while intra-
+// procedural will still build sub dependence graphs.
+cl::opt<bool> entryOnly("entry-only",
+                        cl::desc("Analyzing just the instructions' functions"));
 
 void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
                       PMemVariableLocator &locator, Slices &slices,
@@ -122,6 +127,7 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
 
 uint32_t createDgFlags() {
   uint32_t flags = 0;
+  if (entryOnly) flags |= SlicerDgFlags::ENTRY_ONLY;
   if (enablePTA) flags |= SlicerDgFlags::ENABLE_PTA;
   if (enableCtrl) flags |= SlicerDgFlags::ENABLE_CONTROL_DEP;
   if (enableThd) flags |= SlicerDgFlags::SUPPORT_THREADS;
@@ -132,12 +138,21 @@ uint32_t createDgFlags() {
 
 bool slice(Module *M, vector<Instruction *> &startInstrs)
 {
+  if (startInstrs.empty()) return false;
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
   // enabling pointer analysis, inter-procedural analysis and threading support
   // control dependency analysis is disabled
   uint32_t flags = createDgFlags();
-  auto options = slicer->createDgOptions(flags);
+
+  Function *entry = nullptr;
+  // if entry-only option is specified, we'll supply the entry function
+  // the dependency graph will only be computed for this entry function.
+  // assuming all the instructions in startInstrs are from the same function.
+  // otherwise, the slicer will complain no dg for the other functions.
+  if (entryOnly) entry = startInstrs[0]->getFunction();
+
+  auto options = slicer->createDgOptions(flags, entry);
   slicer->computeDependencies(options);
 
   std::error_code ec;

@@ -171,6 +171,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
   //  pointer analysis but the PA missed some potential elements
   //  in the point-to set for some call instruction (thus the
   //  actual call target does not have a dg)
+  if (entryOnly) return true;
   auto mainFunc = m->getFunction("main");
   for (llvm::Function &func : *module) {
     if (func.isDeclaration() || func.size() == 0) continue;
