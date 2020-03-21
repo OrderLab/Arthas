@@ -117,7 +117,7 @@ int handle_behavior(char *path) {
     a = 13 - *pmem_int_ptr2;
   int b = 30 / a;
   printf("FINISHED!!! b is %d\n", b);
-  return 1;
+  return 0;
 }
 
 int main(int argc, char *argv[]) {

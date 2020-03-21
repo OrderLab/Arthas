@@ -255,7 +255,7 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
                void **sorted_pmem_addresses, single_data *ordered_data) {
   int ret_val;
   int reexecute_flag = 0;
-  char timeout[1000] = "timeout 5 ";
+  char timeout[1000] = "timeout 15 ";
   strcat(timeout, reexecution_cmd);
   // the reexcution command is a single line command string
   // if multiple commands are needed, they can be specified
@@ -268,7 +268,8 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
   // printf("ret val is %d reexecute is %d\n", ret_val, reexecute_flag);
   if (WIFEXITED(ret_val)) {
     printf("WEXITSTATUS OS %d\n", WEXITSTATUS(ret_val));
-    if (WEXITSTATUS(ret_val) < 0 || WEXITSTATUS(ret_val) > 1) {
+    //if (WEXITSTATUS(ret_val) < 0 || WEXITSTATUS(ret_val) > 1) {
+    if (WEXITSTATUS(ret_val) != 0) {
       reexecute_flag = 1;
     }
   }
