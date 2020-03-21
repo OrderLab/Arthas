@@ -49,16 +49,27 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
 
     // if the global is zero initialized, just set the zeroInitialized flag
     if (C->isNullValue()) {
-        node->setZeroInitialized();
-    } else if (C->getType()->isAggregateType()) {
-        uint64_t off = 0;
-        for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
-            const Constant *op = cast<Constant>(*I);
-            Type *Ty = op->getType();
-            // recursively dive into the aggregate type
-            handleGlobalVariableInitializer(op, node, offset + off);
-            off += M->getDataLayout().getTypeAllocSize(Ty);
-        }
+      node->setZeroInitialized();
+    } else if (C->getType()->isStructTy()) {
+      uint64_t off = 0;
+      auto STy = cast<StructType>(C->getType());
+      const StructLayout *SL = M->getDataLayout().getStructLayout(STy);
+      int i = 0;
+      for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I, ++i) {
+        const Constant *op = cast<Constant>(*I);
+        // recursively dive into the aggregate type
+        off = SL->getElementOffset(i);
+        handleGlobalVariableInitializer(op, node, offset + off);
+      }
+    } else if (C->getType()->isArrayTy()) {
+      uint64_t off = 0;
+      for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
+        const Constant *op = cast<Constant>(*I);
+        Type *Ty = op->getType();
+        // recursively dive into the aggregate type
+        handleGlobalVariableInitializer(op, node, offset + off);
+        off += M->getDataLayout().getTypeAllocSize(Ty);
+      }
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
         PSNode *target = PS.createGlobal(PSNodeType::CONSTANT, node, offset);
