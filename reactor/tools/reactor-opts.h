@@ -12,10 +12,21 @@
 #include <string>
 
 typedef struct dg_options {
+  // only analyzing the function that a fault instruction belongs to.
+  bool entry_only;
+  // enable pointer analysis
   bool enable_pta;
+  // enable control will build control edges in dependence graph
   bool enable_ctrl;
+  // slice control will include control edges in slices
+  bool slice_ctrl;
+  // support dependencies due to thread related operationssuch as pthread_create
   bool support_thread;
+  // intra-procedural option analyzes other functions in the executable
+  // but do not establish connections among functions
   bool intra_procedural;
+  // intra-procedural option analyzes other functions in the executable
+  // and establish connections among functions
   bool inter_procedural;
 } dg_options_t;
 

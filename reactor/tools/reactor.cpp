@@ -48,8 +48,12 @@ struct reactor_options options;
 
 uint32_t createDgFlags(struct dg_options &options) {
   uint32_t flags = 0;
+  if (options.entry_only) flags |= SlicerDgFlags::ENTRY_ONLY;
   if (options.enable_pta) flags |= SlicerDgFlags::ENABLE_PTA;
-  if (options.enable_ctrl) flags |= SlicerDgFlags::ENABLE_CONTROL_DEP;
+  // if slice control is specified, we must enable control dependency
+  // in the dependence graph even if enable_ctrl is not specified
+  if (options.enable_ctrl || options.slice_ctrl)
+    flags |= SlicerDgFlags::ENABLE_CONTROL_DEP;
   if (options.support_thread) flags |= SlicerDgFlags::SUPPORT_THREADS;
   if (options.intra_procedural) flags |= SlicerDgFlags::INTRA_PROCEDURAL;
   if (options.inter_procedural) flags |= SlicerDgFlags::INTER_PROCEDURAL;
@@ -65,8 +69,8 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   //                 SlicerDgFlags::INTRA_PROCEDURAL |
   //                 SlicerDgFlags::SUPPORT_THREADS;
   uint32_t flags = createDgFlags(options.dg_options);
-  auto options = _dgSlicer->createDgOptions(flags);
-  _dgSlicer->computeDependencies(options);
+  auto llvm_dg_options = _dgSlicer->createDgOptions(flags);
+  _dgSlicer->computeDependencies(llvm_dg_options);
 
   map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
   Function *F = fault_inst->getFunction();
@@ -78,8 +82,13 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   locator->runOnFunction(*F);
 
   uint32_t slice_id = 0;
-  SliceGraph *sg =
-      _dgSlicer->slice(fault_inst, slice_id, SlicingApproachKind::Storing);
+  uint32_t dep_flags = DEFAULT_DEPENDENCY_FLAGS;
+  if (options.dg_options.slice_ctrl) {
+    // if we specified slice control, add it to the slice flags
+    dep_flags |= SliceDependenceFlags::CONTROL;
+  }
+  SliceGraph *sg = _dgSlicer->slice(fault_inst, slice_id,
+                                    SlicingApproachKind::Storing, dep_flags);
   if (sg == nullptr) {
     errs() << "Failed to construct the slice graph for " << *fault_inst << "\n";
     return false;

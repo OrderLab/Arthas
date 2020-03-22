@@ -32,9 +32,14 @@ static int skip_check = 0;
 
 static int enable_pta = 1;  // by default PTA is enabled
 static int enable_control = 0;
+// see comments in reactor-opts.h
+// for the difference between enable_control
+// and slice_control
+static int slice_control = 0;
 static int support_thread = 0;
 static int intra_procedural = 0;
 static int inter_procedural = 1;  // by default inter-procedural
+static int entry_only = 0;
 
 static struct option long_options[] = {
     /* These options set a flag. */
@@ -44,10 +49,12 @@ static struct option long_options[] = {
     {"no-pta", no_argument, &enable_pta, 0},
     {"ctrl", no_argument, &enable_control, 1},
     {"no-ctrl", no_argument, &enable_control, 0},
+    {"slice-ctrl", no_argument, &slice_control, 1},
     {"thd", no_argument, &support_thread, 1},
     {"no-thd", no_argument, &support_thread, 0},
     {"intra", no_argument, &intra_procedural, 1},
     {"inter", no_argument, &inter_procedural, 1},
+    {"entry-only", no_argument, &entry_only, 1},
     /* These options don't set a flag.
        We distinguish them by their indices. */
     {"pmem-file", required_argument, 0, 'p'},
@@ -89,12 +96,16 @@ void usage() {
       "\nSlicer Options:\n"
       "      --pta                    : enable pointer analysis\n"
       "      --no-pta                 : disable pointer analysis\n"
-      "      --ctrl                   : enable pointer analysis\n"
-      "      --no-ctrl                : disable pointer analysis\n"
+      "      --ctrl                   : enable control dependencies\n"
+      "      --no-ctrl                : disable control dependencies\n"
+      "      --slice-ctrl             : include control dependencies\n"
+      "                                 in the slice graph\n"
       "      --thd                    : analyze thread operations\n"
       "      --no-thd                 : do not analyze thread operations\n"
       "      --intra                  : intra-procedural analysis\n"
       "      --inter                  : inter-procedural analysis\n"
+      "      --entry-only             : only analyze the function that a\n"
+      "                                 fault instruction belongs to\n"
       "\n\n",
       program);
 }
@@ -163,8 +174,10 @@ bool parse_options(int argc, char *argv[], reactor_options_t &options) {
     while (optind < argc) printf("%s ", argv[optind++]);
     putchar('\n');
   }
+  options.dg_options.entry_only = entry_only != 0;
   options.dg_options.enable_pta = enable_pta != 0;
   options.dg_options.enable_ctrl = enable_control != 0;
+  options.dg_options.slice_ctrl = slice_control != 0;
   options.dg_options.support_thread = support_thread != 0;
   options.dg_options.inter_procedural = inter_procedural != 0;
   options.dg_options.intra_procedural = intra_procedural != 0;
