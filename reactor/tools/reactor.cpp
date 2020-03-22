@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
   // most likely sequence number to rollback.
 
   // TODO: What to do if starting seq num is not the fault instruction?
-  starting_seq_num = 1;
+  starting_seq_num = 8;
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                             starting_seq_num, curr_version - 1);
@@ -390,7 +390,7 @@ int main(int argc, char *argv[]) {
                  pmem_addresses, num_data, options.pmem_file,
                  options.pmem_layout, offsets, COARSE_GRAIN_SEQUENCE,
                  starting_seq_num - 1, sorted_pmem_addresses, ordered_data);
-  if (req_flag) {
+  if (req_flag == 1) {
     cout << "reversion with sequence numbers has succeeded\n";
     return 1;
   }
