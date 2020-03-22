@@ -21,33 +21,33 @@ uint32_t DgWalkBase::sliceRelationOpts(SliceDirection dir,
   uint32_t flags = 0;
   switch (dir) {
     case SliceDirection::Backward:
-      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+      if (slice_dep_flags & SliceDependenceFlags::DEF_USE)
         flags |= legacy::NODES_WALK_USER;
-      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+      if (slice_dep_flags & SliceDependenceFlags::MEMORY)
         flags |= legacy::NODES_WALK_REV_DD;
-      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+      if (slice_dep_flags & SliceDependenceFlags::CONTROL)
         flags |= legacy::NODES_WALK_REV_CD;
-      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+      if (slice_dep_flags & SliceDependenceFlags::INTERFERENCE)
         flags |= legacy::NODES_WALK_REV_ID;
       break;
     case SliceDirection::Forward:
-      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+      if (slice_dep_flags & SliceDependenceFlags::DEF_USE)
         flags |= legacy::NODES_WALK_USE;
-      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+      if (slice_dep_flags & SliceDependenceFlags::MEMORY)
         flags |= legacy::NODES_WALK_DD;
-      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+      if (slice_dep_flags & SliceDependenceFlags::CONTROL)
         flags |= legacy::NODES_WALK_CD;
-      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+      if (slice_dep_flags & SliceDependenceFlags::INTERFERENCE)
         flags |= legacy::NODES_WALK_ID;
       break;
     case SliceDirection::Full:
-      if (slice_dep_flags | SliceDependenceFlags::DEF_USE)
+      if (slice_dep_flags & SliceDependenceFlags::DEF_USE)
         flags |= (legacy::NODES_WALK_USE | legacy::NODES_WALK_USER);
-      if (slice_dep_flags | SliceDependenceFlags::MEMORY)
+      if (slice_dep_flags & SliceDependenceFlags::MEMORY)
         flags |= (legacy::NODES_WALK_DD | legacy::NODES_WALK_REV_DD);
-      if (slice_dep_flags | SliceDependenceFlags::CONTROL)
+      if (slice_dep_flags & SliceDependenceFlags::CONTROL)
         flags |= (legacy::NODES_WALK_CD | legacy::NODES_WALK_REV_CD);
-      if (slice_dep_flags | SliceDependenceFlags::INTERFERENCE)
+      if (slice_dep_flags & SliceDependenceFlags::INTERFERENCE)
         flags |= (legacy::NODES_WALK_ID | legacy::NODES_WALK_REV_ID);
       break;
   }
