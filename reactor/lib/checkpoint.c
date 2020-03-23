@@ -59,18 +59,18 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
 
     uint64_t offset;
     variable_count = c_log->variable_count;
-    //printf("variable_count %d\n", c_log->variable_count);
-    //printf("old pool ptr is %ld\n", old_pool);
+    // printf("variable_count %d\n", c_log->variable_count);
+    // printf("old pool ptr is %ld\n", old_pool);
     // offset = (uint64_t)c_log->c_data[0].data[0] - old_pool;
-    for (int i = 0; i < 1; i++) {
-      //printf("version is %d\n", c_log->c_data[i].version);
-      //printf("address is %p\n", c_log->c_data[i].address);
+    for (int i = 0; i < variable_count; i++) {
+      // printf("version is %d\n", c_log->c_data[i].version);
+      // printf("address is %p\n", c_log->c_data[i].address);
       for (int j = 0; j <= c_log->c_data[i].version; j++) {
         offset = (uint64_t)c_log->c_data[i].data[j] - old_pool;
-        //printf("offset is %ld\n", offset);
-        //printf("size is %ld\n", c_log->c_data[i].size[j]);
+        // printf("offset is %ld\n", offset);
+        // printf("size is %ld\n", c_log->c_data[i].size[j]);
         c_log->c_data[i].data[j] = (void *)((uint64_t)c_log + offset);
-        //printf("data is %s\n", (char *)c_log->c_data[i].data[j]);
+        // printf("data is %s\n", (char *)c_log->c_data[i].data[j]);
       }
     }
   }
@@ -86,10 +86,15 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
     int data_index = c_log->c_data[i].version;
     for (int j = 0; j <= data_index; j++) {
       printf("version is %d ", j);
+      printf("size is %ld  ", c_log->c_data[i].size[0]);
+      printf("seq num is %d  ", c_log->c_data[i].sequence_number[j]);
       if (c_log->c_data[i].size[0] == 4)
         printf("int value is %d\n", *((int *)c_log->c_data[i].data[j]));
       else if (c_log->c_data[i].size[0] == 8)
         printf("double value is %f\n", *((double *)c_log->c_data[i].data[j]));
+      else if (c_log->c_data[i].size[0] == sizeof(unsigned short))
+        printf("unsigned short value is %hu\n",
+               *((unsigned short *)c_log->c_data[i].data[j]));
       else {
         printf("value is not int or double %s\n",
                (char *)c_log->c_data[i].data[j]);
@@ -141,5 +146,5 @@ void order_by_sequence_num(single_data *ordered_data, size_t *total_size,
     }
   }
   qsort(ordered_data, *total_size, sizeof(single_data), sequence_comparator);
-  //printf("seq num total size is %ld\n", *total_size);
+  // printf("seq num total size is %ld\n", *total_size);
 }

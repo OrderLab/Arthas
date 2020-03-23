@@ -72,8 +72,17 @@ int handle_behavior(char *path) {
     TX_BEGIN(pop) {
       pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
       pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+      *pmem_int_ptr2 = 5;
+      *pmem_double_ptr = 15;
     }
     TX_END
+
+    TX_BEGIN(pop) {
+      pmemobj_tx_add_range_direct(pmem_int_ptr2, sizeof(int));
+      pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
+    }
+    TX_END
+
   } else {
     // File exists, open and recover.
     PMEMobjpool *pop = pmemobj_open(path, LAYOUT);

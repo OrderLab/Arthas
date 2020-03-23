@@ -38,7 +38,8 @@ int re_execute(const char *rexecution_cmd, int version_num, void **addresses,
                struct checkpoint_log *c_log, void **pmem_addresses,
                int num_data, const char *path, const char *layout,
                uint64_t *offsets, int reversion_type, int seq_num,
-               void **sorted_pmem_addresses, single_data *ordered_data);
+               void **sorted_pmem_addresses, single_data *ordered_data,
+               void *old_pop);
 
 void revert_by_address(const void *search_address, const void *address,
                        int variable_index, int version, int type, size_t size,
@@ -64,7 +65,8 @@ void sort_by_sequence_number(void **addresses, single_data *ordered_data,
                              void **sorted_pmem_addresses, uint64_t *offsets);
 
 void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
-                                int seq_num, single_data *ordered_data);
+                                int seq_num, single_data *ordered_data,
+                                void *pop, void *old_pop);
 
 void revert_by_sequence_number_array(void **sorted_pmem_addresses,
                                      single_data *ordered_data,
@@ -74,6 +76,10 @@ int reverse_cmpfunc(const void *a, const void *b);
 
 void decision_func_sequence_array(int *old_seq_numbers, int old_total,
                                   int *new_seq_numbers, int *new_total);
+
+void revert_by_sequence_number_nonslice(void *old_pop,
+                                        single_data *ordered_data, int seq_num,
+                                        int rollback_version, void *pop);
 
 #ifdef __cplusplus
 }

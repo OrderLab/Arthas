@@ -358,11 +358,11 @@ int main(int argc, char *argv[]) {
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       pmemobj_close((PMEMobjpool *)pop);
     if (*decided_total > 0) {
-      req_flag2 =
-          re_execute(options.reexecute_cmd, options.version_num, addresses,
-                     c_log, pmem_addresses, num_data, options.pmem_file,
-                     options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
-                     sorted_pmem_addresses, ordered_data);
+      req_flag2 = re_execute(
+          options.reexecute_cmd, options.version_num, addresses, c_log,
+          pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
+          offsets, FINE_GRAIN, starting_seq_num, sorted_pmem_addresses,
+          ordered_data, (void *)last_pool.pool_addr->addr);
     }
     if (req_flag2 == 1) {
       cout << "reversion with sequence numbers array has succeeded\n";
@@ -388,17 +388,18 @@ int main(int argc, char *argv[]) {
   // most likely sequence number to rollback.
 
   // TODO: What to do if starting seq num is not the fault instruction?
-  starting_seq_num = 8;
+  starting_seq_num = 19;
   int curr_version = ordered_data[starting_seq_num].version;
-  revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
-                            starting_seq_num, curr_version - 1);
+  revert_by_sequence_number_nonslice((void *)last_pool.pool_addr->addr,
+                                     ordered_data, starting_seq_num,
+                                     curr_version - 1, pop);
   if (strcmp(options.pmem_library, "libpmemobj") == 0)
     pmemobj_close((PMEMobjpool *)pop);
-  int req_flag =
-      re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
-                 pmem_addresses, num_data, options.pmem_file,
-                 options.pmem_layout, offsets, COARSE_GRAIN_SEQUENCE,
-                 starting_seq_num - 1, sorted_pmem_addresses, ordered_data);
+  int req_flag = re_execute(
+      options.reexecute_cmd, options.version_num, addresses, c_log,
+      pmem_addresses, num_data, options.pmem_file, options.pmem_layout, offsets,
+      COARSE_GRAIN_SEQUENCE, starting_seq_num - 1, sorted_pmem_addresses,
+      ordered_data, (void *)last_pool.pool_addr->addr);
   if (req_flag == 1) {
     cout << "reversion with sequence numbers has succeeded\n";
     return 1;
@@ -447,7 +448,8 @@ int main(int argc, char *argv[]) {
   re_execute(options.reexecute_cmd, options.version_num, addresses, c_log,
              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
              offsets, COARSE_GRAIN_NAIVE, starting_seq_num,
-             sorted_pmem_addresses, ordered_data);
+             sorted_pmem_addresses, ordered_data,
+             (void *)last_pool.pool_addr->addr);
   free(addresses);
   free(pmem_addresses);
   free(offsets);
