@@ -169,6 +169,8 @@ public:
 
         // we need to remove this node from
         // successor's predecessors
+        if(successors.size() == 0)
+          return;
         _removeThisFromSuccessorsPredecessors(successors[0]);
 
         // remove the successor

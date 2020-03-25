@@ -13,6 +13,7 @@
 #include <set>
 #include <string>
 #include <utility>
+#include <sstream>
 
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"

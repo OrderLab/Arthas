@@ -95,6 +95,7 @@ bool PMemVariableLocator::runOnModule(Module &M)
 bool PMemVariableLocator::runOnFunction(Function &F) 
 {
   if (F.isDeclaration()) {
+    errs() << "This is a declaration so we do not do anything\n";
     return false;
   }
   SDEBUG(dbgs() << "[" << F.getName() << "]\n");
@@ -180,10 +181,13 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
 {
   Function *callee = callInst->getCalledFunction();
   if (!callee) return;
+  istringstream iss(callee->getName());
+  std::string token;
+  std::getline(iss, token, '.');
   // Step 1: Check for PMDK API call instructions
-  if (pmdkApiSet.find(callee->getName()) != pmdkApiSet.end()) {
+  if (pmdkApiSet.find(token) != pmdkApiSet.end()) {
     callList.insert(callInst);
-    if (pmdkPMEMVariableReturnSet.find(callee->getName()) !=
+    if (pmdkPMEMVariableReturnSet.find(token) !=
         pmdkPMEMVariableReturnSet.end()) {
       // Step 2: if this API call returns something, we get a pmem variable.
       Value *v = callInst;
@@ -200,7 +204,7 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
     }
     // Step 4: Find persistent memory regions (e.g., mmapped through pmem_map_file 
     // call) and their size argument to check all pointers if they point to a PMEM region.
-    auto rit = pmdkRegionSizeArgMapping.find(callee->getName());
+    auto rit = pmdkRegionSizeArgMapping.find(token);
     if (rit != pmdkRegionSizeArgMapping.end() && 
         callInst->getNumArgOperands() >= rit->second + 1) {
       SDEBUG(dbgs() << "- this instruction creates a pmem region: " << *callInst

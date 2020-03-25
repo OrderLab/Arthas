@@ -322,20 +322,22 @@ int main(int argc, char *argv[]) {
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-        // cout << "Inside Trace\n";
+        cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
-        // cout << traceItem->instr << "\n";
-        // cout << dep_inst << "\n";
+         errs() << *traceItem->instr << "\n";
+         errs() << *dep_inst << "\n";
         if (traceItem->instr == dep_inst) {
-          // cout << "FOUND INSTRUCTION\n";
+           cout << "FOUND INSTRUCTION\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
+            cout << traceItem->addr << " " << 
+            (uint64_t)ordered_data[i].address << "\n";
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
                 ordered_data[i].sequence_number != starting_seq_num &&
                 reverted_sequence_numbers[ordered_data[i].sequence_number] !=
                     1) {
-              // cout << "add to vector " << ordered_data[i].address <<
-              //" " << i << "\n";
+               cout << "add to vector " << ordered_data[i].address <<
+              " " << i << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;

@@ -101,7 +101,7 @@ void revert_by_sequence_number_nonslice(void *old_pop,
     printf("not pmem, reversion abortion \n");
     return;
   }*/
-  if (ordered_data[seq_num].old_size[rollback_version] == 64)
+  //if (ordered_data[seq_num].old_size[rollback_version] == 64)
     memcpy(pmem_address, ordered_data[seq_num].old_data[rollback_version],
            ordered_data[seq_num].old_size[rollback_version]);
 }
