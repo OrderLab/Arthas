@@ -11,9 +11,9 @@
 
 #include <map>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
-#include <sstream>
 
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
@@ -80,7 +80,9 @@ class PMemVariableLocator {
   inline region_iterator region_begin() { return regionList.begin(); }
   inline region_iterator region_end() { return regionList.end(); }
 
-  inline const_region_iterator region_begin() const { return regionList.begin(); }
+  inline const_region_iterator region_begin() const {
+    return regionList.begin();
+  }
   inline const_region_iterator region_end() const { return regionList.end(); }
   inline size_t region_size() const { return regionList.size(); }
 
@@ -93,7 +95,9 @@ class PMemVariableLocator {
 
   UseDefMap &def_map() { return useDefMap; }
 
-  def_iterator find_def(llvm::Instruction *inst) { return useDefMap.find(inst); }
+  def_iterator find_def(llvm::Instruction *inst) {
+    return useDefMap.find(inst);
+  }
   const_def_iterator find_def(llvm::Instruction *inst) const {
     return useDefMap.find(inst);
   }
@@ -104,6 +108,7 @@ class PMemVariableLocator {
   void handleMemKindCall(llvm::CallInst *callInst);
   void handlePmdkCall(llvm::CallInst *callInst);
   bool processDefinitionPoint(llvm::Value *def);
+  void itemHardCodeCall(llvm::CallInst *callInst);
 
  private:
   ApiCallList callList;
@@ -116,12 +121,15 @@ class PMemVariableLocator {
   static const std::set<std::string> pmdkPMEMVariableReturnSet;
   static const std::set<std::string> memkindApiSet;
   static const std::set<std::string> memkindVariableReturnSet;
+  static const std::set<std::string> assocInsertSet;
+  static const std::set<std::string> itemHardcodeSet;
   static const std::map<std::string, unsigned int> pmdkRegionSizeArgMapping;
   static const std::map<std::string, unsigned int> memkindCreationPMEMMapping;
-  static const std::map<std::string, unsigned int> memkindCreationGeneralMapping;
+  static const std::map<std::string, unsigned int>
+      memkindCreationGeneralMapping;
 };
 
-} // namespace pmem
-} // namespace llvm
+}  // namespace pmem
+}  // namespace llvm
 
 #endif /* __EXTRACTOR_H_ */

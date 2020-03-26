@@ -26,9 +26,9 @@
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
+#include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/util/TimeMeasure.h"
 
@@ -49,6 +49,11 @@ using namespace llvm::defuse;
   } while (false)
 #endif
 
+const set<std::string> PMemVariableLocator::assocInsertSet{"assoc_insert"};
+
+const set<std::string> PMemVariableLocator::itemHardcodeSet{
+    "pmemobj_tx_add_range_direct"};
+
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_persist",          "pmem_msync",   "pmemobj_create",
     "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
@@ -59,30 +64,30 @@ const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
     "pmemobj_direct_inline", "pmem_map_file"};
 
 const set<std::string> PMemVariableLocator::memkindApiSet{
-    "memkind_create_pmem",   "memkind_create_kind"};
+    "memkind_create_pmem", "memkind_create_kind"};
 
 const set<std::string> PMemVariableLocator::memkindVariableReturnSet{
-    "memkind_malloc",        "memkind_calloc"};
+    "memkind_malloc", "memkind_calloc"};
 
 // Map API name to i-th argument (starting from 0) that specifies region size
-const map<std::string, unsigned int> PMemVariableLocator::pmdkRegionSizeArgMapping{
-  {"pmem_map_file", 1}, {"pmemobj_create", 2}};
+const map<std::string, unsigned int>
+    PMemVariableLocator::pmdkRegionSizeArgMapping{{"pmem_map_file", 1},
+                                                  {"pmemobj_create", 2}};
 
-const map<std::string, unsigned int> PMemVariableLocator::memkindCreationPMEMMapping{
-  {"memkind_create_pmem", 3}};
+const map<std::string, unsigned int>
+    PMemVariableLocator::memkindCreationPMEMMapping{{"memkind_create_pmem", 3}};
 
-const map<std::string, unsigned int> PMemVariableLocator::memkindCreationGeneralMapping{
-  {"memkind_create_kind", 4}};
+const map<std::string, unsigned int>
+    PMemVariableLocator::memkindCreationGeneralMapping{
+        {"memkind_create_kind", 4}};
 
-bool PMemVariableLocator::callReturnsPmemVar(const char *func_name) 
-{
+bool PMemVariableLocator::callReturnsPmemVar(const char *func_name) {
   // FIXME: incomplete
   return pmdkPMEMVariableReturnSet.find(func_name) !=
          pmdkPMEMVariableReturnSet.end();
 }
 
-bool PMemVariableLocator::runOnModule(Module &M) 
-{
+bool PMemVariableLocator::runOnModule(Module &M) {
   bool modified = false;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     Function &F = *I;
@@ -92,8 +97,7 @@ bool PMemVariableLocator::runOnModule(Module &M)
   return modified;
 }
 
-bool PMemVariableLocator::runOnFunction(Function &F) 
-{
+bool PMemVariableLocator::runOnFunction(Function &F) {
   if (F.isDeclaration()) {
     errs() << "This is a declaration so we do not do anything\n";
     return false;
@@ -103,6 +107,9 @@ bool PMemVariableLocator::runOnFunction(Function &F)
     Instruction *inst = &*I;
     if (!isa<CallInst>(inst)) continue;
     CallInst *callInst = cast<CallInst>(inst);
+    if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
+      itemHardCodeCall(callInst);
+    }
     handlePmdkCall(callInst);
     handleMemKindCall(callInst);
   }
@@ -114,7 +121,7 @@ bool PMemVariableLocator::runOnFunction(Function &F)
                 << regionList.size() << " pmem regions, definition points for "
                 << useDefMap.size() << " instructions\n");
 
-#ifdef  DEBUG_EXTRACTOR
+#ifdef DEBUG_EXTRACTOR
   for (auto &entry : useDefMap) {
     errs() << "Definition point for '" << *entry.first << "':\n";
     for (Value *def : entry.second) {
@@ -125,28 +132,46 @@ bool PMemVariableLocator::runOnFunction(Function &F)
   return false;
 }
 
-void PMemVariableLocator::handleMemKindCall(CallInst *callInst)
-{
-    Function *callee = callInst->getCalledFunction();
-    if (!callee) return;
+void PMemVariableLocator::handleMemKindCall(CallInst *callInst) {
+  Function *callee = callInst->getCalledFunction();
+  if (!callee) return;
 
-    // Step 1: Check for Memkind API call instructions
-    //
-    //  Different behavior than PMDK because memkind_malloc can be used for non 
-    //  Persistent Memory behavior
-    // TODO: add checks for Memkind_malloc for PMEM vs volatile
-    if (memkindApiSet.find(callee->getName()) != memkindApiSet.end()) {
-      auto rit = memkindCreationPMEMMapping.find(callee->getName());
-      if (rit != memkindCreationPMEMMapping.end() &&
-          callInst->getNumArgOperands() >= rit->second + 1) {
-        // check if the call instruction has the right number of arguments
-        // +1 as the mapping stores the target argument from 0.
+  // Step 1: Check for Memkind API call instructions
+  //
+  //  Different behavior than PMDK because memkind_malloc can be used for non
+  //  Persistent Memory behavior
+  // TODO: add checks for Memkind_malloc for PMEM vs volatile
+  if (memkindApiSet.find(callee->getName()) != memkindApiSet.end()) {
+    auto rit = memkindCreationPMEMMapping.find(callee->getName());
+    if (rit != memkindCreationPMEMMapping.end() &&
+        callInst->getNumArgOperands() >= rit->second + 1) {
+      // check if the call instruction has the right number of arguments
+      // +1 as the mapping stores the target argument from 0.
 
-        // find the argument that corresponds to memkind persistent variable
-        Value *v = callInst->getArgOperand(rit->second);
+      // find the argument that corresponds to memkind persistent variable
+      Value *v = callInst->getArgOperand(rit->second);
+      varList.insert(v);
+      // Transitive closure to see which memkind_malloc calls use this memkind
+      // pmem variable
+      UserGraph g(v);
+      for (auto ui = g.begin(); ui != g.end(); ++ui) {
+        SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                      << "\n");
+        varList.insert(ui->first);
+      }
+    }
+    // Add check for memkind_create_kind and see if that uses pmem
+    // or non pmem type
+    auto rit2 = memkindCreationGeneralMapping.find(callee->getName());
+    if (rit2 != memkindCreationGeneralMapping.end() &&
+        callInst->getNumArgOperands() >= rit2->second + 1) {
+      // find the argument that corresponds to memkind persistent variable
+      Value *v = callInst->getArgOperand(rit2->second);
+      // Check if argument is MEMKIND_DAX_PMEM
+      if (v->getName().compare("MEMKIND_DAX_PMEM") == 0) {
         varList.insert(v);
-        // Transitive closure to see which memkind_malloc calls use this memkind
-        // pmem variable
+        // Transitive closure to see which memkind_malloc calls use this
+        // memkind pmem var$
         UserGraph g(v);
         for (auto ui = g.begin(); ui != g.end(); ++ui) {
           SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
@@ -154,36 +179,35 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst)
           varList.insert(ui->first);
         }
       }
-      // Add check for memkind_create_kind and see if that uses pmem
-      // or non pmem type
-      auto rit2 = memkindCreationGeneralMapping.find(callee->getName());
-      if (rit2 != memkindCreationGeneralMapping.end() &&
-          callInst->getNumArgOperands() >= rit2->second + 1) {
-        // find the argument that corresponds to memkind persistent variable
-        Value *v = callInst->getArgOperand(rit2->second);
-        // Check if argument is MEMKIND_DAX_PMEM
-        if (v->getName().compare("MEMKIND_DAX_PMEM") == 0) {
-          varList.insert(v);
-          // Transitive closure to see which memkind_malloc calls use this
-          // memkind pmem var$
-          UserGraph g(v);
-          for (auto ui = g.begin(); ui != g.end(); ++ui) {
-            SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
-                          << "\n");
-            varList.insert(ui->first);
-          }
-        }
-      }
+    }
   }
 }
 
-void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
-{
+void PMemVariableLocator::itemHardCodeCall(CallInst *callInst) {
   Function *callee = callInst->getCalledFunction();
   if (!callee) return;
   istringstream iss(callee->getName());
   std::string token;
   std::getline(iss, token, '.');
+
+  if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+    Value *v = callInst;
+    varList.insert(v);
+  }
+}
+
+void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
+  Function *callee = callInst->getCalledFunction();
+  if (!callee) return;
+  istringstream iss(callee->getName());
+  std::string token;
+  std::getline(iss, token, '.');
+
+  if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+    Value *v = callInst;
+    varList.insert(v);
+  }
+
   // Step 1: Check for PMDK API call instructions
   if (pmdkApiSet.find(token) != pmdkApiSet.end()) {
     callList.insert(callInst);
@@ -202,10 +226,12 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
         varList.insert(ui->first);
       }
     }
-    // Step 4: Find persistent memory regions (e.g., mmapped through pmem_map_file 
-    // call) and their size argument to check all pointers if they point to a PMEM region.
+    // Step 4: Find persistent memory regions (e.g., mmapped through
+    // pmem_map_file
+    // call) and their size argument to check all pointers if they point to a
+    // PMEM region.
     auto rit = pmdkRegionSizeArgMapping.find(token);
-    if (rit != pmdkRegionSizeArgMapping.end() && 
+    if (rit != pmdkRegionSizeArgMapping.end() &&
         callInst->getNumArgOperands() >= rit->second + 1) {
       SDEBUG(dbgs() << "- this instruction creates a pmem region: " << *callInst
                     << "\n");
@@ -213,7 +239,8 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst)
       // +1 as the mapping stores the target argument from 0.
 
       // find the argument that specifies the object store or mmap region size.
-      regionList.insert(RegionInfo(callInst, callInst->getArgOperand(rit->second)));
+      regionList.insert(
+          RegionInfo(callInst, callInst->getArgOperand(rit->second)));
     }
   }
 }
@@ -235,14 +262,16 @@ bool PMemVariableLocator::processDefinitionPoint(llvm::Value *def) {
   //
   //    %16 = call i8* @strcpy(i8* %14, i8* %15) #8, !dbg !39
   //
-  // The identified definition points for this instruction consists of two Values:
+  // The identified definition points for this instruction consists of two
+  // Values:
   //
-  //    %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6, i32* %7), !dbg !30'
+  //    %10 = call i8* @pmem_map_file(i8* %9, i64 1024, i32 1, i32 438, i64* %6,
+  //    i32* %7), !dbg !30'
   //    %14 = load i8*, i8** %5, align 8, !dbg !37
   //
   // Ideally, we want the first one. The second one is unnecessary as the memory
   // content pointed by %5 comes from (stored) %10.
-  
+
   UserGraph g(def);
   for (auto ui = g.begin(); ui != g.end(); ++ui) {
     Value *u = ui->first;

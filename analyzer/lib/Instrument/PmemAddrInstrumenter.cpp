@@ -57,16 +57,18 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   // functions will be provided when linking the instrumented bitcode
   // with the address tracker runtime library.
   //
-  // The declaration must match the function signatures defined in 
+  // The declaration must match the function signatures defined in
   // runtime/addr_tracker.h
 
   StringRef funcName = getRuntimeHookInitName();
-  _tracker_init_func = cast<Function>(M.getOrInsertFunction(funcName, VoidTy, nullptr));
+  _tracker_init_func =
+      cast<Function>(M.getOrInsertFunction(funcName, VoidTy, nullptr));
   if (!_tracker_init_func) {
     errs() << "could not find function " << funcName << "\n";
     return false;
   } else {
-    DEBUG(dbgs() << "found tracker initialization function " << funcName << "\n");
+    DEBUG(dbgs() << "found tracker initialization function " << funcName
+                 << "\n");
   }
 
   _track_addr_func = cast<Function>(M.getOrInsertFunction(
@@ -75,7 +77,8 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "could not find function " << getRuntimeHookName() << "\n";
     return false;
   } else {
-    DEBUG(dbgs() << "found track address function " << getRuntimeHookName() << "\n");
+    DEBUG(dbgs() << "found track address function " << getRuntimeHookName()
+                 << "\n");
   }
 
   _tracker_dump_func = cast<Function>(
@@ -83,9 +86,9 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   if (!_tracker_dump_func) {
     errs() << "could not find function " << getTrackDumpHookName() << "\n";
     return false;
-  }
-  else {
-    DEBUG(dbgs() << "found track dump function " << getTrackDumpHookName() << "\n");
+  } else {
+    DEBUG(dbgs() << "found track dump function " << getTrackDumpHookName()
+                 << "\n");
   }
 
   _tracker_finish_func = cast<Function>(
@@ -94,34 +97,38 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "could not find function " << getTrackHookFinishName() << "\n";
     return false;
   } else {
-    DEBUG(dbgs() << "found track finish function " << getTrackHookFinishName() << "\n");
+    DEBUG(dbgs() << "found track finish function " << getTrackHookFinishName()
+                 << "\n");
   }
 
   // get or create printf function declaration:
   //    int printf(const char * format, ...);
   vector<Type *> printfArgsTypes;
-  printfArgsTypes.push_back(_I8PtrTy); 
+  printfArgsTypes.push_back(_I8PtrTy);
   FunctionType *printfType = FunctionType::get(_I32Ty, printfArgsTypes, true);
   _printf_func = cast<Function>(M.getOrInsertFunction("printf", printfType));
   if (!_printf_func) {
     errs() << "could not find printf\n";
     return false;
-  }
-  else {
+  } else {
     DEBUG(dbgs() << "found printf\n");
   }
 
   // Only insert the tracker init and finish function if we choose to instrument
   // using the runtime library. For printf-based tracking, it is not needed.
   if (!_track_with_printf) {
-    // insert call to __arthas_addr_tracker_init at the beginning of main function
-    IRBuilder<> builder(cast<Instruction>(_main->front().getFirstInsertionPt()));
+    // insert call to __arthas_addr_tracker_init at the beginning of main
+    // function
+    IRBuilder<> builder(
+        cast<Instruction>(_main->front().getFirstInsertionPt()));
     builder.CreateCall(_tracker_init_func);
-    errs() << "Instrumented call to " << getRuntimeHookInitName() << " in main\n";
+    errs() << "Instrumented call to " << getRuntimeHookInitName()
+           << " in main\n";
 
     // insert call to __arthas_addr_tracker_finish at program exit
     appendToGlobalDtors(M, _tracker_finish_func, 1);
-    errs() << "Instrumented call to " << getTrackHookFinishName() << " in main\n";
+    errs() << "Instrumented call to " << getTrackHookFinishName()
+           << " in main\n";
   }
 
   _initialized = true;
@@ -143,14 +150,17 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   } else if (isa<StoreInst>(instr)) {
     StoreInst *si = dyn_cast<StoreInst>(instr);
     addr = si->getPointerOperand();
-  } else if(isa<CallInst>(instr)){
+  } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
-    if(callee->getName().compare("pmemobj_create") == 0){
+    if (callee->getName().compare("pmemobj_create") == 0) {
       pool = true;
       addr = ci;
-    } else if (PMemVariableLocator::callReturnsPmemVar(callee->getName().data())) {
+    } else if (PMemVariableLocator::callReturnsPmemVar(
+                   callee->getName().data())) {
       addr = ci;
+    } else if (callee->getName().compare("pmemobj_tx_add_range_direct") == 0) {
+      addr = ci->getOperand(0);
     } else {
       return false;
     }
@@ -160,7 +170,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
 
   // TODO: insert a call instruction to the hook function with CallInst::Create.
   // Pass addr as an argument to this call instruction
-  IRBuilder <> builder(instr);
+  IRBuilder<> builder(instr);
   builder.SetInsertPoint(instr->getNextNode());
 
   if (_track_with_printf) {
@@ -189,8 +199,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
 }
 
 bool PmemAddrInstrumenter::instrumentSlice(
-    Slice *slice, map<Instruction *, set<Value *>> &useDefMap)
-{
+    Slice *slice, map<Instruction *, set<Value *>> &useDefMap) {
   bool instrumented = false;
   for (auto i = slice->begin(); i != slice->end(); ++i) {
     // For each node, check if instruction is a persistent value. If it is
@@ -201,7 +210,7 @@ bool PmemAddrInstrumenter::instrumentSlice(
       if (pmi != useDefMap.end()) {
         DEBUG(errs() << "Found definition point for " << *inst << ":\n");
         for (Value *val : pmi->second) {
-          DEBUG(errs() << "---->" << *val<< "\n");
+          DEBUG(errs() << "---->" << *val << "\n");
           if (Instruction *def_inst = dyn_cast<Instruction>(val)) {
             instrumented |= instrumentInstr(def_inst);
           }
