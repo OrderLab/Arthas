@@ -395,13 +395,20 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
           << "ShuffleVector instruction is not supported, loosing precision\n";
       seq = &createUnknown(&Inst);
       break;
-    /*case Instruction::AtomicRMWInst:
-        llvm::errs() << "Atomic RMW Inst\n";
-    case Instruction::AtomicCmpXchgInst:
+    /*case llvm::AtomicRMWInst:
+      llvm::errs() << "Atomic RMW Inst\n";
+      llvm::AtomicRMWInst *RMWI = dyn_cast<llvm::AtomicRMWInst>Inst;
+      break;*/
+    /*case Instruction::AtomicCmpXchgInst:
         llvm::errs() << "Atomic cmpxchg Inst\n";*/
     default:
       llvm::errs() << "UNHANDLED INSTRUCTION: " << Inst << "\n";
       llvm::errs() << "first operand is " << Inst.getOperand(0) << "\n";
+      /*if(const llvm::AtomicRMWInst *RMWI =
+      dyn_cast<llvm::AtomicRMWInst>(&Inst)){
+        Value *Ptr = RMWI->getPointerOperand();
+        Value *Val = RMWI->getValOperand();
+      }*/
       seq = &createUnknown(&Inst);
       // seq->invalid = 0;
       break;
