@@ -62,8 +62,8 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 
     assert(nodes_map.count(&Inst) == 0 && "Already built this instruction");
 
-    /*if(const llvm::AtomicRMWInst *RMWI_n =
- dyn_cast<llvm::AtomicRMWInst>(&Inst)){
+    if(const llvm::AtomicRMWInst *RMWI_n =
+       dyn_cast<llvm::AtomicRMWInst>(&Inst)){
       llvm::AtomicRMWInst *RMWI = (llvm::AtomicRMWInst *)RMWI_n;
       Value *Ptr = RMWI->getPointerOperand();
       Value *Val = RMWI->getValOperand();
@@ -71,7 +71,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
       LoadInst *Orig = new LoadInst(Val->getType(), Ptr);
       //LoadInst *Orig = Builder.CreateLoad(Val->getType(), Ptr);
       const llvm::Instruction *constOrig = dyn_cast<const
- llvm::Instruction>(Orig);
+       llvm::Instruction>(Orig);
       auto& seq1 = buildInstruction(*constOrig);
       if(seq1.invalid == 0){
         llvm::errs() << "ESCAPED\n";
@@ -85,9 +85,10 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
       Value *Res = nullptr;
       switch (RMWI->getOperation()){
          case llvm::AtomicRMWInst::Add:
+         {
            Res = Builder.CreateAdd(Orig, Val);
-           const llvm::Instruction *constRes = dyn_cast<const
- llvm::Instruction>(Res);
+           const llvm::Instruction *constRes = 
+            dyn_cast<const llvm::Instruction>(Res);
            auto& seq2 = buildInstruction(*constRes);
            if(seq2.invalid == 0){
              llvm::errs() << "ESCAPED\n";
@@ -99,11 +100,17 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
            }
            blk.append(&seq2);
            break;
+         }
+         default:
+         {
+           llvm::errs() << "Unsupported instruction : " << *RMWI << "\n";
+           break;
+         }
       }
       //Builder.CreateStore(Res, Ptr);
       StoreInst *str = new StoreInst(Res, Ptr);
-      const llvm::Instruction *constStr = dyn_cast<const
- llvm::Instruction>(str);
+      const llvm::Instruction *constStr = 
+        dyn_cast<const llvm::Instruction>(str);
       auto& seq3 = buildInstruction(*constStr);
       if(seq3.invalid == 0){
         llvm::errs() << "ESCAPED\n";
@@ -116,7 +123,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
        blk.append(&seq3);
        break;
     }
- else{*/
+ else{
     auto& seq = buildInstruction(Inst);
     if (seq.invalid == 0) {
       llvm::errs() << "ESCAPED\n";
@@ -129,7 +136,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
     }
 
     blk.append(&seq);
-    //}
+    }
   }
 
   return blk;
