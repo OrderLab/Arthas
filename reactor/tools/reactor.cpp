@@ -341,7 +341,7 @@ int main(int argc, char *argv[]) {
                 reverted_sequence_numbers[ordered_data[i].sequence_number] !=
                     1) {
                cout << "add to vector " << ordered_data[i].address <<
-              " " << i << "\n";
+              " " << ordered_data[i].sequence_number << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -357,8 +357,10 @@ int main(int argc, char *argv[]) {
     int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
     int *decided_total = (int *)malloc(sizeof(int));
     *decided_total = 0;
+    cout << "decision func\n";
     decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
                                  decided_slice_seq_numbers, decided_total);
+    cout << "revert by seq num\n";
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
                                     decided_slice_seq_numbers, *decided_total);
     if (strcmp(options.pmem_library, "libpmemobj") == 0)

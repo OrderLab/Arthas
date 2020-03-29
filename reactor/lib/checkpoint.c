@@ -131,8 +131,13 @@ void order_by_sequence_num(single_data *ordered_data, size_t *total_size,
              c_log->c_data[i].size[j]);
       ordered_data[*total_size].size = c_log->c_data[i].size[j];
       ordered_data[*total_size].version = j;
+     // ordered_data[*total_size].sequence_number =
+     //     c_log->c_data[i].sequence_number[j] ;
       ordered_data[*total_size].sequence_number =
-          c_log->c_data[i].sequence_number[j];
+          c_log->c_data[i].sequence_number[j] - c_log->c_data[i].sequence_number[0] ;
+      printf("sequence number is %d address is %p\n", 
+              ordered_data[*total_size].sequence_number,
+              ordered_data[*total_size].address);
       // Adding in old versions to each single data structure to make reversion
       // simpler
       for (int k = 0; k < j; k++) {

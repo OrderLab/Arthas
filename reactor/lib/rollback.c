@@ -80,7 +80,7 @@ void revert_by_sequence_number_array(void **sorted_pmem_addresses,
     if (rollback_version < 0) {
       continue;
     }
-    // printf("rollback version is %d\n", rollback_version);
+    printf("rollback version is %d\n", rollback_version);
     revert_by_sequence_number(sorted_pmem_addresses, ordered_data,
                               seq_numbers[i], rollback_version);
   }
@@ -91,9 +91,7 @@ void revert_by_sequence_number_nonslice(void *old_pop,
                                         int rollback_version, void *pop) {
   void *pmem_address = (void *)((uint64_t)ordered_data[seq_num].address -
                                 (uint64_t)old_pop + (uint64_t)pop);
-  printf("seq num is %d, pmem_is_pmem %d size is %ld", seq_num,
-         pmem_is_pmem(pmem_address,
-                      ordered_data[seq_num].old_size[rollback_version]),
+  printf("seq num is %d, size is %ld", seq_num,
          ordered_data[seq_num].old_size[rollback_version]);
   printf("pmem_address is %p old_pop is %p\n", pmem_address, old_pop);
   /*if(pmem_is_pmem(pmem_address,
@@ -119,11 +117,6 @@ void revert_by_sequence_number(void **sorted_pmem_addresses,
          pmem_is_pmem(sorted_pmem_addresses[seq_num],
                       ordered_data[seq_num].old_size[rollback_version]),
          ordered_data[seq_num].old_size[rollback_version]);
-  if (pmem_is_pmem(sorted_pmem_addresses[seq_num],
-                   ordered_data[seq_num].old_size[rollback_version]) == 0) {
-    printf("this is not pmem \n");
-    return;
-  }
   if (ordered_data[seq_num].old_size[rollback_version] == 4)
     printf("Value before seq num %d is %d offset %ld\n", seq_num,
            *(int *)sorted_pmem_addresses[seq_num],
