@@ -50,8 +50,10 @@ bool runOnFunction(PmemAddrInstrumenter *instrumenter, Function &F) {
     if (locator.var_size() == 0) {
       return false;
     }
+    errs() << F.getName() << "\n";
     for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
       Value *var = *vi;
+      errs() << *var << "\n";
       if (Instruction *instr = dyn_cast<Instruction>(var)) {
         if (instrumenter->instrumentInstr(instr)) {
           instrumented = true;

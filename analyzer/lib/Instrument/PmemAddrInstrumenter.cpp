@@ -153,18 +153,25 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
-    if (callee->getName().compare("pmemobj_create") == 0) {
+    istringstream iss(callee->getName());
+    std::string token;
+    std::getline(iss, token, '.');
+    if (token.compare("pmemobj_create") == 0) {
       pool = true;
       addr = ci;
     } else if (PMemVariableLocator::callReturnsPmemVar(
-                   callee->getName().data())) {
+                   token.data())) {
       addr = ci;
-    } else if (callee->getName().compare("pmemobj_tx_add_range_direct") == 0) {
+    } else if (token.compare("pmemobj_tx_add_range_direct") == 0) {
+      addr = ci->getOperand(0);
+    } else if (token.compare("pmemobj_direct_inline") == 0) {
       addr = ci->getOperand(0);
     } else {
+      errs() << "return false\n";
       return false;
     }
   } else {
+    errs() << "return false\n";
     return false;
   }
 
