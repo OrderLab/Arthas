@@ -150,6 +150,9 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   } else if (isa<StoreInst>(instr)) {
     StoreInst *si = dyn_cast<StoreInst>(instr);
     addr = si->getPointerOperand();
+  } else if (isa<GetElementPtrInst>(instr)) {
+    GetElementPtrInst *gepInst = cast <GetElementPtrInst>(instr);
+    addr = gepInst->getPointerOperand();
   } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();

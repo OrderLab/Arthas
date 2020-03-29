@@ -202,6 +202,16 @@ void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
        varList.insert(v);
     }
   }
+  else if (isa<GetElementPtrInst>(inst)){
+    GetElementPtrInst *gepInst = cast <GetElementPtrInst>(inst);
+    std::string str;
+    llvm::raw_string_ostream ss(str);
+    ss << *inst;
+    if (ss.str().find("%struct._stritem*") != std::string::npos){
+      Value *v=  gepInst;
+      varList.insert(v);
+    }
+  }
   /*if (!isa<LoadInst>(inst)) return;
   LoadInst *loadInst = cast<LoadInst>(inst);
   errs() << *loadInst << "\n";
