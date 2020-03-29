@@ -62,7 +62,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 
     assert(nodes_map.count(&Inst) == 0 && "Already built this instruction");
 
-    if(const llvm::AtomicRMWInst *RMWI_n =
+    /*if(const llvm::AtomicRMWInst *RMWI_n =
        dyn_cast<llvm::AtomicRMWInst>(&Inst)){
       llvm::AtomicRMWInst *RMWI = (llvm::AtomicRMWInst *)RMWI_n;
       Value *Ptr = RMWI->getPointerOperand();
@@ -87,7 +87,24 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
          case llvm::AtomicRMWInst::Add:
          {
            Res = Builder.CreateAdd(Orig, Val);
-           const llvm::Instruction *constRes = 
+           const llvm::Instruction *constRes =
+            dyn_cast<const llvm::Instruction>(Res);
+           auto& seq2 = buildInstruction(*constRes);
+           if(seq2.invalid == 0){
+             llvm::errs() << "ESCAPED\n";
+             continue;
+           }
+           // set parent to the new nodes
+           for (auto nd : seq2) {
+             nd->setParent(parent);
+           }
+           blk.append(&seq2);
+           break;
+         }
+         case llvm::AtomicRMWInst::Sub:
+         {
+           Res = Builder.CreateSub(Orig, Val);
+           const llvm::Instruction *constRes =
             dyn_cast<const llvm::Instruction>(Res);
            auto& seq2 = buildInstruction(*constRes);
            if(seq2.invalid == 0){
@@ -109,7 +126,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
       }
       //Builder.CreateStore(Res, Ptr);
       StoreInst *str = new StoreInst(Res, Ptr);
-      const llvm::Instruction *constStr = 
+      const llvm::Instruction *constStr =
         dyn_cast<const llvm::Instruction>(str);
       auto& seq3 = buildInstruction(*constStr);
       if(seq3.invalid == 0){
@@ -123,7 +140,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
        blk.append(&seq3);
        break;
     }
- else{
+ else{*/
     auto& seq = buildInstruction(Inst);
     if (seq.invalid == 0) {
       llvm::errs() << "ESCAPED\n";
@@ -136,8 +153,8 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
     }
 
     blk.append(&seq);
-    }
   }
+  //}
 
   return blk;
 }
