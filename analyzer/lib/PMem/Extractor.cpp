@@ -18,6 +18,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
@@ -49,10 +50,10 @@ using namespace llvm::defuse;
   } while (false)
 #endif
 
-const set<std::string> PMemVariableLocator::assocInsertSet{"assoc_insert"};
+const set<std::string> PMemVariableLocator::assocInsertSet{"assoc_find"};
 
 const set<std::string> PMemVariableLocator::itemHardcodeSet{
-    "pmemobj_tx_add_range_direct"};
+    "pmemobj_tx_add_range_direct", "%struct._stritem*"};
 
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_persist",          "pmem_msync",   "pmemobj_create",
@@ -105,11 +106,11 @@ bool PMemVariableLocator::runOnFunction(Function &F) {
   SDEBUG(dbgs() << "[" << F.getName() << "]\n");
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     Instruction *inst = &*I;
+    if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
+      itemHardCodeCall(inst);
+    }
     if (!isa<CallInst>(inst)) continue;
     CallInst *callInst = cast<CallInst>(inst);
-    if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
-      itemHardCodeCall(callInst);
-    }
     handlePmdkCall(callInst);
     handleMemKindCall(callInst);
   }
@@ -183,19 +184,34 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst) {
   }
 }
 
-void PMemVariableLocator::itemHardCodeCall(CallInst *callInst) {
-  Function *callee = callInst->getCalledFunction();
-  if (!callee) return;
-  istringstream iss(callee->getName());
-  std::string token;
-  std::getline(iss, token, '.');
-
-  if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
+  //Function *callee = callInst->getCalledFunction();
+  //if (!callee) return;
+  //istringstream iss(callee->getName());
+  //std::string token;
+  //std::getline(iss, token, '.');
+  if (isa<StoreInst>(inst)){
+    //errs() << *inst << "\n";
+    StoreInst *storeInst = cast<StoreInst>(inst);
+    Value *v = storeInst->getOperand(0);
+    std::string str;
+    llvm::raw_string_ostream ss(str); 
+    ss << *v;
+    if( ss.str().find("%struct._stritem*") != std::string::npos){
+       v = storeInst;
+       varList.insert(v);
+    }
+  }
+  /*if (!isa<LoadInst>(inst)) return;
+  LoadInst *loadInst = cast<LoadInst>(inst);
+  errs() << *loadInst << "\n";
+  Value *v = loadInst->getOperand(0);
+  errs() << "Operand: " << *v << "\n";*/
+  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
     Value *v = callInst;
     varList.insert(v);
-  }
+  }*/
 }
-
 void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
   Function *callee = callInst->getCalledFunction();
   if (!callee) return;
@@ -203,10 +219,10 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
   std::string token;
   std::getline(iss, token, '.');
 
-  if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
     Value *v = callInst;
     varList.insert(v);
-  }
+  }*/
 
   // Step 1: Check for PMDK API call instructions
   if (pmdkApiSet.find(token) != pmdkApiSet.end()) {

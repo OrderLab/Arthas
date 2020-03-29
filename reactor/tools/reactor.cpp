@@ -162,6 +162,8 @@ void parse_args(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
+  //struct checkpoint_log *c_log2 =
+  //    reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
 
   LLVMContext context;
   unique_ptr<Module> M = parseModule(context, options.bc_file);
@@ -322,12 +324,14 @@ int main(int argc, char *argv[]) {
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-        cout << "Inside Trace\n";
+        //cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
-         errs() << *traceItem->instr << "\n";
-         errs() << *dep_inst << "\n";
+         //errs() << *traceItem->instr << "\n";
+         //errs() << *dep_inst << "\n";
         if (traceItem->instr == dep_inst) {
            cout << "FOUND INSTRUCTION\n";
+           errs() << *traceItem->instr << "\n";
+           errs() << *dep_inst << "\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
             cout << traceItem->addr << " " << 

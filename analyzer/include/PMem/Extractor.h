@@ -108,7 +108,7 @@ class PMemVariableLocator {
   void handleMemKindCall(llvm::CallInst *callInst);
   void handlePmdkCall(llvm::CallInst *callInst);
   bool processDefinitionPoint(llvm::Value *def);
-  void itemHardCodeCall(llvm::CallInst *callInst);
+  void itemHardCodeCall(llvm::Instruction *inst);
 
  private:
   ApiCallList callList;

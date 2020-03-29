@@ -129,7 +129,7 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
 
     // find the corresponding instruction (and enable fuzzy matching)
     bool is_result_fuzzy;
-    errs() << "Matching: " << item->var->instruction << "\n";
+    //errs() << "Matching: " << item->var->instruction << "\n";
     Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
                                              true, &is_result_fuzzy);
     if (!instr) {

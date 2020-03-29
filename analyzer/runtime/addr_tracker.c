@@ -46,7 +46,15 @@ void __arthas_addr_tracker_init() {
 
 inline void __arthas_track_addr(char *addr, unsigned int guid) {
   // TODO: replace the fprintf with buffering and async write
-  fprintf(__arthas_tracker_file, "%p,%u\n", addr, guid);
+  /*char full[20] = ",";
+  char snum[20];
+  sprintf(snum, "%d", (int)guid);
+  strcat(full, snum);
+  if(fscanf(__arthas_tracker_file, "%s", full) == 0)*/
+    fprintf(__arthas_tracker_file, "%p,%u\n", addr, guid);
+
+  //FIXME: Get rid of this eventually
+  //fflush(__arthas_tracker_file);
 }
 
 bool __arthas_addr_tracker_dump() {
