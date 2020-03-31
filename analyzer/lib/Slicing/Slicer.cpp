@@ -43,17 +43,27 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
   dg_options.controlDependency = dg_flags & SlicerDgFlags::ENABLE_CONTROL_DEP;
   dg_options.threads = dg_flags & SlicerDgFlags::SUPPORT_THREADS;
   dg_options.verifyGraph = false;
+
+  dg_options.PTAOptions.threads = dg_options.threads;
+  dg_options.RDAOptions.threads = dg_options.threads;
+
   // we would do inter-procedural dg but intra-procedural PTA or RDA..
   dg_options.PTAOptions.intraProcedural = dg_options.intraProcedural;
   dg_options.RDAOptions.intraProcedural = dg_options.intraProcedural;
+
   dg_options.PTAOptions.entryOnly = dg_options.entryOnly;
   dg_options.RDAOptions.entryOnly = dg_options.entryOnly;
+
   // use flow-sensitive pointer analysis
   dg_options.PTAOptions.analysisType =
       dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;
   // use data-flow reaching definition analysis, another option is memory-ssa
   dg_options.RDAOptions.analysisType = dg::llvmdg::
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
+
+  // enforce that we will process at most RDNodes 100,000 times
+  dg_options.RDAOptions.fixedPointThreshold = 100000;
+
   return dg_options;
 }
 
