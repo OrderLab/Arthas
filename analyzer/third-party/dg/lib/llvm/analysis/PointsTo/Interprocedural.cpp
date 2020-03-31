@@ -211,22 +211,10 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
         // disconnect call-return nodes
         auto callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
         assert(callReturnNode && callNode != callReturnNode);
-        /*if (callReturnNode && callNode != callReturnNode){
-          if(callNode->getSingleSuccessor() == callReturnNode){
-            callNode->removeSingleSuccessor();
-          } else {
-            //int b = 30/0;
-            llvm::errs() << "divide by 0\n";
-          }
-        } else {
-          //int a = 30/0;
-          llvm::errs() << "not correct\n";
-        }*/
         if(callNode->getSingleSuccessor() != callReturnNode){
           return;
         }
         assert(callNode->getSingleSuccessor() == callReturnNode);
-        //std::cout << (callNode->getSingleSuccessor() == callReturnNode) << " in inter \n";
         callNode->removeSingleSuccessor();
     }
 }
