@@ -175,3 +175,9 @@ The slicing finishes in 2 seconds. Again, unless we are really sure that the
 slicing is only within a single function, we should not use 
 `entry-only` option.
 
+5. redis
+
+```
+$ cd build
+$ bin/slicer ../../Arthas-eval/redis/src/redis-server.bc --criteria server.c:1232 --inst '%44 = call i32 @ll2string(i8* %40, i64 32, i64 %43) #10, !dbg !18590' -pta=false -entry-only 2>&1 | tee redis_slice.log
+```

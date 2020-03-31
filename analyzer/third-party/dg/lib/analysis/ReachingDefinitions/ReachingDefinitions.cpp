@@ -49,7 +49,7 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node) {
         options.strongUpdateUnknown,
         *options.maxSetSize, /* max size of set of reaching definition
                                of one definition site */
-        false /* merge unknown */);
+        options.mergeUnknown /* merge unknown */);
   }
 
   return changed;
@@ -61,6 +61,7 @@ void ReachingDefinitionsAnalysis::run() {
 
   std::vector<RDNode *> to_process = getNodes(getRoot());
   std::vector<RDNode *> changed;
+  uint64_t total_processed = 0;
 
 #ifdef DEBUG_ENABLED
   int n = 0;
@@ -77,9 +78,11 @@ void ReachingDefinitionsAnalysis::run() {
 #endif
     unsigned last_processed_num = to_process.size();
     changed.clear();
-
+    std::cerr << "[RD] Info: about to process " << last_processed_num
+              << " RDNodes\n";
     for (RDNode *cur : to_process) {
       if (processNode(cur)) changed.push_back(cur);
+      total_processed++;
     }
 
     if (!changed.empty()) {
@@ -90,6 +93,13 @@ void ReachingDefinitionsAnalysis::run() {
       // since changed was not empty,
       // the to_process must not be empty too
       assert(!to_process.empty());
+    }
+    if (options.fixedPointThreshold > 0 &&
+        total_processed > options.fixedPointThreshold) {
+      std::cerr
+          << "[RD] Warning: Processed " << total_processed
+          << " RDNodes in total but has not reached fixed point, aborting...\n";
+      break;
     }
   } while (!changed.empty());
 

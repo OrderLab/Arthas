@@ -2,9 +2,10 @@
 #define DG_UTIL_DEBUG_H_
 
 #ifdef DEBUG_ENABLED
-#include <iostream>
-#include <ctime>
 #include <cassert>
+#include <chrono>
+#include <ctime>
+#include <iostream>
 #endif
 
 namespace dg {
@@ -57,6 +58,8 @@ static inline bool dbg_should_print(unsigned int x) {
 inline void dbg_enable() {
     _setDebugLvl(1);
 }
+
+inline void dbg_disable() { _setDebugLvl(0); }
 
 inline bool dbg_is_enabled() {
     return _getDebugLvl() > 0;

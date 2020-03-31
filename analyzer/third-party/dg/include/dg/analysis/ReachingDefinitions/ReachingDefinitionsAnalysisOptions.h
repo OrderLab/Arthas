@@ -92,6 +92,11 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
     // NOTE: not sound.
     bool strongUpdateUnknown{false};
 
+    // Should we merge definitions with concrete offset into
+    // definitions with unknown offset? See comments in
+    // BasciRDMap.cpp:merge()
+    bool mergeUnknown{false};
+
     // Undefined functions have no side-effects
     bool undefinedArePure{false};
 
@@ -102,6 +107,10 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
     // Does the analysis track concrete bytes
     // or just objects?
     bool fieldInsensitive{false};
+
+    // In case it takes forever to reach fixed point, we
+    // will enforce a limit of max number of processed RDNodes
+    uint64_t fixedPointThreshold{0};
 
     ReachingDefinitionsAnalysisOptions& setStrongUpdateUnknown(bool b) {
         strongUpdateUnknown = b; return *this;
