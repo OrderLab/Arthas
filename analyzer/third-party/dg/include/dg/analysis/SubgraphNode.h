@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 namespace dg {
 namespace analysis {
@@ -160,27 +161,34 @@ public:
 
     void replaceSingleSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
+        std::cout << "replaced " << succ << "\n";
         removeSingleSuccessor();
         addSuccessor(succ);
     }
 
     void removeSingleSuccessor() {
-        //assert(successors.size() == 1);
-
+        if(successors.size() != 1)
+          return;
+        assert(successors.size() == 1);
+        std::cout << "size is " << successors.size() << "\n";
+          //std::cout << "size is not 1\n";
         // we need to remove this node from
         // successor's predecessors
-        if(successors.size() == 0)
-          return;
+        //if(successors.size() == 0)
+        //  return;
         _removeThisFromSuccessorsPredecessors(successors[0]);
 
         // remove the successor
         successors.clear();
+        std::cout << "removed successor \n";
     }
 
 
     // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
         //assert(successors.size() == 1);
+        if(successors.size() != 1)
+          return NULL;
         return successors.front();
     }
 
