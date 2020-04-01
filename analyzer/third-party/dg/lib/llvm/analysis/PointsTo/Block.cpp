@@ -64,29 +64,51 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 
     assert(nodes_map.count(&Inst) == 0 && "Already built this instruction");
 
-    LLVMPointerGraphBuilder::PSNodesSeq* seq = nullptr;
+    // FIXME: ugly...
     if (const llvm::AtomicRMWInst* RMWI =
             dyn_cast<llvm::AtomicRMWInst>(&Inst)) {
       llvm::errs() << "Atomic RMW Inst: " << Inst << "\n";
-      seq = &buildAtomicRMWInst(const_cast<llvm::AtomicRMWInst*>(RMWI));
+      std::vector<llvm::Instruction*> insts;
+      decomposeAtomicRMWInst(const_cast<llvm::AtomicRMWInst*>(RMWI), insts);
+      if (insts.empty()) {
+        // if we can't decompose it, create an unknown
+        auto& seq = createUnknown(RMWI);
+        for (auto nd : seq) nd->setParent(parent);
+        blk.append(&seq);
+      } else {
+        for (llvm::Instruction* Inst : insts) {
+          auto& seq = buildInstruction(*Inst);
+          for (auto nd : seq) nd->setParent(parent);
+          blk.append(&seq);
+        }
+      }
     } else if (const llvm::AtomicCmpXchgInst* CXI =
                    dyn_cast<llvm::AtomicCmpXchgInst>(&Inst)) {
       llvm::errs() << "Atomic CmpXchg Inst: " << Inst << "\n";
-      seq = &buildAtomicCmpXchgInst(CXI);
+      std::vector<llvm::Instruction*> insts;
+      decomposeAtomicCmpXchgInst(const_cast<llvm::AtomicCmpXchgInst*>(CXI),
+                                 insts);
+      if (insts.empty()) {
+        // if we can't decompose it, create an unknown
+        auto& seq = createUnknown(CXI);
+        for (auto nd : seq) nd->setParent(parent);
+        blk.append(&seq);
+      } else {
+        for (llvm::Instruction* Inst : insts) {
+          auto& seq = buildInstruction(*Inst);
+          for (auto nd : seq) nd->setParent(parent);
+          blk.append(&seq);
+        }
+      }
     } else {
-      seq = &buildInstruction(Inst);
+      auto& seq = buildInstruction(Inst);
+      // set parent to the new nodes
+      for (auto nd : seq) {
+        nd->setParent(parent);
+      }
+      blk.append(&seq);
     }
-
-    if (!seq) continue;
-
-    // set parent to the new nodes
-    for (auto nd : *seq) {
-      nd->setParent(parent);
-    }
-
-    blk.append(seq);
   }
-  //}
 
   return blk;
 }

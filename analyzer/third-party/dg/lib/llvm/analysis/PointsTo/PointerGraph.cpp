@@ -404,15 +404,94 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
   return *seq;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq &
-LLVMPointerGraphBuilder::buildAtomicRMWInst(const llvm::AtomicRMWInst *RMWI) {
-  return createUnknown(RMWI);
+void LLVMPointerGraphBuilder::decomposeAtomicRMWInst(
+    llvm::AtomicRMWInst *RMWI, std::vector<llvm::Instruction *> &ret) {
+  using namespace llvm;
+  IRBuilder<> Builder(RMWI);
+  Value *Ptr = RMWI->getPointerOperand();
+  Value *Val = RMWI->getValOperand();
+
+  LoadInst *Orig = Builder.CreateLoad(Ptr);
+  Value *Res = nullptr;
+  bool ResInst = true;
+
+  switch (RMWI->getOperation()) {
+    default:
+      llvm_unreachable("Unexpected RMW operation");
+    case AtomicRMWInst::Xchg:
+      Res = Val;
+      ResInst = false;
+      break;
+    case AtomicRMWInst::Add:
+      Res = Builder.CreateAdd(Orig, Val);
+      break;
+    case AtomicRMWInst::Sub:
+      Res = Builder.CreateSub(Orig, Val);
+      break;
+    case AtomicRMWInst::And:
+      Res = Builder.CreateAnd(Orig, Val);
+      break;
+    case AtomicRMWInst::Nand:
+      Res = Builder.CreateNot(Builder.CreateAnd(Orig, Val));
+      break;
+    case AtomicRMWInst::Or:
+      Res = Builder.CreateOr(Orig, Val);
+      break;
+    case AtomicRMWInst::Xor:
+      Res = Builder.CreateXor(Orig, Val);
+      break;
+    case AtomicRMWInst::Max:
+      Res = Builder.CreateSelect(Builder.CreateICmpSLT(Orig, Val), Val, Orig);
+      break;
+    case AtomicRMWInst::Min:
+      Res = Builder.CreateSelect(Builder.CreateICmpSLT(Orig, Val), Orig, Val);
+      break;
+    case AtomicRMWInst::UMax:
+      Res = Builder.CreateSelect(Builder.CreateICmpULT(Orig, Val), Val, Orig);
+      break;
+    case AtomicRMWInst::UMin:
+      Res = Builder.CreateSelect(Builder.CreateICmpULT(Orig, Val), Orig, Val);
+      break;
+  }
+  llvm::StoreInst *Store = Builder.CreateStore(Res, Ptr);
+  RMWI->replaceAllUsesWith(Orig);
+  // RMWI->eraseFromParent();
+  ret.push_back(Orig);
+  if (ResInst) {
+    if (Instruction *Inst = dyn_cast<Instruction>(Res)) {
+      ret.push_back(Inst);
+    }
+  }
+  ret.push_back(Store);
+  // return createUnknown(RMWI);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq &
-LLVMPointerGraphBuilder::buildAtomicCmpXchgInst(
-    const llvm::AtomicCmpXchgInst *CXI) {
-  return createUnknown(CXI);
+void LLVMPointerGraphBuilder::decomposeAtomicCmpXchgInst(
+    llvm::AtomicCmpXchgInst *CXI, std::vector<llvm::Instruction *> &ret) {
+  using namespace llvm;
+  IRBuilder<> Builder(CXI);
+  Value *Ptr = CXI->getPointerOperand();
+  Value *Cmp = CXI->getCompareOperand();
+  Value *Val = CXI->getNewValOperand();
+
+  LoadInst *Orig = Builder.CreateLoad(Val->getType(), Ptr);
+  ret.push_back(Orig);
+  Value *Equal = Builder.CreateICmpEQ(Orig, Cmp);
+  if (Instruction *Inst = dyn_cast<Instruction>(Equal)) {
+    ret.push_back(Inst);
+  }
+  Value *Res = Builder.CreateSelect(Equal, Val, Orig);
+  if (Instruction *Inst = dyn_cast<Instruction>(Res)) {
+    ret.push_back(Inst);
+  }
+  StoreInst *Store = Builder.CreateStore(Res, Ptr);
+  ret.push_back(Store);
+
+  Res = Builder.CreateInsertValue(UndefValue::get(CXI->getType()), Orig, 0);
+  Res = Builder.CreateInsertValue(Res, Equal, 1);
+  CXI->replaceAllUsesWith(Res);
+  // CXI->eraseFromParent();
+  // return createUnknown(CXI);
 }
 
 // is the instruction relevant to points-to analysis?
