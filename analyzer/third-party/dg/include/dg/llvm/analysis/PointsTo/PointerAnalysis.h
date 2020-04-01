@@ -45,7 +45,7 @@ class LLVMPointerAnalysisImpl : public PTType {
 
  public:
   LLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
-      : PTType(PS, builder->getAnalysisOptions()), builder(b) {}
+      : PTType(PS, b->getAnalysisOptions()), builder(b) {}
 
   // build new subgraphs on calls via pointer
   bool functionPointerCall(PSNode *callsite, PSNode *called) override {

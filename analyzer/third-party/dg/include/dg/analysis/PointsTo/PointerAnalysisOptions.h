@@ -19,6 +19,15 @@ struct PointerAnalysisOptions : AnalysisOptions {
     // INVALIDATED object.
     bool invalidateNodes{false};
 
+    // In case it takes forever to reach fixed point, we
+    // will enforce a limit of max number of processed PSNodes.
+    // 0 means there is no limit.
+    uint64_t fixedPointThreshold{0};
+
+    // The max time we'll run for the pointer analysis.
+    // Timeout of 0 means there is no limit.
+    uint64_t timeout{0};
+
     PointerAnalysisOptions& setInvalidateNodes(bool b) { invalidateNodes = b; return *this;}
     PointerAnalysisOptions& setPreprocessGeps(bool b)  { preprocessGeps = b; return *this;}
 };

@@ -90,12 +90,11 @@ void ReachingDefinitionsAnalysis::run() {
 #endif
     unsigned last_processed_num = to_process.size();
     changed.clear();
-    std::cerr << "[RD] Info: about to process " << last_processed_num
-              << " RDNodes\n";
+    std::cerr << "[RD] Info: processing " << last_processed_num << " RDNodes\n";
     for (RDNode *cur : to_process) {
       if (processNode(cur)) changed.push_back(cur);
-      total_processed++;
     }
+    total_processed += last_processed_num;
 
     if (!changed.empty()) {
       to_process.clear();
@@ -106,29 +105,30 @@ void ReachingDefinitionsAnalysis::run() {
       // the to_process must not be empty too
       assert(!to_process.empty());
     }
+    bool abort = false;
     if (options.timeout > 0) {
       // timeout limit is set, check the duration
       if (std::clock() - time_start > max_clock_ticks) {
-        // We've reached the timeout, if there is a max iteration limit, we'll
-        // also check it. In other words, the condition is timeout AND max
-        // iteration reached, instead of timeout OR max iteration.
+        // timeout exceeded, if there is a max iteration limit,
+        // we'll also check it. In other words, the condition is timeout
+        // AND max iteration reached, instead of timeout OR max iteration.
         if (options.fixedPointThreshold > 0 &&
             total_processed > options.fixedPointThreshold) {
-          std::cerr << "[RD] Warning: Processed " << total_processed
-                    << " RDNodes in total but has not reached fixed point, "
-                       "aborting...\n";
-          break;
+          abort = true;
         }
       }
     } else {
       // timeout limit is not set, check iteration
       if (options.fixedPointThreshold > 0 &&
           total_processed > options.fixedPointThreshold) {
-        std::cerr << "[RD] Warning: Processed " << total_processed
-                  << " RDNodes in total but has not reached fixed point, "
-                     "abort remaining analysis\n";
-        break;
+        abort = true;
       }
+    }
+    if (abort) {
+      std::cerr << "[RD] Warning: Processed " << total_processed
+                << " RDNodes in total but has not reached fixed point, "
+                   "abort remaining analysis.\n";
+      break;
     }
   } while (!changed.empty());
 
