@@ -45,9 +45,6 @@ public:
         initPointerAnalysis();
     }
 
-    // default options
-    PointerAnalysis(PointerGraph *ps) : PointerAnalysis(ps, {}) {}
-
     virtual ~PointerAnalysis() {}
 
     // takes a PSNode 'where' and 'what' and reference to a vector

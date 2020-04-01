@@ -38,9 +38,9 @@ class PointerAnalysisFI : public PointerAnalysis
     }
 
 public:
-    PointerAnalysisFI(PointerGraph *ps)
-    : PointerAnalysis(ps) {
-        memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
+ PointerAnalysisFI(PointerGraph *ps, const PointerAnalysisOptions &opts)
+     : PointerAnalysis(ps, opts) {
+   memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
     }
 
     void preprocess() override {

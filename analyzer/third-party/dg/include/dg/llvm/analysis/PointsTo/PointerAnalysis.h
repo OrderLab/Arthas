@@ -45,7 +45,7 @@ class LLVMPointerAnalysisImpl : public PTType {
 
  public:
   LLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
-      : PTType(PS), builder(b) {}
+      : PTType(PS, builder->getAnalysisOptions()), builder(b) {}
 
   // build new subgraphs on calls via pointer
   bool functionPointerCall(PSNode *callsite, PSNode *called) override {
@@ -130,16 +130,6 @@ class LLVMPointerAnalysis {
   PointerGraph *PS = nullptr;
   std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
-  LLVMPointerAnalysisOptions createOptions(llvm::Function *entry_func,
-                                           uint64_t field_sensitivity,
-                                           bool threads = false) {
-    LLVMPointerAnalysisOptions opts;
-    opts.threads = threads;
-    opts.setFieldSensitivity(field_sensitivity);
-    opts.setEntryFunction(entry_func);
-    return opts;
-  }
-
   const PointsToSetT &getUnknownPTSet() const {
     static const PointsToSetT _unknownPTSet =
         PointsToSetT({Pointer{analysis::pta::UNKNOWN_MEMORY, 0}});
@@ -147,15 +137,19 @@ class LLVMPointerAnalysis {
   }
 
  public:
-  LLVMPointerAnalysis(const llvm::Module *m, llvm::Function *entry_func,
-                      uint64_t field_sensitivity = Offset::UNKNOWN,
-                      bool threads = false)
-      : LLVMPointerAnalysis(
-            m, createOptions(entry_func, field_sensitivity, threads)) {}
-
   LLVMPointerAnalysis(const llvm::Module *m,
                       const LLVMPointerAnalysisOptions opts)
       : _builder(new LLVMPointerGraphBuilder(m, opts)) {}
+
+  static LLVMPointerAnalysisOptions createOptions(llvm::Function *entry_func,
+                                                  uint64_t field_sensitivity,
+                                                  bool threads = false) {
+    LLVMPointerAnalysisOptions opts;
+    opts.threads = threads;
+    opts.setFieldSensitivity(field_sensitivity);
+    opts.setEntryFunction(entry_func);
+    return opts;
+  }
 
   ///
   // Get the node from pointer analysis that holds the points-to set.

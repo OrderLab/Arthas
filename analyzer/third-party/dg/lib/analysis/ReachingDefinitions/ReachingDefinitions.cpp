@@ -126,7 +126,7 @@ void ReachingDefinitionsAnalysis::run() {
           total_processed > options.fixedPointThreshold) {
         std::cerr << "[RD] Warning: Processed " << total_processed
                   << " RDNodes in total but has not reached fixed point, "
-                     "aborting...\n";
+                     "abort remaining analysis\n";
         break;
       }
     }
