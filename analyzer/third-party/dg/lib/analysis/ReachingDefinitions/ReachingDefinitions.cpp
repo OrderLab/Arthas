@@ -1,3 +1,5 @@
+#include <chrono>
+#include <ctime>
 #include <iostream>
 #include <set>
 #include <vector>
@@ -61,7 +63,17 @@ void ReachingDefinitionsAnalysis::run() {
 
   std::vector<RDNode *> to_process = getNodes(getRoot());
   std::vector<RDNode *> changed;
+
   uint64_t total_processed = 0;
+
+  std::clock_t time_start;
+  int64_t max_clock_ticks;
+  if (options.timeout > 0) {
+    time_start = std::clock();
+    // calculate the max clock ticks, the timeout is specified in the unit
+    // of milliseconds
+    max_clock_ticks = options.timeout * CLOCKS_PER_SEC / 1000.0;
+  }
 
 #ifdef DEBUG_ENABLED
   int n = 0;
@@ -94,12 +106,29 @@ void ReachingDefinitionsAnalysis::run() {
       // the to_process must not be empty too
       assert(!to_process.empty());
     }
-    if (options.fixedPointThreshold > 0 &&
-        total_processed > options.fixedPointThreshold) {
-      std::cerr
-          << "[RD] Warning: Processed " << total_processed
-          << " RDNodes in total but has not reached fixed point, aborting...\n";
-      break;
+    if (options.timeout > 0) {
+      // timeout limit is set, check the duration
+      if (std::clock() - time_start > max_clock_ticks) {
+        // We've reached the timeout, if there is a max iteration limit, we'll
+        // also check it. In other words, the condition is timeout AND max
+        // iteration reached, instead of timeout OR max iteration.
+        if (options.fixedPointThreshold > 0 &&
+            total_processed > options.fixedPointThreshold) {
+          std::cerr << "[RD] Warning: Processed " << total_processed
+                    << " RDNodes in total but has not reached fixed point, "
+                       "aborting...\n";
+          break;
+        }
+      }
+    } else {
+      // timeout limit is not set, check iteration
+      if (options.fixedPointThreshold > 0 &&
+          total_processed > options.fixedPointThreshold) {
+        std::cerr << "[RD] Warning: Processed " << total_processed
+                  << " RDNodes in total but has not reached fixed point, "
+                     "aborting...\n";
+        break;
+      }
     }
   } while (!changed.empty());
 
