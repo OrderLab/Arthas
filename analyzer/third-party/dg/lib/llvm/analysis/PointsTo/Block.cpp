@@ -7,6 +7,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
+#include <vector>
+
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
@@ -62,97 +64,27 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 
     assert(nodes_map.count(&Inst) == 0 && "Already built this instruction");
 
-    /*if(const llvm::AtomicRMWInst *RMWI_n =
-       dyn_cast<llvm::AtomicRMWInst>(&Inst)){
-      llvm::AtomicRMWInst *RMWI = (llvm::AtomicRMWInst *)RMWI_n;
-      Value *Ptr = RMWI->getPointerOperand();
-      Value *Val = RMWI->getValOperand();
-      IRBuilder<> Builder(RMWI);
-      LoadInst *Orig = new LoadInst(Val->getType(), Ptr);
-      //LoadInst *Orig = Builder.CreateLoad(Val->getType(), Ptr);
-      const llvm::Instruction *constOrig = dyn_cast<const
-       llvm::Instruction>(Orig);
-      auto& seq1 = buildInstruction(*constOrig);
-      if(seq1.invalid == 0){
-        llvm::errs() << "ESCAPED\n";
-        continue;
-      }
-      // set parent to the new nodes
-      for (auto nd : seq1) {
-          nd->setParent(parent);
-      }
-      blk.append(&seq1);
-      Value *Res = nullptr;
-      switch (RMWI->getOperation()){
-         case llvm::AtomicRMWInst::Add:
-         {
-           Res = Builder.CreateAdd(Orig, Val);
-           const llvm::Instruction *constRes =
-            dyn_cast<const llvm::Instruction>(Res);
-           auto& seq2 = buildInstruction(*constRes);
-           if(seq2.invalid == 0){
-             llvm::errs() << "ESCAPED\n";
-             continue;
-           }
-           // set parent to the new nodes
-           for (auto nd : seq2) {
-             nd->setParent(parent);
-           }
-           blk.append(&seq2);
-           break;
-         }
-         case llvm::AtomicRMWInst::Sub:
-         {
-           Res = Builder.CreateSub(Orig, Val);
-           const llvm::Instruction *constRes =
-            dyn_cast<const llvm::Instruction>(Res);
-           auto& seq2 = buildInstruction(*constRes);
-           if(seq2.invalid == 0){
-             llvm::errs() << "ESCAPED\n";
-             continue;
-           }
-           // set parent to the new nodes
-           for (auto nd : seq2) {
-             nd->setParent(parent);
-           }
-           blk.append(&seq2);
-           break;
-         }
-         default:
-         {
-           llvm::errs() << "Unsupported instruction : " << *RMWI << "\n";
-           break;
-         }
-      }
-      //Builder.CreateStore(Res, Ptr);
-      StoreInst *str = new StoreInst(Res, Ptr);
-      const llvm::Instruction *constStr =
-        dyn_cast<const llvm::Instruction>(str);
-      auto& seq3 = buildInstruction(*constStr);
-      if(seq3.invalid == 0){
-        llvm::errs() << "ESCAPED\n";
-        continue;
-      }
-      // set parent to the new nodes
-      for (auto nd : seq3) {
-         nd->setParent(parent);
-       }
-       blk.append(&seq3);
-       break;
-    }
- else{*/
-    auto& seq = buildInstruction(Inst);
-    if (seq.invalid == 0) {
-      llvm::errs() << "ESCAPED\n";
-      continue;
+    LLVMPointerGraphBuilder::PSNodesSeq* seq = nullptr;
+    if (const llvm::AtomicRMWInst* RMWI =
+            dyn_cast<llvm::AtomicRMWInst>(&Inst)) {
+      llvm::errs() << "Atomic RMW Inst: " << Inst << "\n";
+      seq = &buildAtomicRMWInst(const_cast<llvm::AtomicRMWInst*>(RMWI));
+    } else if (const llvm::AtomicCmpXchgInst* CXI =
+                   dyn_cast<llvm::AtomicCmpXchgInst>(&Inst)) {
+      llvm::errs() << "Atomic CmpXchg Inst: " << Inst << "\n";
+      seq = &buildAtomicCmpXchgInst(CXI);
+    } else {
+      seq = &buildInstruction(Inst);
     }
 
+    if (!seq) continue;
+
     // set parent to the new nodes
-    for (auto nd : seq) {
+    for (auto nd : *seq) {
       nd->setParent(parent);
     }
 
-    blk.append(&seq);
+    blk.append(seq);
   }
   //}
 

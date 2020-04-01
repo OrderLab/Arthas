@@ -387,7 +387,6 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
         seq = &createUnknown(&Inst);
       break;
     case Instruction::InsertElement:
-      llvm::errs() << Inst << "\n";
       return createInsertElement(&Inst);
     case Instruction::ExtractElement:
       return createExtractElement(&Inst);
@@ -396,26 +395,9 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
           << "ShuffleVector instruction is not supported, loosing precision\n";
       seq = &createUnknown(&Inst);
       break;
-    case Instruction::AtomicRMW: {
-      seq = &createUnknown(&Inst);
-      llvm::errs() << "Atomic RMW Inst: " << Inst << "\n";
-      const llvm::AtomicRMWInst *RMWI = dyn_cast<llvm::AtomicRMWInst>(&Inst);
-      seq = &buildAtomicRMWInst(RMWI);
-      break;
-    }
-    case Instruction::AtomicCmpXchg: {
-      llvm::errs() << "Atomic CmpXchg Inst: " << Inst << "\n";
-      const llvm::AtomicCmpXchgInst *CXI =
-          dyn_cast<llvm::AtomicCmpXchgInst>(&Inst);
-      seq = &buildAtomicCmpXchgInst(CXI);
-      break;
-    }
     default:
-      llvm::errs() << "UNHANDLED INSTRUCTION: " << Inst << "\n";
-      llvm::errs() << "first operand is " << Inst.getOperand(0) << "\n";
+      llvm::errs() << "Unhandled instruction: " << Inst << "\n";
       seq = &createUnknown(&Inst);
-      break;
-      assert(0 && "Unhandled instruction");
   }
 
   assert(seq && "Did not create instruction");
