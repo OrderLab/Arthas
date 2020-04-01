@@ -230,8 +230,6 @@ public:
         assert(options.maxSetSize > 0 && "The set size must be at least 1");
     }
 
-    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
-    : ReachingDefinitionsAnalysis(std::move(graph), {}) {}
     virtual ~ReachingDefinitionsAnalysis() = default;
 
     // get nodes in BFS order and store them into
@@ -296,9 +294,6 @@ public:
     SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
                                    const ReachingDefinitionsAnalysisOptions& opts)
     : ReachingDefinitionsAnalysis(std::move(graph), opts) {}
-
-    SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
-    : ReachingDefinitionsAnalysis(std::move(graph)) {}
 
     void run() override {
         DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");

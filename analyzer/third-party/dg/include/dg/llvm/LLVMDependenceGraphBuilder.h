@@ -171,6 +171,7 @@ class LLVMDependenceGraphBuilder {
   LLVMDependenceGraphBuilder(llvm::Module* M,
                              const LLVMDependenceGraphOptions& opts)
       : _M(M), _options(opts) {
+    // fix entry function option
     if (_options.entryFunction) {
       _options.entryFunctionName = _options.entryFunction->getName().str();
     } else {
@@ -179,10 +180,6 @@ class LLVMDependenceGraphBuilder {
     assert(_options.entryFunction && "The entry function not found");
     _options.PTAOptions.entryFunction = _options.entryFunction;
     _options.RDAOptions.entryFunction = _options.entryFunction;
-    _options.PTAOptions.threads = _options.threads;
-    _options.RDAOptions.threads = _options.threads;
-    _options.RDAOptions.entryOnly = _options.entryOnly;
-    _options.RDAOptions.entryOnly = _options.entryOnly;
 
     _PTA = std::unique_ptr<LLVMPointerAnalysis>(
         new LLVMPointerAnalysis(M, _options.PTAOptions));
