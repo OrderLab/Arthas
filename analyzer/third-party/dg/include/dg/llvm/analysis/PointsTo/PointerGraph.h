@@ -164,6 +164,9 @@ class LLVMPointerGraphBuilder
     PointerSubgraph& buildFunction(const llvm::Function& F);
     PSNodesSeq& buildInstruction(const llvm::Instruction&);
 
+    PSNodesSeq &buildAtomicRMWInst(const llvm::AtomicRMWInst *);
+    PSNodesSeq &buildAtomicCmpXchgInst(const llvm::AtomicCmpXchgInst *);
+
     PSNodesBlock
     buildPointerGraphBlock(const llvm::BasicBlock& block,
                            PointerSubgraph *parent);

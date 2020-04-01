@@ -22,6 +22,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
@@ -395,28 +396,41 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
           << "ShuffleVector instruction is not supported, loosing precision\n";
       seq = &createUnknown(&Inst);
       break;
-    /*case llvm::AtomicRMWInst:
-      llvm::errs() << "Atomic RMW Inst\n";
-      llvm::AtomicRMWInst *RMWI = dyn_cast<llvm::AtomicRMWInst>Inst;
-      break;*/
-    /*case Instruction::AtomicCmpXchgInst:
-        llvm::errs() << "Atomic cmpxchg Inst\n";*/
+    case Instruction::AtomicRMW: {
+      seq = &createUnknown(&Inst);
+      llvm::errs() << "Atomic RMW Inst: " << Inst << "\n";
+      const llvm::AtomicRMWInst *RMWI = dyn_cast<llvm::AtomicRMWInst>(&Inst);
+      seq = &buildAtomicRMWInst(RMWI);
+      break;
+    }
+    case Instruction::AtomicCmpXchg: {
+      llvm::errs() << "Atomic CmpXchg Inst: " << Inst << "\n";
+      const llvm::AtomicCmpXchgInst *CXI =
+          dyn_cast<llvm::AtomicCmpXchgInst>(&Inst);
+      seq = &buildAtomicCmpXchgInst(CXI);
+      break;
+    }
     default:
       llvm::errs() << "UNHANDLED INSTRUCTION: " << Inst << "\n";
       llvm::errs() << "first operand is " << Inst.getOperand(0) << "\n";
-      /*if(const llvm::AtomicRMWInst *RMWI =
-      dyn_cast<llvm::AtomicRMWInst>(&Inst)){
-        Value *Ptr = RMWI->getPointerOperand();
-        Value *Val = RMWI->getValOperand();
-      }*/
       seq = &createUnknown(&Inst);
-      // seq->invalid = 0;
       break;
       assert(0 && "Unhandled instruction");
   }
 
   assert(seq && "Did not create instruction");
   return *seq;
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::buildAtomicRMWInst(const llvm::AtomicRMWInst *RMWI) {
+  return createUnknown(RMWI);
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::buildAtomicCmpXchgInst(
+    const llvm::AtomicCmpXchgInst *CXI) {
+  return createUnknown(CXI);
 }
 
 // is the instruction relevant to points-to analysis?
