@@ -185,7 +185,6 @@ void LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite,
   // remove the CFG edge and keep only the call edge
   if (callsite->successorsNum() == 1 &&
       callsite->getSingleSuccessor() == callsite->getPairedNode()) {
-    std::cout << "callsite remove single in insert func call\n";
     callsite->removeSingleSuccessor();
   }
 

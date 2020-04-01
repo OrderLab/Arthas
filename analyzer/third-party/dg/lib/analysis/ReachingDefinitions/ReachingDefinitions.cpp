@@ -112,10 +112,11 @@ void ReachingDefinitionsAnalysis::run() {
         // timeout exceeded, if there is a max iteration limit,
         // we'll also check it. In other words, the condition is timeout
         // AND max iteration reached, instead of timeout OR max iteration.
-        if (options.fixedPointThreshold > 0 &&
-            total_processed > options.fixedPointThreshold) {
-          abort = true;
-        }
+        if (options.fixedPointThreshold > 0)
+          if (total_processed > options.fixedPointThreshold) abort = true;
+      } else {
+        // if no iteration limit is specified, abort based on timeout
+        abort = true;
       }
     } else {
       // timeout limit is not set, check iteration
