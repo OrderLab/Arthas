@@ -33,7 +33,7 @@ void LLVMReachingDefinitions::initializeSparseRDA() {
     auto graph = builder->build();
 
     RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new SSAReachingDefinitionsAnalysis(std::move(graph)));
+        new SSAReachingDefinitionsAnalysis(std::move(graph), _options));
 }
 
 void LLVMReachingDefinitions::initializeDenseRDA() {
@@ -42,7 +42,7 @@ void LLVMReachingDefinitions::initializeDenseRDA() {
     auto graph = builder->build();
 
     RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new ReachingDefinitionsAnalysis(std::move(graph)));
+        new ReachingDefinitionsAnalysis(std::move(graph), _options));
 }
 
 RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
