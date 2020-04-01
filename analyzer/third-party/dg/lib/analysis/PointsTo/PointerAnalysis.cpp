@@ -1,3 +1,7 @@
+#include <chrono>
+#include <ctime>
+#include <iostream>
+
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointsToSet.h"
 #include "dg/analysis/PointsTo/PointerGraph.h"
@@ -486,6 +490,17 @@ void PointerAnalysis::run() {
     
     initialize_queue();
 
+    // don't count the globals in the processed nodes
+    uint64_t total_processed = 0;
+    std::clock_t time_start;
+    int64_t max_clock_ticks;
+    if (options.timeout > 0) {
+      time_start = std::clock();
+      // calculate the max clock ticks, the timeout is specified in the unit
+      // of milliseconds
+      max_clock_ticks = options.timeout * CLOCKS_PER_SEC / 1000.0;
+    }
+
 #if DEBUG_ENABLED
     int n = 0;
 #endif
@@ -497,9 +512,36 @@ void PointerAnalysis::run() {
         }
         ++n;
 #endif
-
+        std::cerr << "[PTA] Info: processing " << to_process.size()
+                  << " PSNodes\n";
         iteration();
+        total_processed += to_process.size();
         queue_changed();
+        bool abort = false;
+        if (options.timeout > 0) {
+          // timeout limit is set, check the duration
+          if (std::clock() - time_start > max_clock_ticks) {
+            // timeout exceeded, if there is a max iteration limit,
+            // we'll also check it. In other words, the condition is timeout
+            // AND max iteration reached, instead of timeout OR max iteration.
+            if (options.fixedPointThreshold > 0 &&
+                total_processed > options.fixedPointThreshold) {
+              abort = true;
+            }
+          }
+        } else {
+          // timeout limit is not set, check iteration
+          if (options.fixedPointThreshold > 0 &&
+              total_processed > options.fixedPointThreshold) {
+            abort = true;
+          }
+        }
+        if (abort) {
+          std::cerr << "[PTA] Warning: Processed " << total_processed
+                    << " PSNodes in total but has not reached fixed point, "
+                       "abort remaining analysis.\n";
+          break;
+        }
     } while (!to_process.empty());
 
     assert(to_process.empty());
