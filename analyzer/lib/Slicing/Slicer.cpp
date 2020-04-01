@@ -61,6 +61,15 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
   dg_options.RDAOptions.analysisType = dg::llvmdg::
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
 
+  // NOTE: the following is a temporary workaround for pointer analysis
+  // or reaching definition analysis that takes forever to run.
+  // Uncomment it only for testing purpose...
+
+  // enforce that we will process at most PSNodes 500,000 times
+  // dg_options.PTAOptions.fixedPointThreshold = 500000;
+  // enforce that we will run pointer analysis for at most 30 minutes
+  // dg_options.PTAOptions.timeout = 30 * 60 * 1000;
+
   // enforce that we will process at most RDNodes 100,000 times
   // dg_options.RDAOptions.fixedPointThreshold = 100000;
   // enforce that we will run reaching definition for at most 15 minutes
