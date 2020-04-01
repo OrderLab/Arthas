@@ -56,7 +56,7 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
 
   // use flow-sensitive pointer analysis
   dg_options.PTAOptions.analysisType =
-      dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fi;
+      dg::llvmdg::LLVMPointerAnalysisOptions::AnalysisType::fs;
   // use data-flow reaching definition analysis, another option is memory-ssa
   dg_options.RDAOptions.analysisType = dg::llvmdg::
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
