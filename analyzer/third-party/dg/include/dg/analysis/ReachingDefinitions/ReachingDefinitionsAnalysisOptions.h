@@ -109,8 +109,13 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
     bool fieldInsensitive{false};
 
     // In case it takes forever to reach fixed point, we
-    // will enforce a limit of max number of processed RDNodes
+    // will enforce a limit of max number of processed RDNodes.
+    // 0 means there is no limit.
     uint64_t fixedPointThreshold{0};
+
+    // The max time we'll run for the reaching definition analysis.
+    // Timeout of 0 means there is no limit.
+    uint64_t timeout{0};
 
     ReachingDefinitionsAnalysisOptions& setStrongUpdateUnknown(bool b) {
         strongUpdateUnknown = b; return *this;
