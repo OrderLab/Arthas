@@ -198,6 +198,10 @@ public:
 
     inline bool threads() const { return threads_; }
 
+    const LLVMPointerAnalysisOptions &getAnalysisOptions() const {
+      return _options;
+    }
+
     LLVMPointerGraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
         : M(m), _options(opts), threads_(opts.threads) {}
 

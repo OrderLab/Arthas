@@ -32,8 +32,6 @@ public:
         ps->computeLoops();
     }
 
-    PointerAnalysisFS(PointerGraph *ps) : PointerAnalysisFS(ps, {}) {}
-
     bool beforeProcessed(PSNode *n) override
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();

@@ -62,7 +62,7 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
       LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
 
   // enforce that we will process at most RDNodes 100,000 times
-  dg_options.RDAOptions.fixedPointThreshold = 100000;
+  // dg_options.RDAOptions.fixedPointThreshold = 100000;
   // enforce that we will run reaching definition for at most 15 minutes
   // dg_options.RDAOptions.timeout = 15 * 60 * 1000;
 

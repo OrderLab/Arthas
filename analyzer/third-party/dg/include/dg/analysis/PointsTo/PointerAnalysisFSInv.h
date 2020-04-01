@@ -38,9 +38,6 @@ public:
                            PointerAnalysisOptions opts)
     : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
-    // default options
-    PointerAnalysisFSInv(PointerGraph *ps) : PointerAnalysisFSInv(ps, {}) {}
-
     // NOTE: we must override this method as it is using our "needsMerge"
     bool beforeProcessed(PSNode *n) override
     {

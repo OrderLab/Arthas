@@ -795,8 +795,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    LLVMPointerAnalysis PTA(M, M->getFunction(entry_func), field_senitivity,
-                            threads);
+    auto options = LLVMPointerAnalysis::createOptions(
+        M->getFunction(entry_func), field_senitivity, threads);
+    LLVMPointerAnalysis PTA(M, options);
 
     tm.start();
 
