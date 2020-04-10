@@ -39,29 +39,24 @@ void extractPmemPointers(Function *F, dg::LLVMPointerAnalysis *pta) {
     Instruction *inst = &*I;
     Value *val = dyn_cast<Value>(inst);
     auto ps = pta->getPointsTo(val);
-    if(!ps){
-      //errs() << "No points to\n";
+    if (!ps) {
       continue;
     }
     for (const auto &ptr : ps->pointsTo) {
-       // TODO: Instead of pta on a function, get pta on 
-
-       llvm::errs() << "value is " << ptr.target << "\n";
-       //llvm::errs() << "value is " << ptr.target.getName() << "\n";
-       //llvm::errs() << "user value is " << ptr.target->getUserData<Value>() << "\n";
-       Value *p_val = ptr.target->getUserData<Value>();
-       if(!p_val)
-          continue;
-       llvm:errs() << "user value is:  " << *p_val << "\n";
-       for (auto it = pmem_vars.begin(); it != pmem_vars.end(); it++){
-         Value *pmem_val = *it;
-         //llvm::errs() << "pmem it is " << *pmem_val << "\n";
-         if (p_val == pmem_val){
-           pmem_vars.insert(val);
-           llvm::errs() << "we are inserting " << *val << "\n";
-           break;
-         }
-       }
+      // llvm::errs() << "value is " << ptr.target << "\n";
+      Value *p_val = ptr.target->getUserData<Value>();
+      if (!p_val) continue;
+    llvm:
+      errs() << "user value is:  " << *p_val << "\n";
+      for (auto it = pmem_vars.begin(); it != pmem_vars.end(); it++) {
+        Value *pmem_val = *it;
+        // llvm::errs() << "pmem it is " << *pmem_val << "\n";
+        if (p_val == pmem_val) {
+          pmem_vars.insert(val);
+          llvm::errs() << "we are inserting " << *val << "\n";
+          break;
+        }
+      }
     }
   }
 }
@@ -99,11 +94,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   set<string> targetFunctionSet(TargetFunctions.begin(), TargetFunctions.end());
-  set<Function *>Functions; 
+  set<Function *> Functions;
   for (Module::iterator I = M->begin(), E = M->end(); I != E; ++I) {
     Function &F = *I;
-    errs() << "Func name is " << F.getName() << "pointer "
-    << &F << "\n";
+    errs() << "Func name is " << F.getName() << "pointer " << &F << "\n";
     if (!F.isDeclaration()) {
       if (targetFunctionSet.empty() ||
           targetFunctionSet.count(F.getName()) != 0) {
@@ -115,8 +109,8 @@ int main(int argc, char *argv[]) {
   }
   // Create Dg Slice Graph here
   auto slicer = make_unique<DgSlicer>(M.release(), SliceDirection::Full);
-  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL | 
-  SlicerDgFlags::ENABLE_CONTROL_DEP;
+  uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL |
+                   SlicerDgFlags::ENABLE_CONTROL_DEP;
   Function *entry = nullptr;
   auto options = slicer->createDgOptions(flags);
   slicer->computeDependencies(options);
@@ -142,19 +136,18 @@ int main(int argc, char *argv[]) {
       }
     }
   }*/
-  for (auto it = Functions.begin(); it != Functions.end(); it++){
+  for (auto it = Functions.begin(); it != Functions.end(); it++) {
     Function *F = *it;
     if (!F->isDeclaration()) {
       if (targetFunctionSet.empty() ||
           targetFunctionSet.count(F->getName()) != 0) {
         dg::LLVMDependenceGraph *dep_graph = slicer->getDependenceGraph(F);
-        if(!dep_graph)
-          continue;
+        if (!dep_graph) continue;
         errs() << "Extracting pmem pointers from " << F->getName() << "()\n";
         dg::LLVMPointerAnalysis *pta = dep_graph->getPTA();
         // TODO: Using pta and PointsTo set, use this function to find pmem
         // variables
-        if(!pta){
+        if (!pta) {
           errs() << "pta is NULL\n";
           continue;
         }
