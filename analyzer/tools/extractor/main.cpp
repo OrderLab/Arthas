@@ -46,8 +46,7 @@ void extractPmemPointers(Function *F, dg::LLVMPointerAnalysis *pta) {
       // llvm::errs() << "value is " << ptr.target << "\n";
       Value *p_val = ptr.target->getUserData<Value>();
       if (!p_val) continue;
-    llvm:
-      errs() << "user value is:  " << *p_val << "\n";
+      llvm::errs() << "user value is:  " << *p_val << "\n";
       for (auto it = pmem_vars.begin(); it != pmem_vars.end(); it++) {
         Value *pmem_val = *it;
         // llvm::errs() << "pmem it is " << *pmem_val << "\n";
