@@ -1,0 +1,33 @@
+// The Arthas Project
+//
+// Copyright (c) 2019, Johns Hopkins University - Order Lab.
+//
+//    All rights reserved.
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "edu.jhu.order.arthas.reactor";
+option java_outer_classname = "ArthasReactorProto";
+option objc_class_prefix = "AR";
+
+package reactor;
+
+// The Arthas reactor service definition.
+service ArthasReactor {
+  rpc react(ReactRequest) returns (ReactReply) {}
+}
+
+message ReactRequest {
+  // dummy name, could pass some arguments here
+  string name = 1;
+}
+
+message ReactReply {
+  // whether we successfully reacted or not
+  bool success = 1; 
+  // how many times we tried to reach success
+  int32 tries = 2;
+}
