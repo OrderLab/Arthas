@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <regex>
 #include <sstream>
 
@@ -23,9 +24,7 @@
 #ifdef DEBUG_ADDRTRACE
 #define SDEBUG(X) X
 #else
-#define SDEBUG(X) \
-  do {            \
-  } while (false)
+#define SDEBUG(X)
 #endif
 
 using namespace std;
@@ -120,18 +119,33 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     return false;
   }
 
+  // Keep a map here to avoid repeated querying the matcher for the same
+  // guid. Note that from modularity point of view, we should keep this
+  // map in PmemVarGuidMap and fill it as we call PmemVarGuidMap::deserialize.
+  // We put it here for now just hope that we don't have to resolve some
+  // GUIDs if they don't appear in the trace file...
+  map<uint64_t, Instruction *> guid_instr_map;
+
   for (auto &item : _items) {
     if (item->var == nullptr) continue;
+    auto git = guid_instr_map.find(item->guid);
+    if (git != guid_instr_map.end()) {
+      // we have previously matched this instruction string (GUID)
+      // just re-use the result
+      item->instr = git->second;
+      SDEBUG(dbgs() << "Found matching instruction " << git->second << "\n");
+      continue;
+    }
+
     // FIXME: path + filename is probably better
     FileLine fileLine(item->var->source_file, item->var->line);
     SDEBUG(dbgs() << "Source " << item->var->source_file << ":"
                   << item->var->line << "\n");
 
     // find the corresponding instruction (and enable fuzzy matching)
-    bool is_result_fuzzy;
-    //errs() << "Matching: " << item->var->instruction << "\n";
+    bool is_result_exact = false;
     Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
-                                             true, &is_result_fuzzy);
+                                             true, true, &is_result_exact);
     if (!instr) {
       errs() << "Failed to find instruction for address " << item->addr_str
              << ", guid " << item->guid << "\n";
@@ -139,7 +153,9 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     }
     // update the instruction field of item
     item->instr = instr;
-    if (is_result_fuzzy) {
+    // record this in the map
+    guid_instr_map.emplace(item->guid, item->instr);
+    if (!is_result_exact) {
       errs() << "Found a fuzzily matched instruction for address "
              << item->addr_str << ", guid " << item->guid << ", instr "
              << item->var->instruction << " ~~ " << *instr << "\n";
