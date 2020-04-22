@@ -125,6 +125,7 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
   // We put it here for now just hope that we don't have to resolve some
   // GUIDs if they don't appear in the trace file...
   map<uint64_t, Instruction *> guid_instr_map;
+  map<uint64_t, std::string> failed_guids;
 
   for (auto &item : _items) {
     if (item->var == nullptr) continue;
@@ -134,6 +135,18 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
       // just re-use the result
       item->instr = git->second;
       SDEBUG(dbgs() << "Found matching instruction " << git->second << "\n");
+      continue;
+    }
+    auto fit = failed_guids.find(item->guid);
+    if (fit != failed_guids.end()) {
+      // For some GUIDs, we may have failed to resolve the address to
+      // instruction.
+      // For example, that GUID corresponds to an instruction that's from
+      // lowered atomic instruction while we're fed with the original bitcode
+      // file that only has the atomic instruction.
+      //
+      // In that case, it's futile to keep trying to resolve it, life has to
+      // go on...we'll report all failed GUID translation at the end.
       continue;
     }
 
@@ -147,8 +160,7 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
                                              true, true, &is_result_exact);
     if (!instr) {
-      errs() << "Failed to find instruction for address " << item->addr_str
-             << ", guid " << item->guid << "\n";
+      failed_guids.emplace(item->guid, item->addr_str);
       continue;
     }
     // update the instruction field of item
@@ -160,6 +172,10 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
              << item->addr_str << ", guid " << item->guid << ", instr "
              << item->var->instruction << " ~~ " << *instr << "\n";
     }
+  }
+  for (auto entry : failed_guids) {
+    errs() << "Failed to find instruction for address " << entry.second
+           << ", guid " << entry.first << "\n";
   }
   return true;
 }
