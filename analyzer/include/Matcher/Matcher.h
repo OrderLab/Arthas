@@ -107,7 +107,7 @@ class Matcher {
 
   llvm::Instruction *matchInstr(
       llvm::SmallVectorImpl<llvm::Instruction *> &candidates,
-      std::string &target_instr_str, bool fuzzy, bool ignore_dbg,
+      const std::string &target_instr_str, bool fuzzy, bool ignore_dbg,
       bool *is_result_exact = nullptr);
   llvm::Instruction *matchInstr(FileLine opt, std::string &instr_str,
                                 bool fuzzy, bool ignore_dbg,
@@ -125,9 +125,10 @@ class Matcher {
   void dumpSP(llvm::DISubprogram *SP);
   std::string normalizePath(llvm::StringRef fname);
 
-  static bool matchWithoutDbg(std::string &inst1_str, std::string &inst2_str);
-  static bool fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
-                           bool ignore_dbg);
+  static bool matchWithoutDbg(const std::string &inst1_str,
+                              const std::string &inst2_str);
+  static bool fuzzilyMatch(const std::string &inst1_str,
+                           const std::string &inst2_str, bool ignore_dbg);
 
  protected:
   bool spMatchFilename(llvm::DISubprogram *sp, const char *filename);
