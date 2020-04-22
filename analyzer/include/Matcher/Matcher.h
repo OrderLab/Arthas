@@ -107,10 +107,10 @@ class Matcher {
 
   llvm::Instruction *matchInstr(
       llvm::SmallVectorImpl<llvm::Instruction *> &candidates,
-      std::string target_instr_str, bool fuzzy, bool ignore_dbg,
+      std::string &target_instr_str, bool fuzzy, bool ignore_dbg,
       bool *is_result_exact = nullptr);
-  llvm::Instruction *matchInstr(FileLine opt, std::string instr_str, bool fuzzy,
-                                bool ignore_dbg,
+  llvm::Instruction *matchInstr(FileLine opt, std::string &instr_str,
+                                bool fuzzy, bool ignore_dbg,
                                 bool *is_result_exact = nullptr);
   llvm::Instruction *matchInstr(FunctionInstSeq opt);
 

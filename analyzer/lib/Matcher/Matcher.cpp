@@ -309,7 +309,7 @@ Instruction *Matcher::matchInstr(FunctionInstSeq opt) {
 }
 
 Instruction *Matcher::matchInstr(SmallVectorImpl<Instruction *> &candidates,
-                                 std::string target_instr_str, bool fuzzy,
+                                 std::string &target_instr_str, bool fuzzy,
                                  bool ignore_dbg, bool *is_result_exact) {
   Instruction *fuzzy_instr = nullptr;
   for (Instruction *instr : candidates) {
@@ -337,7 +337,7 @@ Instruction *Matcher::matchInstr(SmallVectorImpl<Instruction *> &candidates,
   return fuzzy_instr;
 }
 
-Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
+Instruction *Matcher::matchInstr(FileLine opt, std::string &instr_str,
                                  bool fuzzy, bool ignore_dbg,
                                  bool *is_result_exact) {
   if (instr_str.empty()) return nullptr;
@@ -374,7 +374,7 @@ bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
     size_t dbg_pos1 = inst1_str.find("!dbg");
     size_t dbg_pos2 = inst2_str.find("!dbg");
     inst1_str = inst1_str.substr(0, dbg_pos1);
-    inst2_str = inst1_str.substr(0, dbg_pos2);
+    inst2_str = inst2_str.substr(0, dbg_pos2);
   }
 
   std::sregex_token_iterator iter1(inst1_str.begin(), inst1_str.end(),
