@@ -28,6 +28,18 @@ add_definitions(-DENABLE_CFG)
 include_directories(${ROOT_SOURCE_DIR}/analyzer/third-party/dg/include)
 link_directories(third-party/dg/lib)
 
+# Generate the RPC C++ header and source files for the idl
+add_subdirectory(idl)
+
+if (REACTOR_PROTOS)
+  message(STATUS "Reactor protobuf definitions: ${REACTOR_PROTOS}")
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+  include(FindGrpcAndGenSrc)
+  set(REACTOR_PROTO_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/gen)
+  file(MAKE_DIRECTORY ${REACTOR_PROTO_GEN_DIR})
+  include_directories(${REACTOR_PROTO_GEN_DIR})
+endif()
+
 include_directories(include)
 include_directories(lib)
 
