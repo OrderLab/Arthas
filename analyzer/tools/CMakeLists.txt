@@ -3,6 +3,7 @@ target_link_libraries(extractor
   PUBLIC Utils
   PUBLIC PMem
   PUBLIC DefUse
+  PRIVATE Slicer
 )
 target_link_libraries(extractor
   PRIVATE ${llvm_irreader}
@@ -23,10 +24,13 @@ target_link_libraries(locator
 
 add_executable(instrumentor instrumentor/main.cpp)
 target_link_libraries(instrumentor
+  PUBLIC  PMem
+  PUBLIC  DefUse
   PRIVATE Instrumenter
   PRIVATE AddrTracker
   PRIVATE Utils
   PRIVATE Matcher
+  PRIVATE Slicer
 )
 target_link_libraries(instrumentor
   PRIVATE ${llvm_irreader}

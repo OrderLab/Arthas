@@ -162,7 +162,7 @@ void parse_args(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
   parse_args(argc, argv);
-  //struct checkpoint_log *c_log2 =
+  // struct checkpoint_log *c_log2 =
   //    reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
 
   LLVMContext context;
@@ -324,24 +324,24 @@ int main(int argc, char *argv[]) {
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
       for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-        //cout << "Inside Trace\n";
+        // cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
-         //errs() << *traceItem->instr << "\n";
-         //errs() << *dep_inst << "\n";
+        // errs() << "Trace item " << *traceItem->instr << "\n";
+        // errs() << "Dep Slice item " << *dep_inst << "\n";
         if (traceItem->instr == dep_inst) {
-           cout << "FOUND INSTRUCTION\n";
-           errs() << *traceItem->instr << "\n";
-           errs() << *dep_inst << "\n";
+          cout << "FOUND INSTRUCTION\n";
+          errs() << *traceItem->instr << "\n";
+          errs() << *dep_inst << "\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
-            cout << traceItem->addr << " " << 
-            (uint64_t)ordered_data[i].address << "\n";
+            cout << traceItem->addr << " " << (uint64_t)ordered_data[i].address
+                 << "\n";
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
                 ordered_data[i].sequence_number != starting_seq_num &&
                 reverted_sequence_numbers[ordered_data[i].sequence_number] !=
                     1) {
-               cout << "add to vector " << ordered_data[i].address <<
-              " " << ordered_data[i].sequence_number << "\n";
+              cout << "add to vector " << ordered_data[i].address << " "
+                   << ordered_data[i].sequence_number << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -351,7 +351,8 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-    // TODO: Testing of this needs to be done.
+    // FIXME: Remove this
+    break;
     // Here we should do reversion on collected seq numbers and try
     // try reexecution
     int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
@@ -362,7 +363,8 @@ int main(int argc, char *argv[]) {
                                  decided_slice_seq_numbers, decided_total);
     cout << "revert by seq num\n";
     revert_by_sequence_number_array(sorted_pmem_addresses, ordered_data,
-                                    decided_slice_seq_numbers, *decided_total);
+                                    decided_slice_seq_numbers, *decided_total,
+                                    c_log);
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       pmemobj_close((PMEMobjpool *)pop);
     if (*decided_total > 0) {
@@ -395,14 +397,18 @@ int main(int argc, char *argv[]) {
   // Maybe: put in loop alongside reexecution, decrementing
   // most likely sequence number to rollback.
 
-  // TODO: What to do if starting seq num is not the fault instruction?
-  starting_seq_num = 19;
+  // Step 6:  What to do if starting seq num is not the fault instruction?
+  starting_seq_num = 1;
+  /*seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, starting_seq_num,
+                              ordered_data, pop, pop, c_log);*/
   int curr_version = ordered_data[starting_seq_num].version;
   revert_by_sequence_number_nonslice((void *)last_pool.pool_addr->addr,
                                      ordered_data, starting_seq_num,
                                      curr_version - 1, pop);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+  if (strcmp(options.pmem_library, "libpmemobj") == 0) {
+    printf("closing this file\n");
     pmemobj_close((PMEMobjpool *)pop);
+  }
   int req_flag = re_execute(
       options.reexecute_cmd, options.version_num, addresses, c_log,
       pmem_addresses, num_data, options.pmem_file, options.pmem_layout, offsets,
