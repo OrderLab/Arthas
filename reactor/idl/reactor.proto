@@ -21,8 +21,8 @@ service ArthasReactor {
 }
 
 message ReactRequest {
-  // dummy name, could pass some arguments here
-  string name = 1;
+  // dummy arg, could pass some arguments here
+  string arg = 1;
 }
 
 message ReactReply {
