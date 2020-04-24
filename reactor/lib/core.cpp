@@ -31,22 +31,47 @@ uint32_t createDgFlags(struct dg_options &options) {
   return flags;
 }
 
-bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
-  unique_ptr<DgSlicer> _dgSlicer =
-      make_unique<DgSlicer>(_state->sys_module.get(), SliceDirection::Backward);
+bool Reactor::compute_dependencies() {
+  std::unique_lock<std::mutex> lk(_lock);
+  if (_state->dependency_computed) {
+    return true;
+  }
+  if (_state->computing_dependency) {
+    // if someone is already computing the dependency, we should wait until
+    // it's finished.
+    _cv.wait(lk, [this] { return this->_state->dependency_computed; });
+    // then we should just return as someone has computed the dependency for us
+    // already...
+    return true;
+  }
+  // dependency is not computed, and no one is computing the dependency,
+  // we are the one responsible for doing it. first, set the flag
+  _state->computing_dependency = true;
+
   // for intra-procedural slicing, uncomment the following:
   // uint32_t flags = SlicerDgFlags::ENABLE_PTA |
   //                 SlicerDgFlags::INTRA_PROCEDURAL |
   //                 SlicerDgFlags::SUPPORT_THREADS;
   uint32_t flags = createDgFlags(_state->options.dg_options);
-  auto llvm_dg_options = _dgSlicer->createDgOptions(flags);
-  _dgSlicer->computeDependencies(llvm_dg_options);
+  auto llvm_dg_options = _state->dg_slicer->createDgOptions(flags);
+  bool ok = _state->dg_slicer->computeDependencies(llvm_dg_options);
+  _state->dependency_computed = true;
+  // now we are done with the dependency computation
+  _state->computing_dependency = false;
+  _cv.notify_all();
+  return ok;
+}
 
+bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
+  if (!compute_dependencies()) {
+    return false;
+  }
   Function *F = fault_inst->getFunction();
   auto li = _state->pmem_var_locator_map.find(F);
   PMemVariableLocator *locator;
   if (li == _state->pmem_var_locator_map.end()) {
-    _state->pmem_var_locator_map.emplace(F, make_unique<PMemVariableLocator>());
+    _state->pmem_var_locator_map.emplace(
+        F, llvm::make_unique<PMemVariableLocator>());
     locator = _state->pmem_var_locator_map[F].get();
     locator->runOnFunction(*F);
   } else {
@@ -59,13 +84,13 @@ bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
     // if we specified slice control, add it to the slice flags
     dep_flags |= SliceDependenceFlags::CONTROL;
   }
-  SliceGraph *sg = _dgSlicer->slice(fault_inst, slice_id,
-                                    SlicingApproachKind::Storing, dep_flags);
+  SliceGraph *sg = _state->dg_slicer->slice(
+      fault_inst, slice_id, SlicingApproachKind::Storing, dep_flags);
   if (sg == nullptr) {
     errs() << "Failed to construct the slice graph for " << *fault_inst << "\n";
     return false;
   }
-  auto &st = _dgSlicer->getStatistics();
+  auto &st = _state->dg_slicer->getStatistics();
   unique_ptr<SliceGraph> slice_graph(sg);
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
@@ -180,6 +205,10 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
     cerr << "Failed to translate address to instructions, abort\n";
     return false;
   }
+
+  _state->dg_slicer = llvm::make_unique<DgSlicer>(_state->sys_module.get(),
+                                                  SliceDirection::Backward);
+  _state->ready = true;
   return true;
 }
 

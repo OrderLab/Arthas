@@ -21,8 +21,10 @@ service ArthasReactor {
 }
 
 message ReactRequest {
-  // dummy arg, could pass some arguments here
-  string arg = 1;
+  // the fault location
+  string fault_loc = 1;
+  // the fault instruction
+  string fault_instr = 2;
 }
 
 message ReactReply {
