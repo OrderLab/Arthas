@@ -109,13 +109,28 @@ Instruction *Reactor::locate_fault_instr(string &fault_loc, string &inst_str) {
   return _state->matcher.matchInstr(fileLine, inst_str, true, true);
 }
 
-bool Reactor::prepare(int argc, char *argv[]) {
+bool Reactor::prepare(int argc, char *argv[], bool server) {
   program = argv[0];
   if (!parse_options(argc, argv, _state->options)) {
-    fprintf(stderr, "Failed to parse the command line options\n");
+    cerr << "Failed to parse the command line options\n";
     return false;
   }
   struct reactor_options &options = _state->options;
+  if (!server) {
+    // if we are not running in the server mode, we should check a few more
+    // options including the fault instruction, which must be specified
+    // up-front
+    if (options.fault_instr.empty()) {
+      cerr << "fault instruction string is not set, specify it with -i\n";
+      usage();
+      return false;
+    }
+    if (options.fault_loc.empty()) {
+      cerr << "fault instruction location is not set, specify it with -c\n";
+      usage();
+      return false;
+    }
+  }
   if (options.pmem_library) {
     options.checkpoint_file = get_checkpoint_file(options.pmem_library);
     if (!options.checkpoint_file) return false;
@@ -124,13 +139,14 @@ bool Reactor::prepare(int argc, char *argv[]) {
     errs() << "No hook GUID file specified, abort reaction\n";
     return false;
   }
-  _state->sys_module = parseModule(_state->llvm_context, options.bc_file);
+
+  // Step 0: Parse bitcode file, warm-up matcher
+  _state->sys_module = parseModule(*_state->llvm_context, options.bc_file);
   _state->matcher.process(*_state->sys_module);
 
   // Step 1: Read static hook guid map file
   if (!PmemVarGuidMap::deserialize(options.hook_guid_file, _state->var_map)) {
-    fprintf(stderr, "Failed to parse hook GUID file %s\n",
-            options.hook_guid_file);
+    cerr << "Failed to parse hook GUID file " << options.hook_guid_file << endl;
     return false;
   }
   printf("successfully parsed hook guid map with %lu entries\n",
@@ -139,8 +155,7 @@ bool Reactor::prepare(int argc, char *argv[]) {
   // Step 2.a: Read dynamic address trace file
   if (!PmemAddrTrace::deserialize(options.address_file, &_state->var_map,
                                   _state->addr_trace)) {
-    fprintf(stderr, "Failed to parse hook GUID file %s\n",
-            options.hook_guid_file);
+    cerr << "Failed to parse hook GUID file " << options.hook_guid_file << endl;
     return false;
   }
   printf("successfully parsed %lu dynamic address trace items\n",
@@ -148,22 +163,21 @@ bool Reactor::prepare(int argc, char *argv[]) {
 
   // FIXME: should support libpmem reactor, which does not have a pool address.
   if (_state->addr_trace.pool_empty()) {
-    fprintf(stderr, "No pool address found in the address trace file, abort\n");
+    cerr << "No pool address found in the address trace file, abort\n";
     return false;
   }
 
   // Step 2.b: Convert collected addresses to pointers and offsets
   // FIXME: here, we are assuming the target program only has a single pool.
   if (!_state->addr_trace.calculatePoolOffsets()) {
-    fprintf(stderr,
-            "Failed to calculate the address offsets w.r.t the pool address in "
-            "the address trace file, abort\n");
+    cerr << "Failed to calculate the address offsets w.r.t the pool address in "
+            "the address trace file, abort\n";
     return false;
   }
 
   // map address to instructions
   if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
-    fprintf(stderr, "Failed to translate address to instructions, abort\n");
+    cerr << "Failed to translate address to instructions, abort\n";
     return false;
   }
   return true;
@@ -172,19 +186,19 @@ bool Reactor::prepare(int argc, char *argv[]) {
 bool Reactor::react(std::string fault_loc, string inst_str,
                     reaction_result *result) {
   if (!_state->ready) {
-    fprintf(stderr, "Reactor state is not ready, abort\n");
+    cerr << "Reactor state is not ready, abort\n";
     return false;
   }
   struct reactor_options &options = _state->options;
   Instruction *fault_inst = locate_fault_instr(fault_loc, inst_str);
   if (!fault_inst) {
-    fprintf(stderr, "Failed to locate the fault instruction\n");
+    cerr << "Failed to locate the fault instruction\n";
     return false;
   }
   errs() << "Located fault instruction " << *fault_inst << "\n";
   Slices fault_slices;
   if (!slice_fault_instr(fault_slices, fault_inst)) {
-    fprintf(stderr, "Failed to compute slices for the fault instructions\n");
+    cerr << "Failed to compute slices for the fault instructions\n";
     return false;
   }
   errs() << "Computed " << fault_slices.size()
@@ -200,8 +214,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     pop = (void *)pmem_map_file(options.pmem_file, PMEM_LEN, PMEM_FILE_CREATE,
                                 0666, &mapped_len, &is_pmem);
   if (pop == NULL) {
-    printf("Could not open pmem file %s to get pool start address\n",
-           options.pmem_file);
+    cerr << "Could not open pmem file " << options.pmem_file
+         << " to get pool start address\n";
     return -1;
   }
 
@@ -209,8 +223,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = _state->addr_trace.pool_addrs().back();
   if (last_pool.addresses.empty()) {
-    fprintf(stderr, "Last pool %s has no associated addresses in the trace\n",
-            last_pool.pool_addr->addr_str.c_str());
+    cerr << "Last pool " << last_pool.pool_addr->addr_str
+         << " has no associated addresses in the trace\n";
     return false;
   }
   printf("Pool %s has %lu associated addresses in the trace\n",

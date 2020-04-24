@@ -42,14 +42,19 @@ struct reaction_result {
 
 class ReactorState {
  public:
-  ReactorState() { ready = false; }
+  ReactorState(std::unique_ptr<llvm::LLVMContext> ctx)
+      : ready(false), sys_module(nullptr), llvm_context(std::move(ctx)) {}
+
+  ~ReactorState() {
+    if (sys_module) delete sys_module.release();
+  }
 
   bool ready;
   struct reactor_options options;
   std::unique_ptr<llvm::Module> sys_module;
+  std::unique_ptr<llvm::LLVMContext> llvm_context;
   llvm::instrument::PmemVarGuidMap var_map;
   llvm::instrument::PmemAddrTrace addr_trace;
-  llvm::LLVMContext llvm_context;
   llvm::matching::Matcher matcher;
   std::map<llvm::Function *, std::unique_ptr<llvm::pmem::PMemVariableLocator>>
       pmem_var_locator_map;
@@ -57,13 +62,14 @@ class ReactorState {
 
 class Reactor {
  public:
-  Reactor() : _state(new ReactorState()) {}
+  Reactor(std::unique_ptr<llvm::LLVMContext> ctx)
+      : _state(llvm::make_unique<ReactorState>(std::move(ctx))) {}
 
   bool slice_fault_instr(llvm::slicing::Slices &slices,
                          llvm::Instruction *fault_inst);
   llvm::Instruction *locate_fault_instr(std::string &fault_loc,
                                         std::string &inst_str);
-  bool prepare(int argc, char *argv[]);
+  bool prepare(int argc, char *argv[], bool server);
   bool react(std::string fault_loc, std::string inst_str,
              reaction_result *result);
   ReactorState *get_state() { return _state.get(); }

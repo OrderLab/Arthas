@@ -228,26 +228,16 @@ bool check_options(reactor_options_t &options) {
             "re-execution command is not set, specify it with -r or --rxcmd\n");
     return false;
   }
-  if (options.fault_instr.empty()) {
-    fprintf(stderr,
-            "fault instruction string is not set, specify it with -i or "
-            "--fault-inst\n");
-    return false;
-  }
-  if (options.fault_loc.empty()) {
-    fprintf(stderr,
-            "fault instruction location is not set, specify it with -c or "
-            "--fault-loc\n");
-    return false;
-  }
-  size_t n =
-      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
-  if (n < 1 || n > 2) {
-    fprintf(
-        stderr,
-        "invalid location specifier %s, it must be <file:line[:func]> format\n",
-        options.fault_loc.c_str());
-    return false;
+  if (!options.fault_loc.empty()) {
+    size_t n =
+        std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
+    if (n < 1 || n > 2) {
+      fprintf(stderr,
+              "invalid location specifier %s, it must be <file:line[:func]> "
+              "format\n",
+              options.fault_loc.c_str());
+      return false;
+    }
   }
   if (options.bc_file.empty()) {
     fprintf(stderr,
