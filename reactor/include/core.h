@@ -80,6 +80,20 @@ class Reactor {
   std::unique_ptr<ReactorState> _state;
 };
 
+class PmemAddrOffsetList {
+ public:
+  PmemAddrOffsetList(size_t size);
+  ~PmemAddrOffsetList();
+
+  size_t num_data;
+  uint64_t *offsets;
+  void **addresses;
+  void **pmem_addresses;
+
+  void **sorted_addresses;
+  void **sorted_pmem_addresses;
+};
+
 }  // namespace arthas
 
 #endif /* _REACTOR_CORE_H_ */
