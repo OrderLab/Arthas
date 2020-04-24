@@ -1,22 +1,8 @@
 add_executable(reactor 
-  reactor-opts.cpp
-  reactor.cpp
+  main.cpp
 )
 target_link_libraries(reactor
-  PUBLIC checkpoint
-  PUBLIC rollback
-  PRIVATE Instrumenter
-  PRIVATE Slicer
-  PRIVATE Matcher
-  PRIVATE Utils
-  PRIVATE ${PMEM_LIBRARIES}
-  PRIVATE pthread 
-  PRIVATE dl
-  PRIVATE Matcher
-  PRIVATE DefUse
-  PRIVATE ${llvm_irreader}
-  PRIVATE ${llvm_support}
-  PRIVATE ${llvm_core}
+  PUBLIC reactor_core
 )
 
 grpc_generate_cpp_src(REACTOR_PROTO_SRCS REACTOR_PROTO_HDRS REACTOR_GRPC_SRCS 

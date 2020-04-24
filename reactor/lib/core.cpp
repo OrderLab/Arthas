@@ -6,45 +6,16 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
-#include <libpmemobj.h>
-#include <pthread.h>
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <string>
-
-#include "checkpoint.h"
-#include "rollback.h"
-
-#include "reactor-opts.h"
-
-#include "DefUse/DefUse.h"
-#include "Instrument/PmemAddrTrace.h"
-#include "Instrument/PmemVarGuidMap.h"
-#include "Matcher/Matcher.h"
-#include "PMem/Extractor.h"
-#include "Slicing/Slice.h"
-#include "Slicing/SliceCriteria.h"
-#include "Slicing/Slicer.h"
-#include "Utils/LLVM.h"
-#include "Utils/String.h"
-
-#include "llvm/Support/FileSystem.h"
+#include "core.h"
 
 using namespace std;
 using namespace llvm;
+using namespace arthas;
 using namespace llvm::slicing;
 using namespace llvm::pmem;
 using namespace llvm::instrument;
 using namespace llvm::defuse;
 using namespace llvm::matching;
-
-Instruction *faultInstr;
-Slices faultSlices;
-PmemVarGuidMap varMap;
-PmemAddrTrace addrTrace;
-
-struct reactor_options options;
 
 uint32_t createDgFlags(struct dg_options &options) {
   uint32_t flags = 0;
@@ -60,30 +31,31 @@ uint32_t createDgFlags(struct dg_options &options) {
   return flags;
 }
 
-bool slice_fault_instruction(Module *M, Slices &slices,
-                             Instruction *fault_inst) {
+bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   unique_ptr<DgSlicer> _dgSlicer =
-      make_unique<DgSlicer>(M, SliceDirection::Backward);
+      make_unique<DgSlicer>(_state->sys_module.get(), SliceDirection::Backward);
   // for intra-procedural slicing, uncomment the following:
   // uint32_t flags = SlicerDgFlags::ENABLE_PTA |
   //                 SlicerDgFlags::INTRA_PROCEDURAL |
   //                 SlicerDgFlags::SUPPORT_THREADS;
-  uint32_t flags = createDgFlags(options.dg_options);
+  uint32_t flags = createDgFlags(_state->options.dg_options);
   auto llvm_dg_options = _dgSlicer->createDgOptions(flags);
   _dgSlicer->computeDependencies(llvm_dg_options);
 
-  map<Function *, unique_ptr<PMemVariableLocator>> locatorMap;
   Function *F = fault_inst->getFunction();
-  auto li = locatorMap.find(F);
-  if (li == locatorMap.end()) {
-    locatorMap.insert(make_pair(F, make_unique<PMemVariableLocator>()));
+  auto li = _state->pmem_var_locator_map.find(F);
+  PMemVariableLocator *locator;
+  if (li == _state->pmem_var_locator_map.end()) {
+    _state->pmem_var_locator_map.emplace(F, make_unique<PMemVariableLocator>());
+    locator = _state->pmem_var_locator_map[F].get();
+    locator->runOnFunction(*F);
+  } else {
+    locator = _state->pmem_var_locator_map[F].get();
   }
-  PMemVariableLocator *locator = locatorMap[F].get();
-  locator->runOnFunction(*F);
 
   uint32_t slice_id = 0;
   uint32_t dep_flags = DEFAULT_DEPENDENCY_FLAGS;
-  if (options.dg_options.slice_ctrl) {
+  if (_state->options.dg_options.slice_ctrl) {
     // if we specified slice control, add it to the slice flags
     dep_flags |= SliceDependenceFlags::CONTROL;
   }
@@ -117,126 +89,107 @@ bool slice_fault_instruction(Module *M, Slices &slices,
   return true;
 }
 
-Instruction *locate_fault_instruction(Module *M, Matcher *matcher) {
-  if (!matcher->processed()) {
+Instruction *Reactor::locate_fault_instr(string &fault_loc, string &inst_str) {
+  if (!_state->matcher.processed()) {
     errs() << "Matcher is not ready, cannot use it\n";
     return nullptr;
   }
   FileLine fileLine;
-  size_t n =
-      std::count(options.fault_loc.begin(), options.fault_loc.end(), ':');
-
+  size_t n = std::count(fault_loc.begin(), fault_loc.end(), ':');
   if (n == 1) {
-    FileLine::fromCriterionStr(options.fault_loc, fileLine);
+    FileLine::fromCriterionStr(fault_loc, fileLine);
   } else if (n == 2) {
-    size_t pos = options.fault_loc.rfind(':');
-    FileLine::fromCriterionStr(options.fault_loc.substr(0, pos), fileLine);
+    size_t pos = fault_loc.rfind(':');
+    FileLine::fromCriterionStr(fault_loc.substr(0, pos), fileLine);
   } else {
-    errs() << "invalid fault location specifier " << options.fault_loc << "\n";
+    errs() << "invalid fault location specifier " << fault_loc << "\n";
     return nullptr;
   }
   // enable fuzzy matching and ignore !dbg metadata if necessary
-  return matcher->matchInstr(fileLine, options.fault_instr, true, true);
+  return _state->matcher.matchInstr(fileLine, inst_str, true, true);
 }
 
-void parse_args(int argc, char *argv[]) {
+bool Reactor::prepare(int argc, char *argv[]) {
   program = argv[0];
-  if (!parse_options(argc, argv, options)) {
+  if (!parse_options(argc, argv, _state->options)) {
     fprintf(stderr, "Failed to parse the command line options\n");
-    usage();
-    exit(1);
+    return false;
   }
+  struct reactor_options &options = _state->options;
   if (options.pmem_library) {
-    if (strcmp(options.pmem_library, "libpmem") == 0) {
-      options.checkpoint_file = "/mnt/pmem/pmem_checkpoint.pm";
-    } else if (options.pmem_library &&
-               strcmp(options.pmem_library, "libpmemobj") == 0) {
-      options.checkpoint_file = "/mnt/pmem/checkpoint.pm";
-    } else {
-      fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
-      usage();
-      exit(1);
-    }
+    options.checkpoint_file = get_checkpoint_file(options.pmem_library);
+    if (!options.checkpoint_file) return false;
   }
-}
-
-int main(int argc, char *argv[]) {
-  parse_args(argc, argv);
-  //struct checkpoint_log *c_log2 =
-  //    reconstruct_checkpoint(options.checkpoint_file, options.pmem_library);
-
-  LLVMContext context;
-  unique_ptr<Module> M = parseModule(context, options.bc_file);
-  Matcher matcher;
-  matcher.process(*M);
-
-  faultInstr = locate_fault_instruction(M.get(), &matcher);
-  if (!faultInstr) {
-    errs() << "Failed to locate the fault instruction\n";
-    return 1;
-  }
-  errs() << "Located fault instruction " << *faultInstr << "\n";
-
-  if (!slice_fault_instruction(M.get(), faultSlices, faultInstr)) {
-    errs() << "Failed to compute the slices for the fault instructions\n";
-    return 1;
-  }
-
-  errs() << "Computed " << faultSlices.size()
-         << " slices of the fault instruction\n";
-
   if (!options.hook_guid_file) {
     errs() << "No hook GUID file specified, abort reaction\n";
-    return 1;
+    return false;
   }
+  _state->sys_module = parseModule(_state->llvm_context, options.bc_file);
+  _state->matcher.process(*_state->sys_module);
 
   // Step 1: Read static hook guid map file
-  if (!PmemVarGuidMap::deserialize(options.hook_guid_file, varMap)) {
+  if (!PmemVarGuidMap::deserialize(options.hook_guid_file, _state->var_map)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
             options.hook_guid_file);
-    return 1;
+    return false;
   }
-  printf("successfully parsed hook guid map with %lu entries\n", varMap.size());
+  printf("successfully parsed hook guid map with %lu entries\n",
+         _state->var_map.size());
 
   // Step 2.a: Read dynamic address trace file
-  if (!PmemAddrTrace::deserialize(options.address_file, &varMap, addrTrace)) {
+  if (!PmemAddrTrace::deserialize(options.address_file, &_state->var_map,
+                                  _state->addr_trace)) {
     fprintf(stderr, "Failed to parse hook GUID file %s\n",
             options.hook_guid_file);
-    return 1;
+    return false;
   }
   printf("successfully parsed %lu dynamic address trace items\n",
-         addrTrace.size());
+         _state->addr_trace.size());
 
   // FIXME: should support libpmem reactor, which does not have a pool address.
-  if (addrTrace.pool_empty()) {
+  if (_state->addr_trace.pool_empty()) {
     fprintf(stderr, "No pool address found in the address trace file, abort\n");
-    return 1;
+    return false;
   }
 
   // Step 2.b: Convert collected addresses to pointers and offsets
   // FIXME: here, we are assuming the target program only has a single pool.
-  if (!addrTrace.calculatePoolOffsets()) {
+  if (!_state->addr_trace.calculatePoolOffsets()) {
     fprintf(stderr,
             "Failed to calculate the address offsets w.r.t the pool address in "
             "the address trace file, abort\n");
-    return 1;
+    return false;
   }
 
   // map address to instructions
-  if (!addrTrace.addressesToInstructions(&matcher)) {
+  if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
     fprintf(stderr, "Failed to translate address to instructions, abort\n");
+    return false;
   }
+  return true;
+}
 
-  // Step 2.c: Calculating offsets from pointers
-  // FIXME: assuming last pool is the pool of the pmemobj_open
-  PmemAddrPool &last_pool = addrTrace.pool_addrs().back();
-  if (last_pool.addresses.empty()) {
-    fprintf(stderr, "Last pool %s has no associated addresses in the trace\n",
-            last_pool.pool_addr->addr_str.c_str());
-    return 1;
+bool Reactor::react(std::string fault_loc, string inst_str,
+                    reaction_result *result) {
+  if (!_state->ready) {
+    fprintf(stderr, "Reactor state is not ready, abort\n");
+    return false;
   }
-  printf("Pool %s has %lu associated addresses in the trace\n",
-         last_pool.pool_addr->addr_str.c_str(), last_pool.addresses.size());
+  struct reactor_options &options = _state->options;
+  Instruction *fault_inst = locate_fault_instr(fault_loc, inst_str);
+  if (!fault_inst) {
+    fprintf(stderr, "Failed to locate the fault instruction\n");
+    return false;
+  }
+  errs() << "Located fault instruction " << *fault_inst << "\n";
+  Slices fault_slices;
+  if (!slice_fault_instr(fault_slices, fault_inst)) {
+    fprintf(stderr, "Failed to compute slices for the fault instructions\n");
+    return false;
+  }
+  errs() << "Computed " << fault_slices.size()
+         << " slices of the fault instruction\n";
+
   // PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
   void *pop;
   size_t mapped_len;
@@ -251,6 +204,18 @@ int main(int argc, char *argv[]) {
            options.pmem_file);
     return -1;
   }
+
+  // Step 2.c: Calculating offsets from pointers
+  // FIXME: assuming last pool is the pool of the pmemobj_open
+  PmemAddrPool &last_pool = _state->addr_trace.pool_addrs().back();
+  if (last_pool.addresses.empty()) {
+    fprintf(stderr, "Last pool %s has no associated addresses in the trace\n",
+            last_pool.pool_addr->addr_str.c_str());
+    return false;
+  }
+  printf("Pool %s has %lu associated addresses in the trace\n",
+         last_pool.pool_addr->addr_str.c_str(), last_pool.addresses.size());
+
   size_t num_data = last_pool.addresses.size();
   uint64_t *offsets = (uint64_t *)malloc(num_data * sizeof(uint64_t));
   void **addresses = (void **)malloc(num_data * sizeof(void *));
@@ -301,9 +266,10 @@ int main(int argc, char *argv[]) {
                           sorted_pmem_addresses, offsets);
 
   // Step 5d: revert by sequence number
-  for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
+  for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
+       it++) {
     PmemAddrTraceItem *traceItem = *it;
-    if (traceItem->instr == faultInstr) {
+    if (traceItem->instr == fault_inst) {
       for (int i = *total_size; i >= 0; i--) {
         if (traceItem->addr == (uint64_t)ordered_data[i].address) {
           starting_seq_num = ordered_data[i].sequence_number;
@@ -319,31 +285,32 @@ int main(int argc, char *argv[]) {
     slice_seq_numbers[0] = starting_seq_num;
     reverted_sequence_numbers[starting_seq_num] = 1;
   }
-  for (Slice *slice : faultSlices) {
+  for (Slice *slice : fault_slices) {
     for (auto &slice_item : *slice) {
       auto dep_inst = slice_item.first;
       // Iterate through addTraceList, find relevant address
       // for dep_inst, find address inside of ordered_data,
       // find corresponding sequence numbers for address
-      for (auto it = addrTrace.begin(); it != addrTrace.end(); it++) {
-        //cout << "Inside Trace\n";
+      for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
+           it++) {
+        // cout << "Inside Trace\n";
         PmemAddrTraceItem *traceItem = *it;
-         //errs() << *traceItem->instr << "\n";
-         //errs() << *dep_inst << "\n";
+        // errs() << *traceItem->instr << "\n";
+        // errs() << *dep_inst << "\n";
         if (traceItem->instr == dep_inst) {
-           cout << "FOUND INSTRUCTION\n";
-           errs() << *traceItem->instr << "\n";
-           errs() << *dep_inst << "\n";
+          cout << "FOUND INSTRUCTION\n";
+          errs() << *traceItem->instr << "\n";
+          errs() << *dep_inst << "\n";
           // We found the address for the instruction: traceItem->addr
           for (int i = *total_size; i >= 0; i--) {
-            cout << traceItem->addr << " " << 
-            (uint64_t)ordered_data[i].address << "\n";
+            cout << traceItem->addr << " " << (uint64_t)ordered_data[i].address
+                 << "\n";
             if (traceItem->addr == (uint64_t)ordered_data[i].address &&
                 ordered_data[i].sequence_number != starting_seq_num &&
                 reverted_sequence_numbers[ordered_data[i].sequence_number] !=
                     1) {
-               cout << "add to vector " << ordered_data[i].address <<
-              " " << ordered_data[i].sequence_number << "\n";
+              cout << "add to vector " << ordered_data[i].address << " "
+                   << ordered_data[i].sequence_number << "\n";
               slice_seq_numbers[slice_seq_iterator] =
                   ordered_data[i].sequence_number;
               slice_seq_iterator++;
@@ -464,4 +431,19 @@ int main(int argc, char *argv[]) {
   free(pmem_addresses);
   free(offsets);
   // free reexecution_lines and string arrays here
+  return true;
 }
+
+const char *Reactor::get_checkpoint_file(const char *pmem_library) {
+  // FIXME: ugly......
+  if (strcmp(pmem_library, "libpmem") == 0) {
+    return "/mnt/pmem/pmem_checkpoint.pm";
+  } else if (strcmp(pmem_library, "libpmemobj") == 0) {
+    return "/mnt/pmem/checkpoint.pm";
+  } else {
+    fprintf(stderr, "Unrecognized pmem library %s\n", pmem_library);
+    return nullptr;
+  }
+}
+
+void parse_args(int argc, char *argv[]) {}
