@@ -10,8 +10,10 @@ using namespace llvm::defuse;
 using namespace llvm::matching;
 
 int main(int argc, char *argv[]) {
-  unique_ptr<Reactor> reactor = make_unique<Reactor>();
-  if (!reactor->prepare(argc, argv)) {
+  unique_ptr<Reactor> reactor =
+      make_unique<Reactor>(make_unique<LLVMContext>());
+  // This is a stand-alone mode
+  if (!reactor->prepare(argc, argv, false)) {
     cerr << "Failed to prepare reactor, abort\n";
     exit(1);
   }
