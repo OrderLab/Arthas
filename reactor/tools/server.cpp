@@ -6,9 +6,12 @@
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //
 
+#include "core.h"
+
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
@@ -25,20 +28,76 @@ using reactor::ReactRequest;
 using reactor::ReactReply;
 using reactor::ArthasReactor;
 
+using namespace std;
+using namespace llvm;
+using namespace arthas;
+using namespace llvm::slicing;
+using namespace llvm::pmem;
+using namespace llvm::instrument;
+using namespace llvm::defuse;
+using namespace llvm::matching;
+
 // Logic and data behind the server's behavior.
 class ReactorServiceImpl final : public ArthasReactor::Service {
+ public:
+  ReactorServiceImpl(int argc, char* argv[]) {
+    reactor = make_unique<Reactor>(make_unique<LLVMContext>());
+    this->argc = argc;
+    this->argv = argv;
+    ready = false;
+    background_thd = std::thread(&ReactorServiceImpl::do_background_job, this);
+  }
+
+  bool do_background_job() {
+    // This is a server mode
+    if (!reactor->prepare(argc, argv, true)) {
+      cerr << "Failed to prepare reactor, abort\n";
+      exit(1);
+    }
+    cout << "Done with preparation work for reactor, ready to serve\n";
+    ready = true;
+    // dependency graph is time consuming to construct...
+    reactor->compute_dependencies();
+    cout << "Done with computing the program dependency graph\n";
+    return true;
+  }
+
   Status react(ServerContext* context, const ReactRequest* request,
                ReactReply* reply) override {
+    string fault_loc = request->fault_loc();
+    string fault_instr = request->fault_instr();
+    cout << "Reactor got a request to react to fault instruction "
+         << fault_instr << " at " << fault_loc << endl;
+    if (!ready) {
+      reply->set_success(false);
+      reply->set_tries(0);
+      cerr << "Reactor is not ready, cannot react\n";
+      return Status::CANCELLED;
+    }
+    reaction_result result;
+    if (!reactor->react(fault_loc, fault_instr, &result)) {
+      reply->set_success(false);
+      reply->set_tries(0);
+      cerr << "Reactor failed to mitigate this fault " << fault_instr << endl;
+      return Status::OK;
+    }
     reply->set_success(true);
-    reply->set_tries(request->arg().size());
+    reply->set_tries(result.trials);
     return Status::OK;
   }
+
+ private:
+  thread background_thd;
+  bool ready;
+  int argc;
+  char** argv;
+  unique_ptr<Reactor> reactor;
 };
 
-void RunServer() {
-  std::string server_address("0.0.0.0:50051");
-  ReactorServiceImpl service;
+void RunServer(int argc, char** argv) {
+  ReactorServiceImpl service(argc, argv);
 
+  std::string server_address("0.0.0.0:50051");
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
@@ -57,6 +116,6 @@ void RunServer() {
 }
 
 int main(int argc, char** argv) {
-  RunServer();
+  RunServer(argc, argv);
   return 0;
 }
