@@ -130,8 +130,8 @@ unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst,
   slice_graph->computeSlices(slices);
   *_out_stream << "=================Slice list " << slice_graph->slice_id();
   *_out_stream << "=================\n";
+  auto &persistent_vars = locator.vars();
   for (Slice *slice : slices) {
-    auto persistent_vars = locator.vars().getArrayRef();
     slice->setPersistence(persistent_vars);
     slice->dump(*_out_stream);
   }
