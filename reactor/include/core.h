@@ -42,17 +42,21 @@ struct reaction_result {
   uint32_t trials;
 };
 
+enum class ReactorMode { SERVER, STANDALONE };
+
 class ReactorState {
  public:
   ReactorState(std::unique_ptr<llvm::LLVMContext> ctx)
-      : ready(false), sys_module(nullptr), llvm_context(std::move(ctx)),
-        dependency_computed(false), computing_dependency(false),
-        trace_ready(false), trace_processed(false), processing_trace(false) {}
+      : mode(ReactorMode::STANDALONE), ready(false), sys_module(nullptr),
+        llvm_context(std::move(ctx)), dependency_computed(false),
+        computing_dependency(false), trace_ready(false), trace_processed(false),
+        processing_trace(false) {}
 
   ~ReactorState() {
     if (sys_module) delete sys_module.release();
   }
 
+  ReactorMode mode;
   bool ready;
   struct reactor_options options;
   std::unique_ptr<llvm::slicing::DgSlicer> dg_slicer;
