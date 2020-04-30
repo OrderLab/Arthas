@@ -53,9 +53,16 @@ class PmemAddrTraceItem {
   // the LLVM instruction responsible for generating the address
   llvm::Instruction *instr;
 
+  static const char *FieldSeparator;
+  // should be consistent with address tracker runtime lib
+  static const int EntryFields = 2;
+
   PmemAddrTraceItem()
       : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
         var(nullptr), instr(nullptr) {}
+
+  static bool parse(std::string &item_str, PmemAddrTraceItem &item,
+                    PmemVarGuidMap *varMap = nullptr);
 };
 
 class PmemAddrPool {
@@ -74,10 +81,6 @@ class PmemAddrTrace {
   typedef TraceListTy::const_iterator const_iterator;
   typedef TracePoolListTy::iterator pool_iterator;
   typedef TracePoolListTy::const_iterator const_pool_iterator;
-
-  static const char *FieldSeparator;
-  // should be consistent with address tracker runtime lib
-  static const int EntryFields = 2;
 
  public:
   ~PmemAddrTrace();

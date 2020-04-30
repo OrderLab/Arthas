@@ -33,7 +33,7 @@ using namespace llvm::instrument;
 using namespace llvm::matching;
 
 // Must be consistent with the field separator used in the address tracker lib
-const char *PmemAddrTrace::FieldSeparator = ",";
+const char *PmemAddrTraceItem::FieldSeparator = ",";
 
 // the pmemobj_create call instruction string to identify pool addresses
 static const char *PmemObjCreateCallInstrStr =
@@ -44,6 +44,50 @@ static const char *PmemCreateCallInstrStr = "call i8* @pmem_map_file";
 
 // regular expression for the register format in the LLVM instruction: %N
 static const regex register_regex("\\%\\d+");
+
+bool PmemAddrTraceItem::parse(string &item_str, PmemAddrTraceItem &item,
+                              PmemVarGuidMap *varMap) {
+  vector<string> parts;
+  splitList(item_str, FieldSeparator, parts);
+  if (parts.size() != EntryFields) {
+    return false;
+  }
+  item.addr_str = parts[0];
+  // convert the hex address into a decimal uint64 value
+  if (item.addr_str[0] == '0' &&
+      (item.addr_str[1] == 'x' || item.addr_str[1] == 'X')) {
+    // remove the 0x or 0X prefix in the address string
+    item.addr = str2fmt<uint64_t>(item.addr_str.substr(2), true);
+  } else {
+    // the address string is not prefixed with 0x or 0X
+    item.addr = str2fmt<uint64_t>(item.addr_str, true);
+  }
+  item.guid = str2fmt<uint64_t>(parts[1]);
+  if (varMap != nullptr) {
+    // if the GUID map is supplied, we'll resolve the corresponding pmem
+    // variable information from the map with the GUID
+    auto vi = varMap->find(item.guid);
+    if (vi != varMap->end()) {
+      item.var = &vi->second;
+      // FIXME: for now we identify whether a trace item is from a pool
+      // address
+      // by checking the associated instruction string in the map.
+      // Another way is to directly record a flag in the trace entry to
+      // indicate whether the address is a pool address. This would
+      // require modifying the instrumenter and address tracker lib API.
+      if (item.var->instruction.find(PmemObjCreateCallInstrStr) !=
+          string::npos) {
+        errs() << "Found a pool address " << item.addr_str << "\n";
+        item.is_pool = true;
+      } else if (item.var->instruction.find(PmemCreateCallInstrStr) !=
+                 string::npos) {
+        errs() << "Found a libpmem file address " << item.addr_str << "\n";
+        item.is_mmap = true;
+      }
+    }
+  }
+  return true;
+}
 
 PmemAddrTrace::~PmemAddrTrace() {
   for (auto item : _items) {
@@ -63,48 +107,10 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
   unsigned lineno = 0;
   while (getline(addrfile, line)) {
     lineno++;
-    vector<string> parts;
-    splitList(line, FieldSeparator, parts);
-    if (parts.size() != EntryFields) {
-      errs() << "Unrecognized line " << lineno << ", expecting " << EntryFields
-             << " fields got " << parts.size() << " fields:" << line << "\n";
-      if (!ignoreBadLine) return false;
-      continue;
-    }
     PmemAddrTraceItem *item = new PmemAddrTraceItem();
-    item->addr_str = parts[0];
-    // convert the hex address into a decimal uint64 value
-    if (item->addr_str[0] == '0' &&
-        (item->addr_str[1] == 'x' || item->addr_str[1] == 'X')) {
-      // remove the 0x or 0X prefix in the address string
-      item->addr = str2fmt<uint64_t>(item->addr_str.substr(2), true);
-    } else {
-      // the address string is not prefixed with 0x or 0X
-      item->addr = str2fmt<uint64_t>(item->addr_str, true);
-    }
-    item->guid = str2fmt<uint64_t>(parts[1]);
-    if (varMap != nullptr) {
-      // if the GUID map is supplied, we'll resolve the corresponding pmem
-      // variable information from the map with the GUID
-      auto vi = varMap->find(item->guid);
-      if (vi != varMap->end()) {
-        item->var = &vi->second;
-        // FIXME: for now we identify whether a trace item is from a pool
-        // address
-        // by checking the associated instruction string in the map.
-        // Another way is to directly record a flag in the trace entry to
-        // indicate whether the address is a pool address. This would
-        // require modifying the instrumenter and address tracker lib API.
-        if (item->var->instruction.find(PmemObjCreateCallInstrStr) !=
-            string::npos) {
-          errs() << "Found a pool address " << item->addr_str << "\n";
-          item->is_pool = true;
-        } else if (item->var->instruction.find(PmemCreateCallInstrStr) !=
-                   string::npos) {
-          errs() << "Found a libpmem file address " << item->addr_str << "\n";
-          item->is_mmap = true;
-        }
-      }
+    if (!PmemAddrTraceItem::parse(line, *item, varMap)) {
+      errs() << "Unrecognized line " << lineno << ": " << line << "\n";
+      continue;
     }
     result.add(item);
   }
