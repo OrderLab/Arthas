@@ -53,9 +53,16 @@ class PmemAddrTraceItem {
   // the LLVM instruction responsible for generating the address
   llvm::Instruction *instr;
 
+  static const char *FieldSeparator;
+  // should be consistent with address tracker runtime lib
+  static const int EntryFields = 2;
+
   PmemAddrTraceItem()
       : addr(0), guid(0), pool_offset(0), is_pool(false), is_mmap(false),
         var(nullptr), instr(nullptr) {}
+
+  static bool parse(std::string &item_str, PmemAddrTraceItem &item,
+                    PmemVarGuidMap *varMap = nullptr);
 };
 
 class PmemAddrPool {
@@ -75,10 +82,6 @@ class PmemAddrTrace {
   typedef TracePoolListTy::iterator pool_iterator;
   typedef TracePoolListTy::const_iterator const_pool_iterator;
 
-  static const char *FieldSeparator;
-  // should be consistent with address tracker runtime lib
-  static const int EntryFields = 2;
-
  public:
   ~PmemAddrTrace();
 
@@ -96,6 +99,8 @@ class PmemAddrTrace {
   size_t size() const { return _items.size(); }
   TraceListTy &items() { return _items; }
 
+  void clear();
+
   pool_iterator pool_begin() { return _pool_addrs.begin(); }
   pool_iterator pool_end() { return _pool_addrs.end(); }
   const_pool_iterator pool_begin() const { return _pool_addrs.begin(); }
@@ -104,8 +109,12 @@ class PmemAddrTrace {
   bool pool_empty() const { return _pool_addrs.empty(); }
   TracePoolListTy &pool_addrs() { return _pool_addrs; }
 
-  // Map the address in the trace to the corresponding LLVM instructions
+  // Map all addresses in the trace to the corresponding LLVM instructions
   bool addressesToInstructions(matching::Matcher *matcher);
+  // Map one address in the trace to the corresponding LLVM instruction
+  bool addressToInstruction(PmemAddrTraceItem *item,
+                            matching::Matcher *matcher);
+
   // Try to calculate the pool offsets of a dynamic address
   bool calculatePoolOffsets();
 
@@ -116,6 +125,14 @@ class PmemAddrTrace {
  protected:
   TraceListTy _items;
   TracePoolListTy _pool_addrs;
+
+  // Keep a map here to avoid repeated querying the matcher for the same
+  // guid. Note that from modularity point of view, we should keep this
+  // map in PmemVarGuidMap and fill it as we call PmemVarGuidMap::deserialize.
+  // We put it here for now just hope that we don't have to resolve some
+  // GUIDs if they don't appear in the trace file...
+  std::map<uint64_t, llvm::Instruction *> _guid_instr_map;
+  std::map<uint64_t, std::string> _failed_guids;
 };
 
 }  // namespace llvm

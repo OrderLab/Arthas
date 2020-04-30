@@ -7,6 +7,7 @@
 //
 
 #include "core.h"
+#include <unistd.h>
 
 using namespace std;
 using namespace llvm;
@@ -177,38 +178,172 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
   printf("successfully parsed hook guid map with %lu entries\n",
          _state->var_map.size());
 
-  // Step 2.a: Read dynamic address trace file
-  if (!PmemAddrTrace::deserialize(options.address_file, &_state->var_map,
-                                  _state->addr_trace)) {
-    cerr << "Failed to parse hook GUID file " << options.hook_guid_file << endl;
-    return false;
-  }
-  printf("successfully parsed %lu dynamic address trace items\n",
-         _state->addr_trace.size());
+  if (!server) {
+    // If we are in standalone mode, we should parse the address trace file
+    // Otherwise, the trace file needs to be continuously read and parsed.
 
-  // FIXME: should support libpmem reactor, which does not have a pool address.
-  if (_state->addr_trace.pool_empty()) {
-    cerr << "No pool address found in the address trace file, abort\n";
-    return false;
-  }
+    // Step 2.a: Read dynamic address trace file
+    if (!PmemAddrTrace::deserialize(options.address_file, &_state->var_map,
+                                    _state->addr_trace)) {
+      cerr << "Failed to parse hook GUID file " << options.hook_guid_file
+           << endl;
+      return false;
+    }
+    printf("successfully parsed %lu dynamic address trace items\n",
+           _state->addr_trace.size());
 
-  // Step 2.b: Convert collected addresses to pointers and offsets
-  // FIXME: here, we are assuming the target program only has a single pool.
-  if (!_state->addr_trace.calculatePoolOffsets()) {
-    cerr << "Failed to calculate the address offsets w.r.t the pool address in "
-            "the address trace file, abort\n";
-    return false;
-  }
+    // FIXME: should support libpmem reactor, which does not have a pool
+    // address.
+    if (_state->addr_trace.pool_empty()) {
+      cerr << "No pool address found in the address trace file, abort\n";
+      return false;
+    }
 
-  // map address to instructions
-  if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
-    cerr << "Failed to translate address to instructions, abort\n";
-    return false;
+    // Step 2.b: Convert collected addresses to pointers and offsets
+    // FIXME: here, we are assuming the target program only has a single pool.
+    if (!_state->addr_trace.calculatePoolOffsets()) {
+      cerr << "Failed to calculate the address offsets w.r.t the pool address "
+              "in "
+              "the address trace file, abort\n";
+      return false;
+    }
+
+    // map address to instructions
+    if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
+      cerr << "Failed to translate address to instructions, abort\n";
+      return false;
+    }
   }
 
   _state->dg_slicer = llvm::make_unique<DgSlicer>(_state->sys_module.get(),
                                                   SliceDirection::Backward);
   _state->ready = true;
+  return true;
+}
+
+bool Reactor::monitor_address_trace() {
+  struct reactor_options &options = _state->options;
+  std::ifstream addrfile(options.address_file);
+  if (!addrfile.is_open()) {
+    errs() << "Failed to open " << options.address_file
+           << " for reading address trace file\n";
+    return false;
+  }
+  int start_pos = 0, end_pos = 0;
+  string partial_line, line;
+  bool partial = false;
+  unsigned lineno = 0;
+  useconds_t check_delay = 100000;  // 100ms
+  while (true) {
+    if (!addrfile) {
+      addrfile.open(options.address_file);
+      usleep(check_delay);
+      continue;
+    }
+    addrfile.seekg(0, addrfile.end);
+    end_pos = addrfile.tellg();
+    if (end_pos < start_pos) {
+      // the end position is smaller than the last read position
+      // this indicates the file is probably truncated or recreated
+      // we have to start over...
+      start_pos = 0;
+      std::lock_guard<std::mutex> lk(_trace_mu);
+      _state->addr_trace.clear();
+      _state->trace_ready = false;
+    }
+    if (end_pos == start_pos) {
+      // the end position is the same as the last position
+      // the file content did not change, we don't need to do anything
+      if (start_pos > 0) {
+        {
+          std::lock_guard<std::mutex> lk(_trace_mu);
+          _state->trace_ready = true;
+          _trace_ready_cv.notify_all();
+        }
+      }
+    } else if (end_pos > start_pos) {
+      // only if end position is larger than last read position
+      addrfile.seekg(start_pos, addrfile.beg);
+      while (getline(addrfile, line)) {
+        // we might be reading somewhere in between a line is written
+        // completely into the address file, in this case, we should
+        // store partial result and concatenate it next time!
+        if (addrfile.eof() && !line.empty()) {
+          partial_line.append(line);
+          partial = true;
+        } else {
+          PmemAddrTraceItem *item = new PmemAddrTraceItem();
+          bool ok = false;
+          if (partial) {
+            // previous line is partial, append current line to previous line
+            partial_line.append(line);
+            ok =
+                PmemAddrTraceItem::parse(partial_line, *item, &_state->var_map);
+            // clear partial line
+            partial_line.erase();
+          } else {
+            ok = PmemAddrTraceItem::parse(line, *item, &_state->var_map);
+          }
+          if (ok) {
+            _state->addr_trace.add(item);
+          } else {
+            errs() << "Unrecognized address trace item at line " << lineno
+                   << ": " << line << "\n";
+            delete item;
+          }
+          partial = false;
+        }
+      }
+      start_pos = end_pos;
+    }
+    addrfile.close();
+    usleep(check_delay);
+    addrfile.open(options.address_file);
+  }
+  addrfile.close();
+  return true;
+}
+
+bool Reactor::wait_address_trace_ready() {
+  std::unique_lock<std::mutex> lk(_trace_mu);
+  if (_state->trace_processed) {
+    // trace has been processed, go ahead
+    return true;
+  }
+  if (_state->processing_trace) {
+    _trace_processed_cv.wait(lk,
+                             [this] { return this->_state->trace_processed; });
+    return true;
+  }
+  _state->processing_trace = true;
+  if (!_state->trace_ready) {
+    printf("Parsing address trace...\n");
+    _trace_ready_cv.wait(lk, [this] { return this->_state->trace_ready; });
+    if (!_state->trace_ready) {
+      cerr << "Failed to wait for address trace ready\n";
+      return false;
+    }
+  }
+  cout << "Successfully parsed " << _state->addr_trace.size()
+       << " dynamic address trace items\n";
+  if (_state->addr_trace.pool_empty()) {
+    cerr << "No pool address found in the address trace file, abort\n";
+    return false;
+  }
+  if (!_state->addr_trace.calculatePoolOffsets()) {
+    cerr << "Failed to calculate the address offsets w.r.t the pool address "
+            "in "
+            "the address trace file, abort\n";
+    return false;
+  }
+  if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
+    cerr << "Failed to translate address to instructions, abort\n";
+    return false;
+  }
+  cout << "Address trace translated to LLVM instructions\n";
+  _state->trace_processed = true;
+  _state->processing_trace = false;
+  _trace_processed_cv.notify_all();
   return true;
 }
 
@@ -232,9 +367,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   }
   errs() << "Computed " << fault_slices.size()
          << " slices of the fault instruction\n";
-
-  // PMEMobjpool *pop = pmemobj_open(options.pmem_file, options.pmem_layout);
-  void *pop;
+  if (!options.pmem_file) {
+    cerr << "pmem file not specified, abort reversion\n";
+    return false;
+  }
+  void *pop = NULL;
   size_t mapped_len;
   int is_pmem;
   if (strcmp(options.pmem_library, "libpmemobj") == 0)
