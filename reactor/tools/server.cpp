@@ -8,8 +8,10 @@
 
 #include "core.h"
 
+#include <condition_variable>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -56,14 +58,18 @@ class ReactorServiceImpl final : public ArthasReactor::Service {
     }
     cout << "Done with preparation work for reactor, ready to serve\n";
     ready = true;
+    trace_monitor_thd =
+        std::thread(&Reactor::monitor_address_trace, reactor.get());
     // dependency graph is time consuming to construct...
     reactor->compute_dependencies();
     cout << "Done with computing the program dependency graph\n";
+    reactor->wait_address_trace_ready();
     return true;
   }
 
   Status react(ServerContext* context, const ReactRequest* request,
                ReactReply* reply) override {
+    reactor->wait_address_trace_ready();
     string fault_loc = request->fault_loc();
     string fault_instr = request->fault_instr();
     cout << "Reactor got a request to react to fault instruction "
@@ -88,6 +94,7 @@ class ReactorServiceImpl final : public ArthasReactor::Service {
 
  private:
   thread background_thd;
+  thread trace_monitor_thd;
   bool ready;
   int argc;
   char** argv;
