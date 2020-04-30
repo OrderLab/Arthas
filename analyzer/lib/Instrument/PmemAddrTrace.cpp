@@ -95,6 +95,14 @@ PmemAddrTrace::~PmemAddrTrace() {
   }
 }
 
+void PmemAddrTrace::clear() {
+  for (auto item : _items) {
+    delete item;
+  }
+  _items.clear();
+  _pool_addrs.clear();
+}
+
 bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
                                 PmemAddrTrace &result, bool ignoreBadLine) {
   std::ifstream addrfile(fileName);
@@ -110,6 +118,7 @@ bool PmemAddrTrace::deserialize(const char *fileName, PmemVarGuidMap *varMap,
     PmemAddrTraceItem *item = new PmemAddrTraceItem();
     if (!PmemAddrTraceItem::parse(line, *item, varMap)) {
       errs() << "Unrecognized line " << lineno << ": " << line << "\n";
+      delete item;
       continue;
     }
     result.add(item);
@@ -124,64 +133,61 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
     errs() << "Matcher is not ready, cannot use it\n";
     return false;
   }
-
-  // Keep a map here to avoid repeated querying the matcher for the same
-  // guid. Note that from modularity point of view, we should keep this
-  // map in PmemVarGuidMap and fill it as we call PmemVarGuidMap::deserialize.
-  // We put it here for now just hope that we don't have to resolve some
-  // GUIDs if they don't appear in the trace file...
-  map<uint64_t, Instruction *> guid_instr_map;
-  map<uint64_t, std::string> failed_guids;
-
   for (auto &item : _items) {
-    if (item->var == nullptr) continue;
-    auto git = guid_instr_map.find(item->guid);
-    if (git != guid_instr_map.end()) {
-      // we have previously matched this instruction string (GUID)
-      // just re-use the result
-      item->instr = git->second;
-      SDEBUG(dbgs() << "Found matching instruction " << git->second << "\n");
-      continue;
-    }
-    auto fit = failed_guids.find(item->guid);
-    if (fit != failed_guids.end()) {
-      // For some GUIDs, we may have failed to resolve the address to
-      // instruction.
-      // For example, that GUID corresponds to an instruction that's from
-      // lowered atomic instruction while we're fed with the original bitcode
-      // file that only has the atomic instruction.
-      //
-      // In that case, it's futile to keep trying to resolve it, life has to
-      // go on...we'll report all failed GUID translation at the end.
-      continue;
-    }
-
-    // FIXME: path + filename is probably better
-    FileLine fileLine(item->var->source_file, item->var->line);
-    SDEBUG(dbgs() << "Source " << item->var->source_file << ":"
-                  << item->var->line << "\n");
-
-    // find the corresponding instruction (and enable fuzzy matching)
-    bool is_result_exact = false;
-    Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
-                                             true, true, &is_result_exact);
-    if (!instr) {
-      failed_guids.emplace(item->guid, item->addr_str);
-      continue;
-    }
-    // update the instruction field of item
-    item->instr = instr;
-    // record this in the map
-    guid_instr_map.emplace(item->guid, item->instr);
-    if (!is_result_exact) {
-      errs() << "Found a fuzzily matched instruction for address "
-             << item->addr_str << ", guid " << item->guid << ", instr "
-             << item->var->instruction << " ~~ " << *instr << "\n";
-    }
+    addressToInstruction(item, matcher);
   }
-  for (auto entry : failed_guids) {
+  for (auto entry : _failed_guids) {
     errs() << "Failed to find instruction for address " << entry.second
            << ", guid " << entry.first << "\n";
+  }
+  return true;
+}
+
+bool PmemAddrTrace::addressToInstruction(PmemAddrTraceItem *item,
+                                         matching::Matcher *matcher) {
+  if (item->var == nullptr) return false;
+  auto git = _guid_instr_map.find(item->guid);
+  if (git != _guid_instr_map.end()) {
+    // we have previously matched this instruction string (GUID)
+    // just re-use the result
+    item->instr = git->second;
+    SDEBUG(dbgs() << "Found matching instruction " << git->second << "\n");
+    return true;
+  }
+  auto fit = _failed_guids.find(item->guid);
+  if (fit != _failed_guids.end()) {
+    // For some GUIDs, we may have failed to resolve the address to
+    // instruction.
+    // For example, that GUID corresponds to an instruction that's from
+    // lowered atomic instruction while we're fed with the original bitcode
+    // file that only has the atomic instruction.
+    //
+    // In that case, it's futile to keep trying to resolve it, life has to
+    // go on...we'll report all failed GUID translation at the end.
+    return false;
+  }
+
+  // FIXME: path + filename is probably better
+  FileLine fileLine(item->var->source_file, item->var->line);
+  SDEBUG(dbgs() << "Source " << item->var->source_file << ":" << item->var->line
+                << "\n");
+
+  // find the corresponding instruction (and enable fuzzy matching)
+  bool is_result_exact = false;
+  Instruction *instr = matcher->matchInstr(fileLine, item->var->instruction,
+                                           true, true, &is_result_exact);
+  if (!instr) {
+    _failed_guids.emplace(item->guid, item->addr_str);
+    return false;
+  }
+  // update the instruction field of item
+  item->instr = instr;
+  // record this in the map
+  _guid_instr_map.emplace(item->guid, item->instr);
+  if (!is_result_exact) {
+    errs() << "Found a fuzzily matched instruction for address "
+           << item->addr_str << ", guid " << item->guid << ", instr "
+           << item->var->instruction << " ~~ " << *instr << "\n";
   }
   return true;
 }
@@ -209,7 +215,9 @@ bool PmemAddrTrace::calculatePoolOffsets() {
           break;
         }
       }
-      assert(pool_found);
+      if (!pool_found) {
+        return false;
+      }
       continue;
     }
     // skip those addresses if the pool address has not be found
