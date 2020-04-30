@@ -46,7 +46,8 @@ class ReactorState {
  public:
   ReactorState(std::unique_ptr<llvm::LLVMContext> ctx)
       : ready(false), sys_module(nullptr), llvm_context(std::move(ctx)),
-        dependency_computed(false), computing_dependency(false) {}
+        dependency_computed(false), computing_dependency(false),
+        trace_ready(false), trace_processed(false), processing_trace(false) {}
 
   ~ReactorState() {
     if (sys_module) delete sys_module.release();
@@ -64,6 +65,9 @@ class ReactorState {
       pmem_var_locator_map;
   bool dependency_computed;
   bool computing_dependency;
+  bool trace_ready;
+  bool trace_processed;
+  bool processing_trace;
 };
 
 class Reactor {
@@ -75,6 +79,9 @@ class Reactor {
                          llvm::Instruction *fault_inst);
   llvm::Instruction *locate_fault_instr(std::string &fault_loc,
                                         std::string &inst_str);
+  bool monitor_address_trace();
+  bool wait_address_trace_ready();
+
   bool prepare(int argc, char *argv[], bool server);
   bool react(std::string fault_loc, std::string inst_str,
              reaction_result *result);
@@ -88,6 +95,10 @@ class Reactor {
   std::unique_ptr<ReactorState> _state;
   std::mutex _lock;
   std::condition_variable _cv;
+
+  std::mutex _trace_mu;
+  std::condition_variable _trace_ready_cv;
+  std::condition_variable _trace_processed_cv;
 };
 
 class PmemAddrOffsetList {
