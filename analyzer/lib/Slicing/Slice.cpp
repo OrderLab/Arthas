@@ -83,17 +83,15 @@ Slice *Slice::fork() {
   return copy;
 }
 
-void Slice::setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars) {
+void Slice::setPersistence(SetVector<Value *> persist_vars) {
   bool vol = false;
   bool persistent = false;
   for (auto si = begin(); si != end(); ++si) {
     Value *val = si->first;
-    for (auto pi = persist_vars.begin(); pi != persist_vars.end(); ++pi) {
-      if (val == *pi) {
-        persistent = true;
-      } else {
-        vol = true;
-      }
+    if (persist_vars.count(val) > 0) {
+      persistent = true;
+    } else {
+      vol = true;
     }
   }
   if (vol && persistent) {

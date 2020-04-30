@@ -8,6 +8,7 @@
 
 #include "core.h"
 #include <unistd.h>
+#include <chrono>
 
 using namespace std;
 using namespace llvm;
@@ -17,6 +18,8 @@ using namespace llvm::pmem;
 using namespace llvm::instrument;
 using namespace llvm::defuse;
 using namespace llvm::matching;
+
+// #define DUMP_SLICES 1
 
 uint32_t createDgFlags(struct dg_options &options) {
   uint32_t flags = 0;
@@ -96,22 +99,42 @@ bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   errs() << "INFO: Sliced away " << st.nodesRemoved << " from " << st.nodesTotal
          << " nodes\n";
   errs() << "INFO: Slice graph has " << slice_graph->size() << " node(s)\n";
+  std::clock_t time_start = clock();
   slice_graph->sort();
+  std::clock_t time_end = clock();
+  errs() << "INFO: Sorted slice graph in "
+         << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
+  time_start = clock();
+  slice_graph->computeSlices(slices);
+  time_end = clock();
+  errs() << "INFO: Computed slices from graph in "
+         << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
 
+  time_start = clock();
+// wtf, dumping the slices to log wind up taking a lot of time,
+// should only enable it in debugging mode
+#ifdef DUMP_SLICES
   error_code ec;
   raw_fd_ostream out_stream("slices.log", ec, sys::fs::F_Text);
-  slice_graph->computeSlices(slices);
   out_stream << "=================Slice graph " << slice_graph->slice_id();
   out_stream << "=================\n";
   out_stream << *slice_graph << "\n";
   out_stream << "=================Slice list " << slice_graph->slice_id();
   out_stream << "=================\n";
+#endif
+  auto &persistent_vars = locator->vars();
   for (Slice *slice : slices) {
-    auto persistent_vars = locator->vars().getArrayRef();
     slice->setPersistence(persistent_vars);
+#ifdef DUMP_SLICES
     slice->dump(out_stream);
+#endif
   }
+#ifdef DUMP_SLICES
   out_stream.close();
+#endif
+  time_end = clock();
+  errs() << "INFO: Dumped slices in "
+         << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   return true;
 }
 
@@ -141,6 +164,7 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
     cerr << "Failed to parse the command line options\n";
     return false;
   }
+  _state->mode = server ? ReactorMode::SERVER : ReactorMode::STANDALONE;
   struct reactor_options &options = _state->options;
   if (!server) {
     // if we are not running in the server mode, we should check a few more
@@ -189,16 +213,14 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
            << endl;
       return false;
     }
-    printf("successfully parsed %lu dynamic address trace items\n",
-           _state->addr_trace.size());
-
+    cout << "Successfully parsed " << _state->addr_trace.size()
+         << " dynamic address trace items\n";
     // FIXME: should support libpmem reactor, which does not have a pool
     // address.
     if (_state->addr_trace.pool_empty()) {
       cerr << "No pool address found in the address trace file, abort\n";
       return false;
     }
-
     // Step 2.b: Convert collected addresses to pointers and offsets
     // FIXME: here, we are assuming the target program only has a single pool.
     if (!_state->addr_trace.calculatePoolOffsets()) {
@@ -207,12 +229,12 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
               "the address trace file, abort\n";
       return false;
     }
-
     // map address to instructions
     if (!_state->addr_trace.addressesToInstructions(&_state->matcher)) {
       cerr << "Failed to translate address to instructions, abort\n";
       return false;
     }
+    cout << "Address trace translated to LLVM instructions\n";
   }
 
   _state->dg_slicer = llvm::make_unique<DgSlicer>(_state->sys_module.get(),

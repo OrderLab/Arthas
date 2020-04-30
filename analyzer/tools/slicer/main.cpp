@@ -117,8 +117,8 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
   slice_graph->computeSlices(slices);
   out_stream << "=================Slice list " << slice_graph->slice_id();
   out_stream << "=================\n";
+  auto &persistent_vars = locator.vars();
   for (Slice *slice : slices) {
-    auto persistent_vars = locator.vars().getArrayRef();
     slice->setPersistence(persistent_vars);
     slice->dump(out_stream);
   }

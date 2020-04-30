@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
@@ -97,7 +98,7 @@ class Slice {
 
   void sort();
 
-  void setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars);
+  void setPersistence(llvm::SetVector<llvm::Value *> persist_vars);
   void dump(llvm::raw_ostream &os);
 };
 
