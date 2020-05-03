@@ -161,6 +161,7 @@ bool PmemAddrTrace::addressesToInstructions(Matcher *matcher) {
                                              true, true, &is_result_exact);
     if (!instr) {
       failed_guids.emplace(item->guid, item->addr_str);
+      llvm::errs() << "instruction not matched " << item->var->instruction << "\n"; 
       continue;
     }
     // update the instruction field of item
