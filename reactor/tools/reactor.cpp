@@ -223,8 +223,10 @@ int main(int argc, char *argv[]) {
   }
 
   // map address to instructions
-  bool ret = addrTrace.addressesToInstructions(&matcher);
-  cout << ret;
+  if (!addrTrace.addressesToInstructions(&matcher)) {
+    fprintf(stderr, "Failed to translate address to instructions, abort\n");
+  }
+
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = addrTrace.pool_addrs().back();

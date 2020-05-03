@@ -309,8 +309,9 @@ Instruction *Matcher::matchInstr(FunctionInstSeq opt) {
 }
 
 Instruction *Matcher::matchInstr(SmallVectorImpl<Instruction *> &candidates,
-                                 std::string target_instr_str, bool fuzzy,
-                                 bool ignore_dbg, bool *is_result_exact) {
+                                 const std::string &target_instr_str,
+                                 bool fuzzy, bool ignore_dbg,
+                                 bool *is_result_exact) {
   Instruction *fuzzy_instr = nullptr;
   for (Instruction *instr : candidates) {
     std::string str_instr;
@@ -337,7 +338,7 @@ Instruction *Matcher::matchInstr(SmallVectorImpl<Instruction *> &candidates,
   return fuzzy_instr;
 }
 
-Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
+Instruction *Matcher::matchInstr(FileLine opt, std::string &instr_str,
                                  bool fuzzy, bool ignore_dbg,
                                  bool *is_result_exact) {
   if (instr_str.empty()) return nullptr;
@@ -348,8 +349,8 @@ Instruction *Matcher::matchInstr(FileLine opt, std::string instr_str,
                     is_result_exact);
 }
 
-bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
-                           bool ignore_dbg) {
+bool Matcher::fuzzilyMatch(const std::string &inst1_str,
+                           const std::string &inst2_str, bool ignore_dbg) {
   // The reason that the fuzzy matching is necessary is because
   // the debug information recorded in the Instrumenter is
   // based on the **instrumented** bitcode, which will shift
@@ -370,17 +371,19 @@ bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
   // the register regular expression, and then only if all the parts
   // of the split string match will the two strings match.
 
+  string substr1, substr2;
   if (ignore_dbg) {
     size_t dbg_pos1 = inst1_str.find("!dbg");
     size_t dbg_pos2 = inst2_str.find("!dbg");
-    inst1_str = inst1_str.substr(0, dbg_pos1);
-    inst2_str = inst1_str.substr(0, dbg_pos2);
+    if (dbg_pos1 != string::npos) substr1 = inst1_str.substr(0, dbg_pos1);
+    if (dbg_pos2 != string::npos) substr2 = inst2_str.substr(0, dbg_pos2);
   }
-
-  std::sregex_token_iterator iter1(inst1_str.begin(), inst1_str.end(),
-                                   register_regex, -1);
-  std::sregex_token_iterator iter2(inst2_str.begin(), inst2_str.end(),
-                                   register_regex, -1);
+  std::sregex_token_iterator iter1(
+      substr1.empty() ? inst1_str.begin() : substr1.begin(),
+      substr1.empty() ? inst1_str.end() : substr1.end(), register_regex, -1);
+  std::sregex_token_iterator iter2(
+      substr2.empty() ? inst2_str.begin() : substr2.begin(),
+      substr2.empty() ? inst2_str.end() : substr2.end(), register_regex, -1);
   std::sregex_token_iterator end;
   for (; iter1 != end && iter2 != end; ++iter1, ++iter2) {
     if (iter1->compare(*iter2) != 0) {
@@ -393,7 +396,8 @@ bool Matcher::fuzzilyMatch(std::string &inst1_str, std::string &inst2_str,
   return false;
 }
 
-bool Matcher::matchWithoutDbg(std::string &inst1_str, std::string &inst2_str) {
+bool Matcher::matchWithoutDbg(const std::string &inst1_str,
+                              const std::string &inst2_str) {
   // here we assume the two input strings are not exact matching
   // in other words, the caller should take care of doing a
   // inst1_str.compare(inst2_str) == 0 test first before calling this function

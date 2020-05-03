@@ -3,7 +3,7 @@ target_link_libraries(extractor
   PUBLIC Utils
   PUBLIC PMem
   PUBLIC DefUse
-  PRIVATE Slicer
+  PUBLIC Slicer
 )
 target_link_libraries(extractor
   PRIVATE ${llvm_irreader}
