@@ -1,0 +1,34 @@
+Starting program: /home/brian/pmem_bugs/listpack_reids/src/redis-server /home/brian/pmem_bugs/listpack_reids/redis.conf
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff67ff700 (LWP 26798)]
+[New Thread 0x7ffff5ffe700 (LWP 26799)]
+[New Thread 0x7ffff57fd700 (LWP 26800)]
+[New Thread 0x7ffff4ffc700 (LWP 26801)]
+
+Thread 1 "redis-server" received signal SIGINT, Interrupt.
+isdalloct (tsdn=0x7ffff7fd2748, ptr=0x7ffff6c09898, size=8, tcache=0x7ffff7fd2908, alloc_ctx=0x0, slow_path=true) at include/jemalloc/internal/jemalloc_internal_inlines_c.h:131
+131		arena_sdalloc(tsdn, ptr, size, tcache, alloc_ctx, slow_path);
+#0  isdalloct (tsdn=0x7ffff7fd2748, ptr=0x7ffff6c09898, size=8, tcache=0x7ffff7fd2908, alloc_ctx=0x0, slow_path=true) at include/jemalloc/internal/jemalloc_internal_inlines_c.h:131
+#1  je_arena_ralloc (tsdn=0x7ffff7fd2748, arena=0x0, ptr=0x7ffff6c09898, oldsize=8, size=24, alignment=0, zero=false, tcache=0x7ffff7fd2908) at src/arena.c:1668
+#2  0x000000000057232c in iralloct (tsdn=0x7ffff7fd2748, ptr=0x7ffff6c09898, oldsize=8, size=24, alignment=0, zero=false, tcache=0x7ffff7fd2908, arena=0x0) at include/jemalloc/internal/jemalloc_internal_inlines_c.h:190
+#3  iralloc (tsd=0x7ffff7fd2748, ptr=0x7ffff6c09898, oldsize=8, size=24, alignment=0, zero=false) at include/jemalloc/internal/jemalloc_internal_inlines_c.h:197
+#4  je_realloc (ptr=0x7ffff6c09898, size=24) at src/jemalloc.c:2338
+#5  0x000000000044aba3 in zrealloc (ptr=0x7ffff6c09898, size=24) at zmalloc.c:158
+#6  0x0000000000447b95 in sdsMakeRoomFor (s=0x7ffff6c0989b "", addlen=10) at sds.c:234
+#7  0x0000000000448e47 in sdscatfmt (s=0x7ffff6c0989b "", fmt=0x6af8f0 "%U-%U") at sds.c:612
+#8  0x00000000004f77f8 in addReplyStreamID (c=0x7ffff6d17900, id=0x7fffffffda18) at t_stream.c:792
+#9  0x00000000004f7c90 in streamReplyWithRange (c=0x7ffff6d17900, s=0x7ff2803c05d0, start=0x7fffffffddb0, end=0x7fffffffdda0, count=0, rev=0, group=0x0, consumer=0x0, flags=0, spi=0x0) at t_stream.c:941
+#10 0x00000000004f8f15 in xrangeGenericCommand (c=0x7ffff6d17900, rev=0) at t_stream.c:1311
+#11 0x00000000004f8f47 in xrangeCommand (c=0x7ffff6d17900) at t_stream.c:1317
+#12 0x0000000000441d17 in call (c=0x7ffff6d17900, flags=15) at server.c:3273
+#13 0x0000000000442cce in processCommand (c=0x7ffff6d17900) at server.c:3609
+#14 0x00000000004579f8 in processCommandAndResetClient (c=0x7ffff6d17900) at networking.c:1649
+#15 0x0000000000457d66 in processInputBuffer (c=0x7ffff6d17900) at networking.c:1744
+#16 0x0000000000457e9e in processInputBufferAndReplicate (c=0x7ffff6d17900) at networking.c:1766
+#17 0x0000000000453459 in readQueryFromClient (conn=0x7ffff6c15140) at networking.c:1852
+#18 0x0000000000506b92 in callHandler (conn=0x7ffff6c15140, handler=0x453160 <readQueryFromClient>) at ./connhelpers.h:76
+#19 0x00000000005060fa in connSocketEventHandler (el=0x7ffff6c0b480, fd=8, clientData=0x7ffff6c15140, mask=1) at connection.c:275
+#20 0x00000000004364d2 in aeProcessEvents (eventLoop=0x7ffff6c0b480, flags=11) at ae.c:457
+#21 0x0000000000436c5e in aeMain (eventLoop=0x7ffff6c0b480) at ae.c:515
+#22 0x0000000000447263 in main (argc=2, argv=0x7fffffffe308) at server.c:5165

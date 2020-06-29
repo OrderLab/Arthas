@@ -1,0 +1,49 @@
+Starting program: /home/brian/eval_arthas/full_memc/memcached -p 11211 -U 11211
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff736f700 (LWP 27496)]
+[New Thread 0x7ffff6b6e700 (LWP 27497)]
+[New Thread 0x7ffff636d700 (LWP 27498)]
+[New Thread 0x7ffff5b6c700 (LWP 27499)]
+[New Thread 0x7ffff536b700 (LWP 27500)]
+[New Thread 0x7ffff4b6a700 (LWP 27501)]
+[New Thread 0x7fffdffff700 (LWP 27502)]
+[New Thread 0x7fffdf7fe700 (LWP 27503)]
+[New Thread 0x7fffdeffd700 (LWP 27504)]
+[New Thread 0x7fffde7fc700 (LWP 27505)]
+[New Thread 0x7fffddffb700 (LWP 27506)]
+[New Thread 0x7fffdd7fa700 (LWP 27507)]
+[New Thread 0x7fffdcff9700 (LWP 27508)]
+[New Thread 0x7fcabffff700 (LWP 27509)]
+[New Thread 0x7fcab77fe700 (LWP 27510)]
+[New Thread 0x7fcabf7fe700 (LWP 27511)]
+[New Thread 0x7fcabeffd700 (LWP 27512)]
+[New Thread 0x7fcabe7fc700 (LWP 27513)]
+[New Thread 0x7fcabdffb700 (LWP 27514)]
+[New Thread 0x7fcabd7fa700 (LWP 27515)]
+[New Thread 0x7fcabcff9700 (LWP 27516)]
+
+Thread 3 "memcached" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff6b6e700 (LWP 27497)]
+0x0000000000425812 in assoc_find (key=0x7fcac0c42508 "key1", nkey=4, hv=2610364709)
+    at assoc.c:105
+105	        it = old_hashtable[oldbucket];
+#0  0x0000000000425812 in assoc_find (key=0x7fcac0c42508 "key1", nkey=4, 
+    hv=2610364709) at assoc.c:105
+#1  0x00000000004231c2 in do_item_get (key=0x7fcac0c42508 "key1", nkey=4, 
+    hv=2610364709, c=0x7ffff0036a60, do_update=false) at items.c:960
+#2  0x0000000000407087 in do_store_item (it=0x7fcac0c424c0, comm=2, c=0x7ffff0036a60, 
+    hv=2610364709) at memcached.c:2977
+#3  0x000000000042779f in store_item (item=0x7fcac0c424c0, comm=2, c=0x7ffff0036a60)
+    at thread.c:680
+#4  0x00000000004152f2 in complete_nread_ascii (c=0x7ffff0036a60) at memcached.c:1287
+#5  0x000000000040d016 in complete_nread (c=0x7ffff0036a60) at memcached.c:2865
+#6  0x0000000000405933 in drive_machine (c=0x7ffff0036a60) at memcached.c:5793
+#7  0x00000000004065ad in event_handler (fd=120, which=2, arg=0x7ffff0036a60)
+    at memcached.c:6043
+#8  0x00007ffff777f8f8 in ?? () from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#9  0x00007ffff778033f in event_base_loop ()
+   from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#10 0x00000000004289b4 in worker_libevent (arg=0x5995d70) at thread.c:401
+#11 0x00007ffff79b96db in start_thread (arg=0x7ffff6b6e700) at pthread_create.c:463
+#12 0x00007ffff749188f in clone () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95
