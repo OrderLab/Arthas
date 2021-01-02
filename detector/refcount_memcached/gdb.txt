@@ -1,0 +1,91 @@
+Starting program: /home/brian/full_persistent_memcached/persistent-memcached/memcached-1.5.13/memcached -p 11211 -U 11211
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff736f700 (LWP 7817)]
+[New Thread 0x7ffff6b6e700 (LWP 7818)]
+[New Thread 0x7fffee36d700 (LWP 7819)]
+[New Thread 0x7ffff636d700 (LWP 7820)]
+[New Thread 0x7ffff5b6c700 (LWP 7821)]
+[New Thread 0x7ffff536b700 (LWP 7822)]
+[New Thread 0x7ffff4b6a700 (LWP 7823)]
+[New Thread 0x7fffeffff700 (LWP 7824)]
+[New Thread 0x7fffef7fe700 (LWP 7825)]
+[New Thread 0x7fffeeffd700 (LWP 7826)]
+[New Thread 0x7fffedb6c700 (LWP 7827)]
+[New Thread 0x7fffed36b700 (LWP 7828)]
+[New Thread 0x7fffecb6a700 (LWP 7829)]
+[New Thread 0x7fcabffff700 (LWP 7830)]
+[New Thread 0x7fcab7fff700 (LWP 7831)]
+[New Thread 0x7fcabf7fe700 (LWP 7832)]
+[New Thread 0x7fcabeffd700 (LWP 7833)]
+[New Thread 0x7fcabe7fc700 (LWP 7834)]
+[New Thread 0x7fcabdffb700 (LWP 7835)]
+[New Thread 0x7fcabd7fa700 (LWP 7836)]
+[New Thread 0x7fcabcff9700 (LWP 7837)]
+
+Thread 1 "memcached" received signal SIGINT, Interrupt.
+0x00007ffff7491bb7 in epoll_wait (epfd=3, events=0x5480b00, 
+    maxevents=32, timeout=1000)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+30	../sysdeps/unix/sysv/linux/epoll_wait.c: No such file or directory.
+  Id   Target Id         Frame 
+* 1    Thread 0x7ffff7fd6bc0 (LWP 7813) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=3, events=0x5480b00, maxevents=32, timeout=1000)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  2    Thread 0x7ffff736f700 (LWP 7817) "memcached" 0x00007ffff74549d0 in __GI___nanosleep (requested_time=requested_time@entry=0x7ffff736ee30, 
+    remaining=remaining@entry=0x0)
+    at ../sysdeps/unix/sysv/linux/nanosleep.c:28
+  3    Thread 0x7ffff6b6e700 (LWP 7818) "memcached" __memcmp_avx2_movbe
+    () at ../sysdeps/x86_64/multiarch/memcmp-avx2-movbe.S:204
+  4    Thread 0x7fffee36d700 (LWP 7819) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=13, events=0x59afe40, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  5    Thread 0x7ffff636d700 (LWP 7820) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=18, events=0x59b06b0, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  6    Thread 0x7ffff5b6c700 (LWP 7821) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=23, events=0x59b0f20, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  7    Thread 0x7ffff536b700 (LWP 7822) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=28, events=0x59b1790, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  8    Thread 0x7ffff4b6a700 (LWP 7823) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=33, events=0x59b2000, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  9    Thread 0x7fffeffff700 (LWP 7824) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=38, events=0x59b2870, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  10   Thread 0x7fffef7fe700 (LWP 7825) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=43, events=0x59b31e0, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  11   Thread 0x7fffeeffd700 (LWP 7826) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=48, events=0x59b3b50, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  12   Thread 0x7fffedb6c700 (LWP 7827) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=53, events=0x59b44c0, maxevents=32, timeout=-1)
+    at ../sysdeps/unix/sysv/linux/epoll_wait.c:30
+  13   Thread 0x7fffed36b700 (LWP 7828) "memcached" 0x00007ffff7491bb7 in epoll_wait (epfd=58, events=0x59b4e30, maxevents=32, timeout=-1)
+ at ../sQuit
+[Switching to thread 3 (Thread 0x7ffff6b6e700 (LWP 7818))]
+#0  __memcmp_avx2_movbe ()
+    at ../sysdeps/x86_64/multiarch/memcmp-avx2-movbe.S:204
+204	../sysdeps/x86_64/multiarch/memcmp-avx2-movbe.S: No such file or directory.
+#0  __memcmp_avx2_movbe ()
+    at ../sysdeps/x86_64/multiarch/memcmp-avx2-movbe.S:204
+#1  0x000000000042578d in assoc_find (key=0x7ffff41de014 "dd", nkey=2, 
+    hv=3859175340) at assoc.c:103
+#2  0x0000000000423312 in do_item_get (key=0x7ffff41de014 "dd", nkey=2, 
+    hv=3859175340, c=0x7ffff0036a60, do_update=true) at items.c:960
+#3  0x0000000000427298 in item_get (key=0x7ffff41de014 "dd", nkey=2, 
+    c=0x7ffff0036a60, do_update=true) at thread.c:592
+#4  0x0000000000410743 in process_get_command (c=0x7ffff0036a60, 
+    tokens=0x7ffff6b6d960, ntokens=3, return_cas=false, 
+    should_touch=false) at memcached.c:4013
+#5  0x000000000040e989 in process_command (c=0x7ffff0036a60, 
+    command=0x7ffff41de010 "get") at memcached.c:4860
+#6  0x000000000040cece in try_read_command (c=0x7ffff0036a60)
+    at memcached.c:5277
+#7  0x00000000004057c2 in drive_machine (c=0x7ffff0036a60)
+    at memcached.c:5752
+#8  0x000000000040656d in event_handler (fd=120, which=2, 
+    arg=0x7ffff0036a60) at memcached.c:6041
+#9  0x00007ffff777f8f8 in ?? ()
+   from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#10 0x00007ffff778033f in event_base_loop ()
+   from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#11 0x00000000004287f4 in worker_libevent (arg=0x5995d70)
+    at thread.c:401
+#12 0x00007ffff79b96db in start_thread (arg=0x7ffff6b6e700)
+    at pthread_create.c:463
+#13 0x00007ffff749188f in clone ()
+    at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95

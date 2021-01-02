@@ -1,0 +1,25 @@
+Thread 5 "memcached" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff636d700 (LWP 27341)]
+0x0000000000420f38 in assoc_find (key=0x7ffff0036704 "testkey", nkey=7, hv=1856366135)
+    at assoc.c:105
+105	        if ((nkey == it->nkey) && (memcmp(key, ITEM_key(it), nkey) == 0)) {
+#0  0x0000000000420f38 in assoc_find (key=0x7ffff0036704 "testkey", nkey=7, 
+    hv=1856366135) at assoc.c:105
+#1  0x000000000041f907 in do_item_get (key=0x7ffff0036704 "testkey", nkey=7, 
+    hv=1856366135, c=0x7ffff00364f0) at items.c:744
+#2  0x0000000000422975 in item_get (key=0x7ffff0036704 "testkey", nkey=7, 
+    c=0x7ffff00364f0) at thread.c:551
+#3  0x000000000040f914 in process_get_command (c=0x7ffff00364f0, 
+    tokens=0x7ffff636ca60, ntokens=3, return_cas=false) at memcached.c:3186
+#4  0x000000000040e1cb in process_command (c=0x7ffff00364f0, 
+    command=0x7ffff0036700 "get") at memcached.c:3834
+#5  0x000000000040c47e in try_read_command (c=0x7ffff00364f0) at memcached.c:4212
+#6  0x0000000000405556 in drive_machine (c=0x7ffff00364f0) at memcached.c:4625
+#7  0x000000000040618d in event_handler (fd=36, which=2, arg=0x7ffff00364f0)
+    at memcached.c:4882
+#8  0x00007ffff777f8f8 in ?? () from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#9  0x00007ffff778033f in event_base_loop ()
+   from /usr/lib/x86_64-linux-gnu/libevent-2.1.so.6
+#10 0x0000000000423dcf in worker_libevent (arg=0xbbe020) at thread.c:380
+#11 0x00007ffff79b96db in start_thread (arg=0x7ffff636d700) at pthread_create.c:463
+#12 0x00007ffff749188f in clone () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95

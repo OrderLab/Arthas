@@ -1,0 +1,35 @@
+Starting program: /home/brian/no_book/Redis--pmem-reboot/src/redis-server /home/brian/no_book/Redis--pmem-reboot/redis.conf
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff6bff700 (LWP 26997)]
+[New Thread 0x7ffff63fe700 (LWP 26998)]
+[New Thread 0x7ffff5bfd700 (LWP 26999)]
+
+Thread 1 "redis-server" received signal SIGSEGV, Segmentation fault.
+0x0000000000497cbe in _serverPanic (file=0x5a9965 "object.c", line=521, 
+    msg=0x5a9a22 "decrRefCount against refcount <= 0") at debug.c:775
+775	    *((char*)-1) = 'x';
+#0  0x0000000000497cbe in _serverPanic (file=0x5a9965 "object.c", line=521, 
+    msg=0x5a9a22 "decrRefCount against refcount <= 0") at debug.c:775
+#1  0x000000000045641f in decrRefCountPM (o=0x7fcac03c05d0) at object.c:521
+#2  0x0000000000437cf0 in dictObjectDestructorPM (privdata=0x0, val=0x7fcac03c05d0)
+    at server.c:518
+#3  0x0000000000434854 in dictGenericDelete (d=0x7ffff6c18420, key=0x7ffff6c1c71b, 
+    nofree=0) at dict.c:486
+#4  0x00000000004349f2 in dictDelete (ht=0x7ffff6c18420, key=0x7ffff6c1c71b)
+    at dict.c:518
+#5  0x000000000045b100 in dbSyncDelete (db=0x7ffff6c22280, key=0x7ffff6c1c6f0)
+    at db.c:305
+#6  0x000000000045b7be in delGenericCommand (c=0x7ffff5032fc0, lazy=0) at db.c:503
+#7  0x000000000045b89c in delCommand (c=0x7ffff5032fc0) at db.c:517
+#8  0x000000000043d146 in call (c=0x7ffff5032fc0, flags=15) at server.c:2523
+#9  0x000000000043dff9 in processCommand (c=0x7ffff5032fc0) at server.c:2819
+#10 0x00000000004509fb in processInputBuffer (c=0x7ffff5032fc0) at networking.c:1576
+#11 0x0000000000450b65 in processInputBufferAndReplicate (c=0x7ffff5032fc0)
+    at networking.c:1611
+#12 0x0000000000450efe in readQueryFromClient (el=0x7ffff6c30140, fd=7, 
+    privdata=0x7ffff5032fc0, mask=1) at networking.c:1693
+#13 0x0000000000431923 in aeProcessEvents (eventLoop=0x7ffff6c30140, flags=11)
+    at ae.c:443
+#14 0x0000000000431b3d in aeMain (eventLoop=0x7ffff6c30140) at ae.c:501
+#15 0x00000000004422a9 in main (argc=2, argv=0x7fffffffe308) at server.c:4287
