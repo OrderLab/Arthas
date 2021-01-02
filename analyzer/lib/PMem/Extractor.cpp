@@ -50,7 +50,14 @@ using namespace llvm::defuse;
   } while (false)
 #endif
 
-const set<std::string> PMemVariableLocator::assocInsertSet{"assoc_find"};
+// const set<std::string> PMemVariableLocator::assocInsertSet{"assoc_find"};
+// const set<std::string> PMemVariableLocator::assocInsertSet{"do_item_alloc"};
+// const set<std::string>
+// PMemVariableLocator::assocInsertSet{"process_bin_flush"};
+// const set<std::string>
+// PMemVariableLocator::assocInsertSet{"process_bin_append_prepend"};
+const set<std::string> PMemVariableLocator::assocInsertSet{"setGenericCommand"};
+// const set<std::string> PMemVariableLocator::assocInsertSet{"createObjectPM"};
 
 const set<std::string> PMemVariableLocator::itemHardcodeSet{
     "pmemobj_tx_add_range_direct", "%struct._stritem*"};
@@ -106,8 +113,12 @@ bool PMemVariableLocator::runOnFunction(Function &F) {
   SDEBUG(dbgs() << "[" << F.getName() << "]\n");
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     Instruction *inst = &*I;
-    if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
+    /*if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
       itemHardCodeCall(inst);
+    }*/
+    if (isa<InvokeInst>(inst)) {
+      InvokeInst *invokeInst = cast<InvokeInst>(inst);
+      handleInvokeCall(invokeInst);
     }
     if (!isa<CallInst>(inst)) continue;
     CallInst *callInst = cast<CallInst>(inst);
@@ -183,8 +194,28 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst) {
     }
   }
 }
+/*void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
+  if(isa<CallInst>(inst)){
+    CallInst *callInst = cast<CallInst>(inst);
+    Function *callee = callInst->getCalledFunction();
+    if (!callee) return;
+    istringstream iss(callee->getName());
+    std::string token;
+    std::getline(iss, token, '.');
+    if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+      Value *v = callInst;
+      varList.insert(v);
+       UserGraph g(v);
+      for (auto ui = g.begin(); ui != g.end(); ++ui) {
+        SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                      << "\n");
+        varList.insert(ui->first);
+      }
+    }
+  }
+}*/
 
-void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
+/*void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
   //Function *callee = callInst->getCalledFunction();
   //if (!callee) return;
   //istringstream iss(callee->getName());
@@ -195,7 +226,7 @@ void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
     StoreInst *storeInst = cast<StoreInst>(inst);
     Value *v = storeInst->getOperand(0);
     std::string str;
-    llvm::raw_string_ostream ss(str); 
+    llvm::raw_string_ostream ss(str);
     ss << *v;
     if( ss.str().find("%struct._stritem*") != std::string::npos){
        v = storeInst;
@@ -211,36 +242,37 @@ void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
       Value *v=  gepInst;
       varList.insert(v);
     }
-  }
-  /*if (!isa<LoadInst>(inst)) return;
-  LoadInst *loadInst = cast<LoadInst>(inst);
-  errs() << *loadInst << "\n";
-  Value *v = loadInst->getOperand(0);
-  errs() << "Operand: " << *v << "\n";*/
-  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
-    Value *v = callInst;
-    varList.insert(v);
   }*/
-}
-void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
-  Function *callee = callInst->getCalledFunction();
+// if (!isa<LoadInst>(inst)) return;
+// LoadInst *loadInst = cast<LoadInst>(inst);
+// errs() << *loadInst << "\n";
+// Value *v = loadInst->getOperand(0);
+// errs() << "Operand: " << *v << "\n";*/
+// if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+//  Value *v = callInst;
+//  varList.insert(v);
+//}
+//}
+
+void PMemVariableLocator::handleInvokeCall(InvokeInst *invokeInst) {
+  Function *callee = invokeInst->getCalledFunction();
   if (!callee) return;
+
   istringstream iss(callee->getName());
   std::string token;
   std::getline(iss, token, '.');
-
-  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
-    Value *v = callInst;
-    varList.insert(v);
-  }*/
+  std::string pmem_direct = "pmemobj_direct_inline";
 
   // Step 1: Check for PMDK API call instructions
-  if (pmdkApiSet.find(token) != pmdkApiSet.end()) {
-    callList.insert(callInst);
+  if (pmdkApiSet.find(token) != pmdkApiSet.end() ||
+      token.find(pmem_direct) != std::string::npos) {
+    // callList.insert(invokeInst);
     if (pmdkPMEMVariableReturnSet.find(token) !=
-        pmdkPMEMVariableReturnSet.end()) {
+            pmdkPMEMVariableReturnSet.end() ||
+        token.find(pmem_direct) != std::string::npos) {
       // Step 2: if this API call returns something, we get a pmem variable.
-      Value *v = callInst;
+      Value *v = invokeInst;
+      // llvm::errs() << "this instruction creates " << *v << "\n";
       SDEBUG(dbgs() << "- this instruction creates a pmem variable: " << *v
                     << "\n");
       varList.insert(v);
@@ -249,6 +281,62 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
       for (auto ui = g.begin(); ui != g.end(); ++ui) {
         SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
                       << "\n");
+        // llvm::errs() << "this instruction uses " << *(ui->first) << "\n";
+        varList.insert(ui->first);
+      }
+    }
+    // Step 4: Find persistent memory regions (e.g., mmapped through
+    // pmem_map_file
+    // call) and their size argument to check all pointers if they point to a
+    // PMEM region.
+    auto rit = pmdkRegionSizeArgMapping.find(token);
+    if (rit != pmdkRegionSizeArgMapping.end() &&
+        invokeInst->getNumArgOperands() >= rit->second + 1) {
+      // llvm::errs() << "this instruction reg creates " << *callInst << "\n";
+      SDEBUG(dbgs() << "- this instruction creates a pmem region: "
+                    << *invokeInst << "\n");
+      // check if the call instruction has the right number of arguments
+      // +1 as the mapping stores the target argument from 0.
+
+      // find the argument that specifies the object store or mmap region size.
+      regionList.insert(
+          RegionInfo(invokeInst, invokeInst->getArgOperand(rit->second)));
+    }
+  }
+}
+
+void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
+  Function *callee = callInst->getCalledFunction();
+  if (!callee) return;
+  istringstream iss(callee->getName());
+  std::string token;
+  std::getline(iss, token, '.');
+  std::cout << "pmdk call " << token << "\n";
+
+  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
+    Value *v = callInst;
+    varList.insert(v);
+  }*/
+  std::string pmem_direct = "pmemobj_direct_inline";
+  // Step 1: Check for PMDK API call instructions
+  if (pmdkApiSet.find(token) != pmdkApiSet.end() ||
+      token.find(pmem_direct) != std::string::npos) {
+    callList.insert(callInst);
+    if (pmdkPMEMVariableReturnSet.find(token) !=
+            pmdkPMEMVariableReturnSet.end() ||
+        token.find(pmem_direct) != std::string::npos) {
+      // Step 2: if this API call returns something, we get a pmem variable.
+      Value *v = callInst;
+      // llvm::errs() << "this instruction creates " << *v << "\n";
+      SDEBUG(dbgs() << "- this instruction creates a pmem variable: " << *v
+                    << "\n");
+      varList.insert(v);
+      // Step 3: find the transitive closure of the users of the pmem variables.
+      UserGraph g(v);
+      for (auto ui = g.begin(); ui != g.end(); ++ui) {
+        SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
+                      << "\n");
+        // llvm::errs() << "this instruction uses " << *(ui->first) << "\n";
         varList.insert(ui->first);
       }
     }
@@ -259,6 +347,7 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
     auto rit = pmdkRegionSizeArgMapping.find(token);
     if (rit != pmdkRegionSizeArgMapping.end() &&
         callInst->getNumArgOperands() >= rit->second + 1) {
+      // llvm::errs() << "this instruction reg creates " << *callInst << "\n";
       SDEBUG(dbgs() << "- this instruction creates a pmem region: " << *callInst
                     << "\n");
       // check if the call instruction has the right number of arguments

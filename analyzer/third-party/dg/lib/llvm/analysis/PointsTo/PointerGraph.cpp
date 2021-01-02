@@ -140,11 +140,36 @@ PointerSubgraph &LLVMPointerGraphBuilder::getAndConnectSubgraph(
   return subg;
 }
 
+PointerSubgraph &LLVMPointerGraphBuilder::getAndConnectSubgraphInvoke(
+    const llvm::Function *F, const llvm::InvokeInst *CInst, PSNode *callNode) {
+  // find or build the subgraph for the function F
+  PointerSubgraph &subg = createOrGetSubgraph(F);
+  assert(
+      subg.root);  // we took the subg by reference, so it should be filled now
+
+  // setup call edges
+  PSNodeCall::cast(callNode)->addCallee(&subg);
+  PSNodeEntry *ent = PSNodeEntry::cast(subg.root);
+  ent->addCaller(callNode);
+
+  // update callgraph
+  auto cinstg = getSubgraph(CInst->getParent()->getParent());
+  assert(cinstg);
+  auto parentEntry = cinstg->root;
+  assert(parentEntry);
+  PS.registerCall(parentEntry, subg.root);
+
+  DBG(pta, "CallGraph: " << PSNodeEntry::cast(parentEntry)->getFunctionName()
+                         << " -> "
+                         << PSNodeEntry::cast(subg.root)->getFunctionName());
+  return subg;
+}
+
 LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                               const llvm::Function *F) {
   PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
-
+  llvm::errs() << "Call instruction for creation is " << *CInst << "\n";
   auto &subg = getAndConnectSubgraph(F, CInst, callNode);
 
   // the operands to the return node (which works as a phi node)
@@ -308,7 +333,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
   using namespace llvm;
 
   PSNodesSeq *seq{nullptr};
-
+  // llvm::errs() << "building instruction " << Inst << "\n";
   switch (Inst.getOpcode()) {
     case Instruction::Alloca:
       seq = &createAlloc(&Inst);
@@ -323,7 +348,10 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
       seq = &createGEP(&Inst);
       break;
     case Instruction::ExtractValue:
-      return createExtract(&Inst);
+      // return createExtract(&Inst);
+      llvm::errs() << "Unhandled instruction: " << Inst << "\n";
+      seq = &createUnknown(&Inst);
+      break;
     case Instruction::Select:
       seq = &createSelect(&Inst);
       break;
@@ -346,6 +374,9 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
       break;
     case Instruction::Call:
       return createCall(&Inst);
+    case Instruction::Invoke:
+      // return createCall(&Inst);
+      return createCall(&Inst);
     case Instruction::And:
     case Instruction::Or:
     case Instruction::Trunc:
@@ -366,6 +397,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
     case Instruction::FPExt:
       // these instructions reinterpert the pointer,
       // nothing better we can do here (I think?)
+      std::cout << "unknown\n";
       seq = &createUnknown(&Inst);
       break;
     case Instruction::Add:
@@ -383,8 +415,10 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
     case Instruction::FPToSI:
       if (typeCanBePointer(&M->getDataLayout(), Inst.getType()))
         seq = &createCast(&Inst);
-      else
+      else {
         seq = &createUnknown(&Inst);
+        std::cout << "unknown\n";
+      }
       break;
     case Instruction::InsertElement:
       return createInsertElement(&Inst);
@@ -613,6 +647,7 @@ void LLVMPointerGraphBuilder::buildArguments(const llvm::Function &F,
 
 PointerSubgraph &LLVMPointerGraphBuilder::buildFunction(
     const llvm::Function &F) {
+  std::cout << "building function " << F.getName().str() << "\n";
   DBG_SECTION_BEGIN(pta, "building function '" << F.getName().str() << "'");
 
   assert(!getSubgraph(&F) && "We already built this function");

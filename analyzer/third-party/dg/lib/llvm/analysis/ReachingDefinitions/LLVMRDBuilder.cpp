@@ -1,5 +1,5 @@
-#include <set>
 #include <cassert>
+#include <set>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -12,31 +12,31 @@
 
 #include <llvm/Config/llvm-config.h>
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <llvm/IR/Dominators.h>
 
 #if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
+#pragma clang diagnostic pop  // ignore -Wunused-parameter
 #else
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 #include "dg/ADT/Queue.h"
+#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
 #include "llvm/llvm-utils.h"
@@ -114,6 +114,9 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst,
       break;
     case AllocationFunction::CALLOC:
       op = CInst->getOperand(1);
+      break;
+    case AllocationFunction::PTXZALLOC:
+      op = CInst->getOperand(0);
       break;
     default:
       errs() << *CInst << "\n";
@@ -243,15 +246,17 @@ RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val) {
     } else if (auto CI = llvm::dyn_cast<llvm::CallInst>(val)) {
       const auto calledVal = CI->getCalledValue()->stripPointerCasts();
       const auto func = llvm::dyn_cast<llvm::Function>(calledVal);
-      if (_options.isAllocationFunction(func->getName())) {
-        auto call = createCall(CI);
-        assert(call.first == call.second);
-        assert(call.first->getType() == RDNodeType::DYN_ALLOC);
-        op = call.first;
+      if (func) {
+        if (_options.isAllocationFunction(func->getName())) {
+          auto call = createCall(CI);
+          assert(call.first == call.second);
+          assert(call.first->getType() == RDNodeType::DYN_ALLOC);
+          op = call.first;
+        }
       }
     }
     if (!op) {
-      llvm::errs() << "[RD] error: cannot find an operand: " << *val << "\n";
+      // llvm::errs() << "[RD] error: cannot find an operand: " << *val << "\n";
     }
   }
   assert(op && "Do not have an operand");
@@ -1189,4 +1194,3 @@ std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
 }  // namespace rd
 }  // namespace analysis
 }  // namespace dg
-

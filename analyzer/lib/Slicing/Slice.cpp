@@ -17,10 +17,12 @@ using namespace std;
 using namespace llvm;
 using namespace llvm::slicing;
 
+int volatile_count = 0;
+int persistent_count = 0;
+int mixed_count = 0;
 
-raw_ostream &operator<<(raw_ostream &os, const SlicePersistence & persistence)
-{
-  switch(persistence) {
+raw_ostream &operator<<(raw_ostream &os, const SlicePersistence &persistence) {
+  switch (persistence) {
     case SlicePersistence::NA: os << "n/a"; return os;
     case SlicePersistence::Persistent: os << "persistent"; return os;
     case SlicePersistence::Volatile: os << "volatile"; return os;
@@ -29,9 +31,8 @@ raw_ostream &operator<<(raw_ostream &os, const SlicePersistence & persistence)
   }
 }
 
-raw_ostream &operator<<(raw_ostream &os, const SliceDirection & direction)
-{
-  switch(direction) {
+raw_ostream &operator<<(raw_ostream &os, const SliceDirection &direction) {
+  switch (direction) {
     case SliceDirection::Backward: os << "backward"; return os;
     case SliceDirection::Forward: os << "forward"; return os;
     case SliceDirection::Full: os << "backward+forward"; return os;
@@ -58,8 +59,7 @@ bool SliceValueComparator::operator()(
   return true;
 }
 
-void Slice::dump(raw_ostream &os)
-{
+void Slice::dump(raw_ostream &os) {
   os << "Slice " << id << " (" << persistence << "):\n";
   for (auto i = begin(); i != end(); ++i) {
     Value *val = i->first;
@@ -76,35 +76,40 @@ Slice *Slice::fork() {
   for (auto &val : *this) {
     ValueTy dep = val.first;
     // root has been inserted in the dep_vals, skip it
-    if (dep == root)
-      continue;
+    if (dep == root) continue;
     copy->add(dep);
   }
   return copy;
 }
 
-void Slice::setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars) {
+void Slice::setPersistence(SetVector<Value *> persist_vars) {
   bool vol = false;
   bool persistent = false;
   for (auto si = begin(); si != end(); ++si) {
     Value *val = si->first;
-    for (auto pi = persist_vars.begin(); pi != persist_vars.end(); ++pi) {
-      if (val == *pi) {
-        persistent = true;
-      } else {
-        vol = true;
-      }
+    if (persist_vars.count(val) > 0) {
+      persistent = true;
+    } else {
+      vol = true;
     }
   }
   if (vol && persistent) {
     persistence = SlicePersistence::Mixed;
+    mixed_count++;
   } else if (vol) {
     persistence = SlicePersistence::Volatile;
+    volatile_count++;
   } else if (persistent) {
     persistence = SlicePersistence::Persistent;
+    persistent_count++;
   }
 }
 
+void Slice::print_slice_persistence() {
+  printf("volatile count is %d\n", volatile_count);
+  printf("mixed count is %d\n", mixed_count);
+  printf("persistent count is %d\n", persistent_count);
+}
 void Slice::sort() {
   // if this is a backward slice, we should sort the slice based on reverse
   // program order. otherwise sort it based on program order

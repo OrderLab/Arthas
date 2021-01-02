@@ -11,8 +11,8 @@
 #include <set>
 #include <utility>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
@@ -66,14 +66,14 @@ dg::llvmdg::LLVMDependenceGraphOptions DgSlicer::createDgOptions(
   // Uncomment it only for testing purpose...
 
   // enforce that we will process at most PSNodes 500,000 times
-  // dg_options.PTAOptions.fixedPointThreshold = 500000;
+  dg_options.PTAOptions.fixedPointThreshold = 500000;
   // enforce that we will run pointer analysis for at most 30 minutes
-  // dg_options.PTAOptions.timeout = 30 * 60 * 1000;
+  dg_options.PTAOptions.timeout = 30 * 60 * 1000;
 
   // enforce that we will process at most RDNodes 100,000 times
-  // dg_options.RDAOptions.fixedPointThreshold = 100000;
+  dg_options.RDAOptions.fixedPointThreshold = 100000;
   // enforce that we will run reaching definition for at most 15 minutes
-  // dg_options.RDAOptions.timeout = 15 * 60 * 1000;
+  dg_options.RDAOptions.timeout = 15 * 60 * 1000;
 
   return dg_options;
 }
@@ -104,17 +104,20 @@ bool DgSlicer::computeDependencies(
   errs() << "[slicer] CPU time of control dependence analysis: "
          << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
   _funcDgMap = &dg::getConstructedFunctions();
+  /*errs() << "Size of funcdgmap is " << _funcDgMap->size() << "\n";
+  for (auto i = _funcDgMap->begin(); i != _funcDgMap->end(); i++) {
+    errs() << i->first->getName() << "func is " << i->first << "\n";
+  }*/
   _dependency_computed = true;
   return true;
 }
 
-dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func)
-{
-  if (_funcDgMap == nullptr)
-    return nullptr;
+dg::LLVMDependenceGraph *DgSlicer::getDependenceGraph(Function *func) {
+  if (_funcDgMap == nullptr) return nullptr;
   auto dgit = _funcDgMap->find(func);
   if (dgit == _funcDgMap->end()) {
-    errs() << "Could not find dependency graph for function " << func->getName() << "\n";
+    errs() << "Could not find dependency graph for function " << func->getName()
+           << "\n";
   }
   return dgit->second;
 }
@@ -127,8 +130,8 @@ uint32_t DgSlicer::markSliceId(dg::LLVMNode *start, uint32_t slice_id,
 
   return slice_id;
 
-  // If we are performing forward slicing, we are missing the control dependencies 
-  // now. So gather all control dependencies of the nodes that we want to have in 
+  // If we are performing forward slicing, we are missing the control dependencies
+  // now. So gather all control dependencies of the nodes that we want to have in
   // the slice and perform normal backward slicing w.r.t these nodes.
   if (_direction == SliceDirection::Forward) {
     std::set<dg::LLVMNode *> branchings;
@@ -197,13 +200,13 @@ SliceGraph *DgSlicer::slice(llvm::Instruction *start, uint32_t &slice_id,
 
 void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,
                                   uint32_t slice_id) {
-  // NOTE: original dg slicer will do a bunch of fix-ups in the slice graph 
+  // NOTE: original dg slicer will do a bunch of fix-ups in the slice graph
   // function, such as adjusting the bbblocks successors. Its purpose is
   // to make the sliced graph still executable. For us, we don't really
   // care whether the slicing result is executable. So we skip them and
   // mainly update the statistics.
 
-  // We just update the statistics of sliced blocks and nodes. 
+  // We just update the statistics of sliced blocks and nodes.
   // We don't actually remove nodes or basic blocks.
   for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
     dg::LLVMNode *node = I->second;
@@ -214,7 +217,7 @@ void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,
     }
   }
   auto &blocks = graph->getBlocks();
-  for (auto& it : blocks) {
+  for (auto &it : blocks) {
     auto blk = it.second;
     ++_statistics.blocksTotal;
     // if an entire basic block is not marked slice id, it's not in the slice
@@ -229,31 +232,24 @@ void DgSlicer::updateStatsSliceId(dg::LLVMDependenceGraph *graph,
 }
 
 void DgSlicer::walkSliceId(uint32_t slice_id, dg::LLVMDependenceGraph *graph,
-    NodeSliceFunc nodeFunc, BasicBlockSliceFunc bbFunc, FunctionSliceFunc fnFunc)
-{
+                           NodeSliceFunc nodeFunc, BasicBlockSliceFunc bbFunc,
+                           FunctionSliceFunc fnFunc) {
   if (graph) {
-    if (nodeFunc)
-      walkNodeSliceId(graph, slice_id, nodeFunc);
-    if (bbFunc)
-      walkBasicBlockSliceId(graph, slice_id, bbFunc);
-    if (fnFunc)
-      walkFunctionSliceId(graph, slice_id, fnFunc);
+    if (nodeFunc) walkNodeSliceId(graph, slice_id, nodeFunc);
+    if (bbFunc) walkBasicBlockSliceId(graph, slice_id, bbFunc);
+    if (fnFunc) walkFunctionSliceId(graph, slice_id, fnFunc);
   } else {
     for (auto &it : *_funcDgMap) {
       dg::LLVMDependenceGraph *subdg = it.second;
-      if (nodeFunc)
-        walkNodeSliceId(subdg, slice_id, nodeFunc);
-      if (bbFunc)
-        walkBasicBlockSliceId(subdg, slice_id, bbFunc);
-      if (fnFunc)
-        walkFunctionSliceId(subdg, slice_id, fnFunc);
+      if (nodeFunc) walkNodeSliceId(subdg, slice_id, nodeFunc);
+      if (bbFunc) walkBasicBlockSliceId(subdg, slice_id, bbFunc);
+      if (fnFunc) walkFunctionSliceId(subdg, slice_id, fnFunc);
     }
   }
 }
 
 void DgSlicer::walkNodeSliceId(dg::LLVMDependenceGraph *graph,
-    uint32_t slice_id, NodeSliceFunc func)
-{
+                               uint32_t slice_id, NodeSliceFunc func) {
   for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
     dg::LLVMNode *node = I->second;
     if (node == graph->getExit()) continue;
@@ -263,11 +259,11 @@ void DgSlicer::walkNodeSliceId(dg::LLVMDependenceGraph *graph,
   }
 }
 
-void DgSlicer::walkBasicBlockSliceId(dg::LLVMDependenceGraph *graph, 
-        uint32_t slice_id, BasicBlockSliceFunc func)
-{
+void DgSlicer::walkBasicBlockSliceId(dg::LLVMDependenceGraph *graph,
+                                     uint32_t slice_id,
+                                     BasicBlockSliceFunc func) {
   auto &blocks = graph->getBlocks();
-  for (auto& it : blocks) {
+  for (auto &it : blocks) {
     auto blk = it.second;
     if (blk->getSlice() == slice_id) {
       func(blk);
@@ -276,8 +272,7 @@ void DgSlicer::walkBasicBlockSliceId(dg::LLVMDependenceGraph *graph,
 }
 
 void DgSlicer::walkFunctionSliceId(dg::LLVMDependenceGraph *graph,
-                                   uint32_t slice_id, FunctionSliceFunc func)
-{
+                                   uint32_t slice_id, FunctionSliceFunc func) {
   if (graph->getSlice() == slice_id) {
     func(graph);
   }

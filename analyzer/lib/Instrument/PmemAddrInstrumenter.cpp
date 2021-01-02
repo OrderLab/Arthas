@@ -14,12 +14,15 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 
+#include <llvm/IR/DebugInfoMetadata.h>
+#include <llvm/IR/DebugLoc.h>
+
 #include <unistd.h>
 #include <fstream>
 #include <iostream>
 
 #define DEBUG_TYPE "pmem-addr-instrumenter"
-
+//#define MAX_ADDRESSES 1000005
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
@@ -30,6 +33,20 @@ unsigned int llvm::instrument::PmemVarGuidStart = 200;
 const char *llvm::instrument::PmemVarGuidFileFieldSep = "##";
 
 static unsigned int PmemVarCurrentGuid = llvm::instrument::PmemVarGuidStart;
+
+// for nested dereferencing
+multimap<int, int> line_no_consec_instr;
+multimap<int, Instruction *> line_no_instructions;
+int prev_line_no;
+int consec_count = 0;
+unsigned prev_opcode;
+
+// llvm::Value * addresses[MAX_ADDRESSES];
+// llvm::Value *guids[MAX_ADDRESSES];
+int address_count = 0;
+int instr_count = 0;
+// char *addresses[MAX_ADDRESSES];
+// int guids[MAX_ADDRESSES];
 
 bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   if (_initialized) {
@@ -69,6 +86,38 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
   } else {
     DEBUG(dbgs() << "found tracker initialization function " << funcName
                  << "\n");
+  }
+
+  // Create Function for low level init
+  _low_level_init_func = cast<Function>(
+      M.getOrInsertFunction(getLowLevelInitName(), VoidTy, nullptr));
+  if (!_low_level_init_func) {
+    errs() << "could not find function " << getLowLevelInitName() << "\n";
+    return false;
+  }
+
+  // Create Function for save file
+  _save_file_func = cast<Function>(
+      M.getOrInsertFunction(getSaveFileName(), VoidTy, _I8PtrTy, nullptr));
+  if (!_save_file_func) {
+    errs() << "could not find function " << getSaveFileName() << "\n";
+    return false;
+  }
+
+  // Create Function for low level fence
+  _low_level_fence_func = cast<Function>(
+      M.getOrInsertFunction(getLowLevelFenceName(), VoidTy, nullptr));
+  if (!_low_level_fence_func) {
+    errs() << "could not find function " << getLowLevelFenceName() << "\n";
+    return false;
+  }
+
+  // Create Function for low level flush
+  _low_level_flush_func = cast<Function>(
+      M.getOrInsertFunction(getLowLevelFlushName(), VoidTy, nullptr));
+  if (!_low_level_flush_func) {
+    errs() << "could not find function " << getLowLevelFlushName() << "\n";
+    return false;
   }
 
   _track_addr_func = cast<Function>(M.getOrInsertFunction(
@@ -125,6 +174,10 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
     errs() << "Instrumented call to " << getRuntimeHookInitName()
            << " in main\n";
 
+    // insert call to __arthas_low_level_init() at beginning of main
+    builder.CreateCall(_low_level_init_func);
+    errs() << "Instrumented call to " << getLowLevelInitName() << " in main\n";
+
     // insert call to __arthas_addr_tracker_finish at program exit
     appendToGlobalDtors(M, _tracker_finish_func, 1);
     errs() << "Instrumented call to " << getTrackHookFinishName()
@@ -144,6 +197,61 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   }
   Value *addr;
   bool pool = false;
+  bool malloc_flag = false;
+  bool flush_flag = false;
+  bool fence_flag = false;
+
+  // Consecutive Count for nested access instrumentation
+  /*if(consec_count > 0){
+    if (isa<LoadInst>(instr)) {
+      LoadInst *li = dyn_cast<LoadInst>(instr);
+      addr = li->getPointerOperand();
+    }
+    else if (isa<GetElementPtrInst>(instr)) {
+      GetElementPtrInst *gepInst = cast <GetElementPtrInst>(instr);
+      addr = gepInst->getPointerOperand();
+    }
+    else {
+      // instrument the prev instruction but also the current
+      // instruction
+    }
+  }*/
+
+  // Specific Insturmentation skipping for spin locks
+  // in CCEH
+  /*if (instr) {
+    const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
+    if (debugInfo) {
+      int line = debugInfo->getLine();
+      if (line == 253 || line == 36 || line == 37 || line == 60 || line == 59 ||
+          line == 65 || line == 9 || line == 63 || line == 21 || line == 23)
+        return false;
+    }
+  }*/
+
+  // Skipping certian functions during instrumentation: CCEH
+  // Optimization
+  /*Function *func = instr->getFunction();
+  if (func->getName().find("initCCEH") != std::string::npos) {
+    return false;
+  }
+  if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
+    return false;
+  }
+  if (func->getName().find("Get") != std::string::npos) {
+    return false;
+  }
+  if (func->getName().find("initSegment") != std::string::npos) {
+    return false;
+  }
+  if (func->getName().find("Insert") != std::string::npos) {
+    if (isa<LoadInst>(instr)) consec_count++;
+    if (consec_count % 3 == 0) {
+      // do nothing
+    } else
+      return false;
+  }*/
+
   if (isa<LoadInst>(instr)) {
     LoadInst *li = dyn_cast<LoadInst>(instr);
     addr = li->getPointerOperand();
@@ -151,24 +259,52 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     StoreInst *si = dyn_cast<StoreInst>(instr);
     addr = si->getPointerOperand();
   } else if (isa<GetElementPtrInst>(instr)) {
-    GetElementPtrInst *gepInst = cast <GetElementPtrInst>(instr);
+    GetElementPtrInst *gepInst = cast<GetElementPtrInst>(instr);
     addr = gepInst->getPointerOperand();
+    return false;
+    /* errs() << "get element ptr is " << *gepInst << "\n";
+     const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
+     int line = debugInfo->getLine();
+     errs() << "line no is " << line << "\n";
+     line_no_instructions.insert(pair <int, Instruction *> (line, instr));
+     prev_line_no = line;
+     consec_count++;*/
   } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
     istringstream iss(callee->getName());
     std::string token;
     std::getline(iss, token, '.');
+    if (token.compare("llvm") == 0) {
+      for (int i = 0; i < 3; i++) {
+        std::getline(iss, token, '.');
+      }
+    }
     if (token.compare("pmemobj_create") == 0) {
       pool = true;
       addr = ci;
-    } else if (PMemVariableLocator::callReturnsPmemVar(
-                   token.data())) {
+    } else if (PMemVariableLocator::callReturnsPmemVar(token.data())) {
       addr = ci;
     } else if (token.compare("pmemobj_tx_add_range_direct") == 0) {
       addr = ci->getOperand(0);
     } else if (token.compare("pmemobj_direct_inline") == 0) {
       addr = ci->getOperand(0);
+    } else if (token.compare("pmemobj_persist") == 0) {
+      addr = ci->getOperand(1);
+    } else if (token.compare("sfence") == 0) {
+      // sfence function
+      fence_flag = true;
+      // return true;
+    } else if (token.compare("clflush") == 0) {
+      // cflush function
+      addr = ci->getOperand(0);
+      // LoadInst *li = dyn_cast<LoadInst>(addr);
+      // addr = li->getPointerOperand();
+      errs() << "deref address is " << *addr << "\n";
+      flush_flag = true;
+    } else if (token.compare("mmap") == 0) {
+      addr = ci;
+      malloc_flag = true;
     } else {
       errs() << "return false\n";
       return false;
@@ -182,6 +318,29 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   // Pass addr as an argument to this call instruction
   IRBuilder<> builder(instr);
   builder.SetInsertPoint(instr->getNextNode());
+
+  // Low Level Support
+  /*if(malloc_flag){
+    auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+    builder.CreateCall(_save_file_func, {i8addr});
+    _instrument_cnt++;
+    return true;
+  }
+  if(fence_flag){
+    builder.CreateCall(_low_level_fence_func, None);
+    _instrument_cnt++;
+    return true;
+  }
+  if(flush_flag){
+    auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+    builder.CreateCall(_low_level_flush_func, {i8addr});
+    _instrument_cnt++;
+    return true;
+  }
+  else if (!flush_flag && !fence_flag){
+    // Get rid of this eventually
+    return true;
+  }*/
 
   if (_track_with_printf) {
     Value *str;
@@ -201,7 +360,25 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     _guid_hook_point_map[PmemVarCurrentGuid] = instr;
     auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
     auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
+    /*if(guid->getZExtValue() == 622 || guid->getZExtValue() == 620 ||
+    guid->getZExtValue() == 621)
+      return false;
+    if(guid->getZExtValue() > 489 && guid->getZExtValue() < 511)
+      return false;
+    if(guid->getZExtValue() > 482 && guid->getZExtValue() < 491)
+      return false;*/
+    /*if(guid->getZExtValue() > 230 && guid->getZExtValue() < 260)
+      return false;*/
+    /*if(addresses[address_count] == NULL)
+      addresses[address_count] = (char *)malloc(20);
+    memcpy(addresses[address_count], (char *)i8addr, 14);
+    guids[address_count] = guid->getValue().getZExtValue();
+    address_count++;
+    if(address_count >= 1000000){*/
     builder.CreateCall(_track_addr_func, {i8addr, guid});
+    // builder.CreateCall(_track_addr_func, {addresses, guids, address_count});
+    // address_count = 0;
+    //}
     PmemVarCurrentGuid++;
   }
   _instrument_cnt++;
@@ -252,6 +429,10 @@ bool PmemAddrInstrumenter::fillVarGuidMapInfo(llvm::Instruction *instr,
   } else {
     // if this instruction does not have attached metadata, we assume it
     // is the beginning of the function, and use the function line number
+    if (!SP) {
+      printf("UH OH sp is not good\n");
+      return true;
+    }
     line = SP->getLine();
   }
   std::string instr_str;

@@ -9,12 +9,15 @@
 #ifndef __ADDR_TRACKER_H_
 #define __ADDR_TRACKER_H_
 
+#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+//#include "checkpoint.h"
+#include "libpmem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,11 +25,13 @@ extern "C" {
 
 extern inline char *__arthas_tracker_file_name(char *buf);
 extern inline void __arthas_track_addr(char *addr, unsigned int guid);
+// extern inline void __arthas_track_addr(char **addresses, unsigned int *guids,
+//                                        int address_count);
 
 void __arthas_addr_tracker_init();
 bool __arthas_addr_tracker_dump();
 void __arthas_addr_tracker_finish();
-
+void __arthas_low_level_init();
 #ifdef __cplusplus
 }  // extern "C"
 #endif

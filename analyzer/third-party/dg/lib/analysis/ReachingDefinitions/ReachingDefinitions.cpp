@@ -78,7 +78,7 @@ void ReachingDefinitionsAnalysis::run() {
 #ifdef DEBUG_ENABLED
   int n = 0;
 #endif
-
+  int total_num = 0;
   // do fixpoint
   do {
 #ifdef DEBUG_ENABLED
@@ -93,10 +93,24 @@ void ReachingDefinitionsAnalysis::run() {
     std::cerr << "[RD] Info: processing " << last_processed_num << " RDNodes\n";
     for (RDNode *cur : to_process) {
       if (processNode(cur)) changed.push_back(cur);
+      total_num++;
+      // if (total_num > 1) {
+      if (total_num > 20000) {
+        std::cout << "breaking 1\n";
+        break;
+      }
     }
     total_processed += last_processed_num;
-
+    // if (total_num > 1) {
+    if (total_num > 20000) {
+      std::cout << "breaking 2\n";
+      break;
+    }
     if (!changed.empty()) {
+      /*if (total_num > 500) {
+        std::cout << "breaking 3\n";
+        break;
+      }*/
       to_process.clear();
       to_process = getNodes(changed /* starting set */,
                             last_processed_num /* expected num */);
@@ -105,6 +119,10 @@ void ReachingDefinitionsAnalysis::run() {
       // the to_process must not be empty too
       assert(!to_process.empty());
     }
+    /*if (total_processed > 20000) {
+      std::cout << "breaking 4\n";
+      break;
+    }*/
     bool abort = false;
     if (options.timeout > 0) {
       // timeout limit is set, check the duration
@@ -125,14 +143,14 @@ void ReachingDefinitionsAnalysis::run() {
         abort = true;
       }
     }
-    if (abort) {
+    /*if (abort) {
       std::cerr << "[RD] Warning: Processed " << total_processed
                 << " RDNodes in total but has not reached fixed point, "
                    "abort remaining analysis.\n";
       break;
-    }
+    }*/
   } while (!changed.empty());
-
+  printf("finished reaching def\n");
   DBG_SECTION_END(dda, "Finished reaching definitions analysis");
 }
 
@@ -401,8 +419,8 @@ void SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(
   DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
   assert(from->getBBlock() && "The node has no BBlock");
 
-  DefinitionsMap<RDNode> defs;   // auxiliary map for finding defintions
-  RDNodeSetVector foundDefs;     // definitions that we found
+  DefinitionsMap<RDNode> defs;  // auxiliary map for finding defintions
+  RDNodeSetVector foundDefs;    // definitions that we found
 
   ///
   // get the definitions from this block

@@ -10,7 +10,7 @@
 #include <llvm/IR/GlobalVariable.h>
 
 #if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
+#pragma clang diagnostic pop  // ignore -Wunused-parameter
 #else
 #pragma GCC diagnostic pop
 #endif
@@ -23,41 +23,39 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-LLVMReachingDefinitions::~LLVMReachingDefinitions() {
-    delete builder;
-}
+LLVMReachingDefinitions::~LLVMReachingDefinitions() { delete builder; }
 
 void LLVMReachingDefinitions::initializeSparseRDA() {
-    builder = new LLVMRDBuilder(m, pta, _options);
-    // let the compiler do copy-ellision
-    auto graph = builder->build();
+  builder = new LLVMRDBuilder(m, pta, _options);
+  // let the compiler do copy-ellision
+  auto graph = builder->build();
 
-    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-        new SSAReachingDefinitionsAnalysis(std::move(graph), _options));
+  RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
+      new SSAReachingDefinitionsAnalysis(std::move(graph), _options));
 }
 
 void LLVMReachingDefinitions::initializeDenseRDA() {
-    builder = new LLVMRDBuilder(m, pta, _options,
-                                true /* forget locals at return */);
-    auto graph = builder->build();
+  builder =
+      new LLVMRDBuilder(m, pta, _options, true /* forget locals at return */);
+  auto graph = builder->build();
 
-    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-        new ReachingDefinitionsAnalysis(std::move(graph), _options));
+  RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
+      new ReachingDefinitionsAnalysis(std::move(graph), _options));
 }
 
 RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
-    return builder->getNode(val);
+  return builder->getNode(val);
 }
 
 const RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) const {
-    return builder->getNode(val);
+  return builder->getNode(val);
 }
 
 // let the user get the nodes map, so that we can
 // map the points-to informatio back to LLVM nodes
-const std::unordered_map<const llvm::Value *, RDNode *>&
-LLVMReachingDefinitions::getNodesMap() const {
-    return builder->getNodesMap();
+const std::unordered_map<const llvm::Value *, RDNode *>
+    &LLVMReachingDefinitions::getNodesMap() const {
+  return builder->getNodesMap();
 }
 
 // the value 'use' must be an instruction that reads from memory
@@ -85,8 +83,8 @@ void LLVMReachingDefinitions::getLLVMReachingDefinitions(
   if (rdDefs.empty()) {
     static std::set<const llvm::Value *> reported;
     if (reported.insert(use).second) {
-      llvm::errs() << "[RD] error: no reaching definition for: " << *use
-                   << "\n";
+      // llvm::errs() << "[RD] error: no reaching definition for: " << *use
+      //             << "\n";
     }
   }
 
@@ -99,7 +97,6 @@ void LLVMReachingDefinitions::getLLVMReachingDefinitions(
   }
 }
 
-} // namespace rd
-} // namespace dg
-} // namespace analysis
-
+}  // namespace rd
+}  // namespace dg
+}  // namespace analysis

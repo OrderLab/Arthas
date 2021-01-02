@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
@@ -46,15 +47,24 @@ enum SliceDependenceFlags {
   SliceDependenceFlags::DEF_USE | SliceDependenceFlags::MEMORY | \
       SliceDependenceFlags::CONTROL | SliceDependenceFlags::INTERFERENCE
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
-    const SlicePersistence & persistence)
-{
-  switch(persistence) {
-    case SlicePersistence::NA: os << "n/a"; return os;
-    case SlicePersistence::Persistent: os << "persistent"; return os;
-    case SlicePersistence::Volatile: os << "volatile"; return os;
-    case SlicePersistence::Mixed: os << "mixed"; return os;
-    default: os << "unknown"; return os;
+inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                                     const SlicePersistence &persistence) {
+  switch (persistence) {
+    case SlicePersistence::NA:
+      os << "n/a";
+      return os;
+    case SlicePersistence::Persistent:
+      os << "persistent";
+      return os;
+    case SlicePersistence::Volatile:
+      os << "volatile";
+      return os;
+    case SlicePersistence::Mixed:
+      os << "mixed";
+      return os;
+    default:
+      os << "unknown";
+      return os;
   }
 }
 
@@ -96,8 +106,9 @@ class Slice {
   inline dep_const_iterator end() const { return dep_vals.end(); }
 
   void sort();
+  void print_slice_persistence();
 
-  void setPersistence(llvm::ArrayRef<llvm::Value *> persist_vars);
+  void setPersistence(llvm::SetVector<llvm::Value *> persist_vars);
   void dump(llvm::raw_ostream &os);
 };
 
@@ -125,22 +136,18 @@ class Slices {
   inline size_t size() const { return slices.size(); }
   inline bool empty() const { return slices.empty(); }
 
-  Slice *get(uint64_t slice_id)
-  {
+  Slice *get(uint64_t slice_id) {
     auto si = sliceMap.find(slice_id);
-    if (si == sliceMap.end())
-      return nullptr;
+    if (si == sliceMap.end()) return nullptr;
     return si->second;
   }
 
-  inline void add(Slice *slice)
-  { 
+  inline void add(Slice *slice) {
     sliceMap.insert(std::make_pair(slice->id, slice));
     slices.push_back(slice);
   }
 
-  bool has(uint64_t slice_id)
-  {
+  bool has(uint64_t slice_id) {
     return sliceMap.find(slice_id) != sliceMap.end();
   }
 
@@ -149,13 +156,13 @@ class Slices {
   SliceMap sliceMap;
 };
 
-} // namespace slicing
-} // namespace llvm
+}  // namespace slicing
+}  // namespace llvm
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
-    const llvm::slicing::SlicePersistence & persistence);
+llvm::raw_ostream &operator<<(
+    llvm::raw_ostream &os, const llvm::slicing::SlicePersistence &persistence);
 
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os, 
-    const llvm::slicing::SliceDirection & direction);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const llvm::slicing::SliceDirection &direction);
 
 #endif /* _SLICING_SLICE_H_ */

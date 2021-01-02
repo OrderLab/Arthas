@@ -75,6 +75,7 @@ bool BasicRDMap::merge(const BasicRDMap* oth, DefSiteSetT* no_update,
       // if the memory is defined at unknown offset, we can
       // still do a strong update provided this is the update
       // of whole memory (so we need to know the size of the memory).
+      if (!ds.target) continue;
       if (strong_update_unknown && is_unknown && ds.target->getSize() > 0) {
         // get the writes that should overwrite this definition
         auto range =

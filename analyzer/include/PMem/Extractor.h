@@ -37,8 +37,8 @@ class PMemVariableLocator {
   // Use the small vector here, reference on picking what ADT to use:
   // http://llvm.org/docs/ProgrammersManual.html#picking-the-right-data-structure-for-a-task
  public:
-  typedef llvm::SmallSetVector<llvm::CallInst *, 5> ApiCallList;
-  typedef llvm::SmallSetVector<llvm::Value *, 20> VariableList;
+  typedef llvm::SetVector<llvm::CallInst *> ApiCallList;
+  typedef llvm::SetVector<llvm::Value *> VariableList;
 
   typedef std::multimap<llvm::Value *, llvm::Value *> RegionList;
   typedef std::pair<llvm::Value *, llvm::Value *> RegionInfo;
@@ -106,6 +106,7 @@ class PMemVariableLocator {
 
  protected:
   void handleMemKindCall(llvm::CallInst *callInst);
+  void handleInvokeCall(llvm::InvokeInst *invokeInst);
   void handlePmdkCall(llvm::CallInst *callInst);
   bool processDefinitionPoint(llvm::Value *def);
   void itemHardCodeCall(llvm::Instruction *inst);

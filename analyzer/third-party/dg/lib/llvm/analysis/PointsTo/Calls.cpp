@@ -11,20 +11,68 @@ namespace pta {
 LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::createCall(
     const llvm::Instruction *Inst) {
   using namespace llvm;
+  if (isa<CallInst>(Inst)) {
+    const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
 
-  const CallInst *CInst = cast<CallInst>(Inst);
-  const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+    if (CInst->isInlineAsm()) {
+      return createAsm(Inst);
+    }
 
-  if (CInst->isInlineAsm()) {
-    return createAsm(Inst);
+    if (const Function *func = dyn_cast<Function>(calledVal)) {
+      return createFunctionCall(CInst, func);
+    } else {
+      // this is a function pointer call
+      return createFuncptrCall(CInst, calledVal);
+    }
+  } else if (isa<InvokeInst>(Inst)) {
+    const InvokeInst *CInst = cast<InvokeInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+
+    /*if (CInst->isInlineAsm()) {
+      return createAsm(Inst);
+    }*/
+
+    if (const Function *func = dyn_cast<Function>(calledVal)) {
+      return createFunctionInvoke(CInst, func);
+    } else {
+      // this is a function pointer call
+      return createFuncptrInvoke(CInst, calledVal);
+    }
+  }
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createFunctionInvoke(const llvm::InvokeInst *CInst,
+                                              const llvm::Function *func) {
+  if (invalidate_nodes && func->getName().equals("free")) {
+    return createFree(CInst);
+  } else if (threads_) {
+    if (func->getName().equals("pthread_create")) {
+      // return createPthreadCreate(CInst);
+    } else if (func->getName().equals("pthread_join")) {
+      // return createPthreadJoin(CInst);
+    } else if (func->getName().equals("pthread_exit")) {
+      // return createPthreadExit(CInst);
+    }
   }
 
-  if (const Function *func = dyn_cast<Function>(calledVal)) {
-    return createFunctionCall(CInst, func);
-  } else {
-    // this is a function pointer call
-    return createFuncptrCall(CInst, calledVal);
+  if (func->size() == 0 || _options.entryOnly) {
+    /// memory allocation (malloc, calloc, etc.)
+    auto type = _options.getAllocationFunction(func->getName());
+    if (type != AllocationFunction::NONE) {
+      std::cout << "aloc func\n";
+      return createDynamicMemAllocInvoke(CInst, type);
+    } else if (func->isIntrinsic()) {
+      std::cout << "intrinsic\n";
+      return createIntrinsic(CInst);
+    } else {
+      std::cout << "unknown func call\n";
+      return createUnknownCall(CInst);
+    }
   }
+
+  return createInvokeToFunction(CInst, func);
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq &
@@ -54,14 +102,60 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst,
     /// memory allocation (malloc, calloc, etc.)
     auto type = _options.getAllocationFunction(func->getName());
     if (type != AllocationFunction::NONE) {
+      std::cout << "aloc func\n";
       return createDynamicMemAlloc(CInst, type);
     } else if (func->isIntrinsic()) {
+      std::cout << "intrinsic\n";
       return createIntrinsic(CInst);
-    } else
+    } else {
+      std::cout << "unknown func call\n";
       return createUnknownCall(CInst);
+    }
   }
 
   return createCallToFunction(CInst, func);
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createInvokeToFunction(const llvm::InvokeInst *CInst,
+                                                const llvm::Function *F) {
+  PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+
+  auto &subg = getAndConnectSubgraphInvoke(F, CInst, callNode);
+
+  // the operands to the return node (which works as a phi node)
+  // are going to be added when the subgraph is built
+  PSNodeCallRet *returnNode =
+      PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
+
+  returnNode->setPairedNode(callNode);
+  callNode->setPairedNode(returnNode);
+
+  // this must be after we created the CALL_RETURN node
+  if (ad_hoc_building) {
+    // add operands to arguments and return nodes
+    addInterproceduralOperandsInvoke(F, subg, CInst, callNode);
+  }
+
+  PSNodesSeq seq({callNode, returnNode});
+  seq.setRepresentant(returnNode);
+
+  return addNode(CInst, seq);
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createFuncptrInvoke(const llvm::InvokeInst *CInst,
+                                             const llvm::Value *calledVal) {
+  PSNode *op = getOperand(calledVal);
+  PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
+  PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
+
+  ret_call->setPairedNode(call_funcptr);
+  call_funcptr->setPairedNode(ret_call);
+
+  call_funcptr->setUserData(const_cast<llvm::InvokeInst *>(CInst));
+
+  return addNode(CInst, {call_funcptr, ret_call});
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::createFuncptrCall(
@@ -91,6 +185,22 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::createUnknownCall(
   call->setPairedNode(call);
 
   // the only thing that the node will point at
+  std::cout << "create unknown call\n";
+  call->addPointsTo(UnknownPointer);
+
+  return addNode(CInst, call);
+}
+LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::createUnknownCall(
+    const llvm::InvokeInst *CInst) {
+  // This assertion must not hold if the call is wrapped
+  // inside bitcast - it defaults to int, but is bitcased
+  // to pointer
+  // assert(CInst->getType()->isPointerTy());
+  PSNode *call = PS.create(PSNodeType::CALL, nullptr);
+  call->setPairedNode(call);
+
+  // the only thing that the node will point at
+  std::cout << "create unknown call\n";
   call->addPointsTo(UnknownPointer);
 
   return addNode(CInst, call);
@@ -249,6 +359,58 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::createFree(
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createDynamicMemAllocInvoke(
+    const llvm::InvokeInst *CInst, AllocationFunction type) {
+  using namespace llvm;
+
+  const Value *op;
+  uint64_t size = 0, size2 = 0;
+  PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+  node->setIsHeap();
+
+  switch (type) {
+    case AllocationFunction::MALLOC:
+      node->setIsHeap();
+    /* fallthrough */
+    case AllocationFunction::ALLOCA:
+      op = CInst->getOperand(0);
+      break;
+    case AllocationFunction::CALLOC:
+      node->setIsHeap();
+      node->setZeroInitialized();
+      op = CInst->getOperand(1);
+      break;
+    case AllocationFunction::PZALLOC:
+      node->setIsHeap();
+      op = CInst->getOperand(2);
+      break;
+    case AllocationFunction::PTXZALLOC:
+      node->setIsHeap();
+      op = CInst->getOperand(0);
+      break;
+    default:
+      errs() << *CInst << "\n";
+      assert(0 && "unknown memory allocation type");
+      // for NDEBUG
+      abort();
+  };
+
+  // infer allocated size
+  size = getConstantSizeValue(op);
+  if (size != 0 && type == AllocationFunction::CALLOC) {
+    // if this is call to calloc, the size is given
+    // in the first argument too
+    size2 = getConstantSizeValue(CInst->getOperand(0));
+    // if both ops are constants, multiply them to get
+    // the correct size, otherwise return 0 (unknown)
+    size = size2 != 0 ? size * size2 : 0;
+  }
+
+  node->setSize(size);
+  return addNode(CInst, node);
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
                                             AllocationFunction type) {
   using namespace llvm;
@@ -269,6 +431,14 @@ LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
       node->setIsHeap();
       node->setZeroInitialized();
       op = CInst->getOperand(1);
+      break;
+    case AllocationFunction::PZALLOC:
+      node->setIsHeap();
+      op = CInst->getOperand(2);
+      break;
+    case AllocationFunction::PTXZALLOC:
+      node->setIsHeap();
+      op = CInst->getOperand(0);
       break;
     default:
       errs() << *CInst << "\n";
@@ -336,4 +506,3 @@ LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
 }  // namespace pta
 }  // namespace analysis
 }  // namespace dg
-

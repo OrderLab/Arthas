@@ -106,9 +106,11 @@ class LLVMDependenceGraphBuilder {
 
     _timerStart();
 
-    if (_options.PTAOptions.isFS())
+    if (_options.PTAOptions.isFS()) {
+      std::cout << "FS pta new\n";
+      //_PTA->run<analysis::pta::PointerAnalysisFI>();
       _PTA->run<analysis::pta::PointerAnalysisFS>();
-    else if (_options.PTAOptions.isFI())
+    } else if (_options.PTAOptions.isFI())
       _PTA->run<analysis::pta::PointerAnalysisFI>();
     else if (_options.PTAOptions.isFSInv())
       _PTA->run<analysis::pta::PointerAnalysisFSInv>();
@@ -304,4 +306,4 @@ class LLVMDependenceGraphBuilder {
 }  // namespace llvmdg
 }  // namespace dg
 
-#endif // _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
+#endif  // _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_

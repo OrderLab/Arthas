@@ -9,8 +9,8 @@
 #ifndef _REACTOR_ROLLBACK_H_
 #define _REACTOR_ROLLBACK_H_
 
+#include <unistd.h>
 #include "checkpoint.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,14 +32,14 @@ void coarse_grain_reversion(void **addresses, struct checkpoint_log *c_log,
 
 PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
                                  int num_data, void **pmem_addresses,
-                                 uint64_t *offsets);
+                                 uint64_t *offsets, seq_log *s_log);
 
 int re_execute(const char *rexecution_cmd, int version_num, void **addresses,
                struct checkpoint_log *c_log, void **pmem_addresses,
                int num_data, const char *path, const char *layout,
                uint64_t *offsets, int reversion_type, int seq_num,
                void **sorted_pmem_addresses, single_data *ordered_data,
-               void *old_pop);
+               void *old_pop, seq_log *s_log);
 
 void revert_by_address(const void *search_address, const void *address,
                        int variable_index, int version, int type, size_t size,
@@ -49,38 +49,49 @@ int search_for_address(const void *address, size_t size,
                        struct checkpoint_log *c_log);
 
 void revert_by_sequence_number(void **sorted_pmem_addresses,
-                               single_data *ordered_data, int seq_num,
-                               int rollback_version);
+                               single_data search_data, int seq_num,
+                               int rollback_version, seq_log *s_log);
 
 void revert_by_offset(uint64_t search_offset, const void *address,
                       int variable_index, int version, int type, size_t size,
                       struct checkpoint_log *c_log);
 
-int search_for_offset(uint64_t offset, size_t size,
-                      struct checkpoint_log *c_log);
+struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log);
 
-void sort_by_sequence_number(void **addresses, single_data *ordered_data,
-                             size_t total_size, int num_data,
-                             void **sorted_addresses, void **pmem_addresses,
-                             void **sorted_pmem_addresses, uint64_t *offsets);
+int checkpoint_hashcode(checkpoint_log *c_log, uint64_t offset);
+
+void revert_by_sequence_number_checkpoint(void **sorted_pmem_addresses,
+                                          checkpoint_data old_check_data,
+                                          int rollback_version,
+                                          single_data search_data);
+
+void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
+                             void **pmem_addresses,
+                             void **sorted_pmem_addresses, uint64_t *offsets,
+                             seq_log *s_log);
 
 void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
                                 int seq_num, single_data *ordered_data,
-                                void *pop, void *old_pop);
+                                void *pop, void *old_pop,
+                                struct checkpoint_log *c_log, seq_log *s_log);
 
 void revert_by_sequence_number_array(void **sorted_pmem_addresses,
-                                     single_data *ordered_data,
-                                     int *seq_numbers, int total_seq_num);
+                                     seq_log *s_log, int *seq_numbers,
+                                     int total_seq_num,
+                                     struct checkpoint_log *c_log);
 
 int reverse_cmpfunc(const void *a, const void *b);
 
 void decision_func_sequence_array(int *old_seq_numbers, int old_total,
                                   int *new_seq_numbers, int *new_total);
 
-void revert_by_sequence_number_nonslice(void *old_pop,
-                                        single_data *ordered_data, int seq_num,
-                                        int rollback_version, void *pop);
+void revert_by_sequence_number_nonslice(void *old_pop, single_data ordered_data,
+                                        int seq_num, int rollback_version,
+                                        void *pop);
 
+void undo_by_sequence_number(single_data search_data, int seq_num);
+void revert_by_transaction(void **sorted_pmem_addresses, struct tx_log *t_log,
+                           int *seq_numbers, int total_seq_num, seq_log *s_log);
 #ifdef __cplusplus
 }
 #endif

@@ -226,7 +226,7 @@ bool Matcher::matchInstrsInFunction(unsigned int line, Function *func,
       matched = true;
       result.push_back(inst);
     } else if (l > line) {
-      break;
+      // break;
     }
   }
   return matched;
@@ -267,12 +267,19 @@ bool Matcher::matchInstrsCriterion(FileLine criterion, MatchResult *result) {
   for (auto &F : _module->functions()) {
     if (skipFunction(&F)) continue;
     DISubprogram *SP = F.getSubprogram();
+    if (!SP) continue;
     if (spMatchFilename(SP, criterion.file.c_str())) {
       if (DEBUG_MATCHER) {
         dumpSP(SP);
       }
       unsigned start_line = SP->getLine();
       unsigned end_line = ScopeInfoFinder::getLastLine(&F);
+      result->matched =
+          matchInstrsInFunction(criterion.line, &F, result->instrs);
+      if (result->matched) {
+        result->func = &F;
+        return true;
+      }
       if (criterion.line >= start_line && criterion.line <= end_line) {
         result->matched =
             matchInstrsInFunction(criterion.line, &F, result->instrs);

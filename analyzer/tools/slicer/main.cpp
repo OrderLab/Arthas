@@ -8,8 +8,8 @@
 
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <map>
+#include <vector>
 
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Support/CommandLine.h"
@@ -117,8 +117,8 @@ void instructionSlice(DgSlicer *slicer, Instruction *fault_inst,
   slice_graph->computeSlices(slices);
   out_stream << "=================Slice list " << slice_graph->slice_id();
   out_stream << "=================\n";
+  auto &persistent_vars = locator.vars();
   for (Slice *slice : slices) {
-    auto persistent_vars = locator.vars().getArrayRef();
     slice->setPersistence(persistent_vars);
     slice->dump(out_stream);
   }
@@ -136,8 +136,7 @@ uint32_t createDgFlags() {
   return flags;
 }
 
-bool slice(Module *M, vector<Instruction *> &startInstrs)
-{
+bool slice(Module *M, vector<Instruction *> &startInstrs) {
   if (startInstrs.empty()) return false;
   errs() << "Begin instruction slice\n";
   auto slicer = make_unique<DgSlicer>(M, sliceDir);
@@ -182,22 +181,26 @@ bool slice(Module *M, vector<Instruction *> &startInstrs)
         if (slice->persistence == SlicePersistence::Volatile) {
           errs() << "Slice " << slice->id << " is volatile, do nothing\n";
         } else {
-          errs() << "Slice " << slice->id << " is persistent or mixed, instrument it\n";
-          instrumented |= instrumenter->instrumentSlice(slice, locator->def_map());
+          errs() << "Slice " << slice->id
+                 << " is persistent or mixed, instrument it\n";
+          instrumented |=
+              instrumenter->instrumentSlice(slice, locator->def_map());
         }
       }
     }
   }
   if (instrumentPmemSlice) {
     instrumenter->writeGuidHookPointMap(pmemHookGuidFile);
-    errs() << "Instrumented " << instrumented << " pmem instructions in total\n";
+    errs() << "Instrumented " << instrumented
+           << " pmem instructions in total\n";
   }
 
   if (!instrumentOutput.empty()) {
     ofstream ofs(instrumentOutput);
     raw_os_ostream ostream(ofs);
     WriteBitcodeToFile(M, ostream);
-    errs () << "Instrumented program is written into bitcode file " << instrumentOutput << "\n";
+    errs() << "Instrumented program is written into bitcode file "
+           << instrumentOutput << "\n";
   }
   return instrumented;
 }

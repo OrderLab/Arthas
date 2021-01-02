@@ -66,6 +66,7 @@ class LLVMPointerAnalysisImpl : public PTType {
           return true;
         }
       }
+      std::cout << "callsite pair \n";
       return callsite->getPairedNode()->addPointsTo(
           analysis::pta::UnknownPointer);
     }
@@ -298,4 +299,4 @@ LLVMPointerAnalysis::createPTA<analysis::pta::PointerAnalysisFSInv>() {
 
 }  // namespace dg
 
-#endif // _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#endif  // _LLVM_DG_POINTS_TO_ANALYSIS_H_

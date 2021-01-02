@@ -8,8 +8,8 @@
 
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <map>
+#include <vector>
 
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
@@ -21,7 +21,6 @@
 #include "Instrument/PmemAddrInstrumenter.h"
 #include "Slicing/SliceCriteria.h"
 #include "Slicing/Slicer.h"
-
 
 using namespace std;
 using namespace llvm;
@@ -37,12 +36,12 @@ static cl::opt<string> SliceOutput(
     cl::init("slices.log"), cl::value_desc("file"));
 
 static cl::opt<string> SliceFunc("slice-func",
-    cl::desc("Function where the slicing starts"),
-    cl::value_desc("function"));
+                                 cl::desc("Function where the slicing starts"),
+                                 cl::value_desc("function"));
 
 static cl::opt<string> SliceInst("slice-inst",
-                                  cl::desc("Instruction to start slicing"),
-                                  cl::value_desc("instruction"));
+                                 cl::desc("Instruction to start slicing"),
+                                 cl::value_desc("instruction"));
 
 static cl::opt<int> SliceInstNo(
     "slice-inst-no", cl::desc("Nth instruction in a function to start slicing"),
@@ -79,7 +78,8 @@ class SlicingPass : public ModulePass {
   virtual bool runOnModule(Module &M) override;
 
   unique_ptr<SliceGraph> instructionSlice(Instruction *fault_inst,
-                       PMemVariableLocator &locator, Slices &slices);
+                                          PMemVariableLocator &locator,
+                                          Slices &slices);
 
   bool instrumentSlice(Slice &slice, PmemAddrInstrumenter &instrumenter,
                        PMemVariableLocator &locator);
@@ -97,12 +97,12 @@ class SlicingPass : public ModulePass {
   bool _delete_out_stream;
 
   // Map with Sliced Dependnence Graph as key and persistent variables as values
-  static const std::map<dg::LLVMDependenceGraph * , std::set<Value *>> pmemVariablesForSlices;
+  static const std::map<dg::LLVMDependenceGraph *, std::set<Value *>>
+      pmemVariablesForSlices;
 };
 }
 
-SlicingPass::~SlicingPass()
-{
+SlicingPass::~SlicingPass() {
   if (_out_stream && _delete_out_stream) {
     // only delete the out stream if it's being new-ed (i.e., file out stream)
     delete _out_stream;
@@ -110,9 +110,9 @@ SlicingPass::~SlicingPass()
   }
 }
 
-unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst, 
-    PMemVariableLocator &locator, Slices &slices) {
-  // Take faulty instruction and walk through Dependency Graph to 
+unique_ptr<SliceGraph> SlicingPass::instructionSlice(
+    Instruction *fault_inst, PMemVariableLocator &locator, Slices &slices) {
+  // Take faulty instruction and walk through Dependency Graph to
   // obtain slices + metadata of persistent variables
   uint32_t slice_id = 0;
   SliceGraph *sg =
@@ -130,8 +130,8 @@ unique_ptr<SliceGraph> SlicingPass::instructionSlice(Instruction *fault_inst,
   slice_graph->computeSlices(slices);
   *_out_stream << "=================Slice list " << slice_graph->slice_id();
   *_out_stream << "=================\n";
+  auto &persistent_vars = locator.vars();
   for (Slice *slice : slices) {
-    auto persistent_vars = locator.vars().getArrayRef();
     slice->setPersistence(persistent_vars);
     slice->dump(*_out_stream);
   }
@@ -150,7 +150,8 @@ bool SlicingPass::runOnModule(Module &M) {
 
   errs() << "Begin instruction slice \n";
   // Step 1: Getting the initial fault instruction
-  //  Fault instruction is specified through the slicing criteria in command line.
+  //  Fault instruction is specified through the slicing criteria in command
+  //  line.
   //  See the opt declaration at the beginning of this file.
   //  Enable fuzzy matching and ignoring !dbg if necessary
   SliceInstCriteriaOpt opt(SliceFileLines, SliceInst, SliceFunc, SliceInstNo,
@@ -171,7 +172,7 @@ bool SlicingPass::runOnModule(Module &M) {
   _dgSlicer->computeDependencies(options);
 
   // Step 3: Extract slices for the starting instructions (fault instruction)
-  
+
   bool instrumented = false;
   if (InstrumentPmemSlice) {
     _instrumenter = make_unique<PmemAddrInstrumenter>();
@@ -200,15 +201,18 @@ bool SlicingPass::runOnModule(Module &M) {
         if (slice->persistence == SlicePersistence::Volatile) {
           errs() << "Slice " << slice->id << " is volatile, do nothing\n";
         } else {
-          errs() << "Slice " << slice->id << " is persistent or mixed, instrument it\n";
-          instrumented |= _instrumenter->instrumentSlice(slice, locator->def_map());
+          errs() << "Slice " << slice->id
+                 << " is persistent or mixed, instrument it\n";
+          instrumented |=
+              _instrumenter->instrumentSlice(slice, locator->def_map());
         }
       }
     }
   }
   if (InstrumentPmemSlice) {
     _instrumenter->writeGuidHookPointMap(PmemHookGuidFile);
-    errs() << "Instrumented " << instrumented << " pmem instructions in total\n";
+    errs() << "Instrumented " << instrumented
+           << " pmem instructions in total\n";
   }
   return instrumented;
 }
