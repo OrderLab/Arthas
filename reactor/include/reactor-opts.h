@@ -39,6 +39,7 @@ typedef struct reactor_options {
   const char *pmem_library;
   const char *hook_guid_file;
   const char *reexecute_cmd;
+  bool arckpt;
   int version_num;
 
   // string representation of the fault instruction

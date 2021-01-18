@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <chrono>
 
-#define BATCH_REEXECUTION 100
+#define BATCH_REEXECUTION 1
 
 using namespace std;
 using namespace llvm;
@@ -27,8 +27,10 @@ int binary_reversion_count = 0;
 int total_reverted_items = 0;
 int binary_reverted_items = 0;
 int total_reexecutions = 0;
+FILE *fp;
+
 // #define DUMP_SLICES 1
-#define BINARY_REVERSION_ATTEMPTS 1
+#define BINARY_REVERSION_ATTEMPTS 2
 SetVector<llvm::Value *> pmem_vars;
 
 uint32_t createDgFlags(struct dg_options &options) {
@@ -386,6 +388,11 @@ bool Reactor::wait_address_trace_ready() {
     trace_instrs.insert(
         pair<Instruction *, PmemAddrTraceItem *>(traceItem->instr, traceItem));
   }
+  printf("Address trace translated and prepared\n");
+
+  fp = fopen("output_log", "w+");
+  fprintf(fp, "Address trace ready\n");
+
   _state->trace_processed = true;
   _state->processing_trace = false;
   _trace_processed_cv.notify_all();
@@ -541,7 +548,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
   return -1;
 }
 
-/*void arcpkt(int high_num, int *decided_slice_seq_numbers){
+/*void arckpt(int high_num, int *decided_slice_seq_numbers){
   int reversion_num = 100000;
   int rollback_version;
   int cpkt_ind = high_num;
@@ -864,8 +871,48 @@ bool Reactor::react(std::string fault_loc, string inst_str,
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   time_start = clock();
 
-  // ArCpkt
-  // arcpkt();
+  //ArCkpt
+  //arckpt(high_num, decided_slice_seq_numbers);
+  if(options.arckpt){
+    printf("begin arcpkt\n");
+    int reversion_num = 100000;
+    int rollback_version;
+    int cpkt_ind = high_num;
+    single_data *ordered_data;
+    while(cpkt_ind > 0){
+      ind = 0;
+      /*for(int i = cpkt_ind; i > cpkt_ind - reversion_num; i--){
+        if(i < 0)
+          break;
+        decided_slice_seq_numbers[ind] = i;
+        ind++;
+      }
+      cpkt_ind = cpkt_ind - reversion_num;*/
+      decided_slice_seq_numbers[ind] = cpkt_ind;
+      cpkt_ind--;
+      ind++;
+      revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses, s_log,
+                                  decided_slice_seq_numbers, ind, c_log );
+      if (strcmp(options.pmem_library, "libpmemobj") == 0)
+              pmemobj_close((PMEMobjpool *)pop);
+      req_flag2 = re_execute(
+            options.reexecute_cmd, options.version_num, addr_off_list.addresses,
+            c_log, addr_off_list.pmem_addresses, num_data, options.pmem_file,
+            options.pmem_layout, addr_off_list.offsets, FINE_GRAIN,
+            starting_seq_num, addr_off_list.sorted_pmem_addresses, ordered_data,
+            (void *)last_pool.pool_addr->addr, s_log);
+       if(req_flag2 ==1){
+         printf("reversion has succeeded\n");
+          return 1;
+       }
+       pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                          num_data, addr_off_list.pmem_addresses,
+                                          addr_off_list.offsets, s_log);
+    }
+    printf("finished arcpkt\n");
+    return 1;
+  }
+
 
   // std::set <Instruction *> found_instructions;
   vector<int> many_address_seq;
@@ -949,11 +996,17 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         printf("done with binary reversion %d\n", binary_success);
         printf("total reverted items is %d\n", total_reverted_items);
         printf("total re-executions is %d\n", total_reexecutions);
-        if (binary_success == 1) return 1;
+        if (binary_success == 1){
+          fprintf(fp, "%d items reverted\n", total_reverted_items);
+          fprintf(fp, "total re-executions is %d\n", total_reexecutions);
+          fclose(fp);
+          return 1;
+        }
         many_address_seq.clear();
       }
       // Here we should do reversion on collected seq numbers and try
       // try reexecution
+      // TODO: Get rid of 0 
       if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && 0) {
         printf("many address size in low is %d\n", many_address_seq.size());
         printf("new pop in low is %p\n", pop);

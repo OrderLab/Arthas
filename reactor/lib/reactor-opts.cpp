@@ -21,7 +21,7 @@
 // declaration below. It can optionally include additional short option
 // specifiers that do not have a corresponding long-option. ':'
 // after the character means this opt requires an argument.
-#define REACTOR_ARGS "hp:t:l:n:r:g:a:i:c:b:"
+#define REACTOR_ARGS "hp:t:l:n:r:g:a:i:c:b:z:"
 
 // Reference:
 // https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Options.html
@@ -67,6 +67,7 @@ static struct option long_options[] = {
     {"fault-inst", required_argument, 0, 'i'},
     {"fault-loc", required_argument, 0, 'c'},
     {"bc-file", required_argument, 0, 'b'},
+    {"arckpt", required_argument, 0, 'z'},
     {0, 0, 0, 0}};
 
 void usage() {
@@ -93,6 +94,7 @@ void usage() {
       "  -c  --fault-loc  <file:line\n"
       "                   [:func]>    : location of the fault instruction \n"
       "  -b  --bc-file <file>         : bytecode file \n"
+      "  -z  --arckpt                 : arckpt\n"
       "\nSlicer Options:\n"
       "      --pta                    : enable pointer analysis\n"
       "      --no-pta                 : disable pointer analysis\n"
@@ -140,6 +142,9 @@ bool parse_options(int argc, char *argv[], reactor_options_t &options) {
         break;
       case 'g':
         options.hook_guid_file = optarg;
+        break;
+      case 'z':
+        options.arckpt = optarg;
         break;
       case 'a':
         options.address_file = optarg;

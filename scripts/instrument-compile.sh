@@ -140,7 +140,7 @@ if [ -z "$link_flags" ] && [ $load_store -eq 0 ]; then
   # instrumentation, try to be smart here by automatically add the 
   # -lpmem link flag to link with libpmem. If the program is linked
   # with libpmemobj instead, should pass the link flag explicitly.
-  link_flags="-lpmem"
+  link_flags="-lpmem -lmemkind"
 fi
 
 $maybe $instrumenter $instrumenter_args $source_bc_file -o $output_bc
@@ -149,4 +149,4 @@ $maybe llvm-dis $output_bc
 # linking with shared runtime lib, flexible but slower
 # $maybe gcc -no-pie -O0 -fno-inline -o $output_exe $output_asm -L $runtime_path -lAddrTracker
 # linking with static runtime lib, less flexible but faster
-$maybe gcc -no-pie -O0 -fno-inline -o $output_exe $output_asm -L $runtime_path -l:libAddrTracker.a $link_flags
+$maybe g++ -no-pie -pg -O0 -g -fno-inline -o $output_exe $output_asm -L $runtime_path -l:libAddrTracker.a $link_flags

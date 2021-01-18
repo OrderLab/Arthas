@@ -189,6 +189,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 }
 
 bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
+  //return false;
   // first check if this instruction has been instrumented before
   if (_hook_point_guid_map.find(instr) != _hook_point_guid_map.end()) {
     DEBUG(errs() << "Skip instrumenting instruction (" << *instr
@@ -261,7 +262,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   } else if (isa<GetElementPtrInst>(instr)) {
     GetElementPtrInst *gepInst = cast<GetElementPtrInst>(instr);
     addr = gepInst->getPointerOperand();
-    return false;
+    //return false;
     /* errs() << "get element ptr is " << *gepInst << "\n";
      const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
      int line = debugInfo->getLine();
@@ -272,6 +273,9 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
+    if(!callee){
+      return false;
+    }
     istringstream iss(callee->getName());
     std::string token;
     std::getline(iss, token, '.');

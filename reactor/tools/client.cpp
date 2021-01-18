@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
   }
   if (options.server_address.empty()) {
     // if server address is not specified, we use the default localhost port
-    options.server_address = "localhost:50051";
+    options.server_address = "localhost:50052";
   }
   cout << "Connecting to the reactor server " << options.server_address << "\n";
   ReactorClient reactor(grpc::CreateChannel(

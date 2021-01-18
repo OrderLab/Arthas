@@ -15,9 +15,9 @@
 #include <string>
 #include <thread>
 
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
 
 #include "reactor.grpc.pb.h"
 
@@ -104,7 +104,7 @@ class ReactorServiceImpl final : public ArthasReactor::Service {
 void RunServer(int argc, char** argv) {
   ReactorServiceImpl service(argc, argv);
 
-  std::string server_address("0.0.0.0:50051");
+  std::string server_address("0.0.0.0:50052");
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;

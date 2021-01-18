@@ -13,6 +13,8 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
+int rotl32 = 0;
+int begin_pta = 0;
 // nodes representing NULL, unknown memory
 // and invalidated memory
 PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
@@ -310,7 +312,26 @@ bool PointerAnalysis::processNode(PSNode *node) {
 #ifdef DEBUG_ENABLED
   size_t prev_size = node->pointsTo.size();
 #endif
-  // std::cout <<  "PROCESS NODE is " << node->getID() << "***************\n";
+  /*printName(node, true);
+  if(node->getType() == PSNodeType::CONSTANT){
+    *(node->pointsTo.begin()).target
+  }*/
+ /*if(PSNodeEntry *entry = PSNodeEntry::get(node)){
+    printf("Function is %s \n", entry->getFunctionName().c_str());
+    if(entry->getFunctionName().compare("rotl32") == 0){
+      rotl32 = 1;
+    }else{
+      rotl32 = 0;
+    }
+ }*/
+
+ /*if(rotl32){
+   printf("SORRY\n");
+   return changed;
+ }*/
+  //std::cout << "function is " << node-> << "\n";
+  //if(begin_pta)
+  //  std::cout <<  "PROCESS NODE is " << node->getID() << "***************\n";
   switch (node->type) {
     case PSNodeType::LOAD:
       // std::cout << "LOAD\n";
@@ -332,7 +353,7 @@ bool PointerAnalysis::processNode(PSNode *node) {
           // "\n";
           /*for (const Pointer &ptr2 : node->getOperand(0)->pointsTo) {
             if (ptr2.isUnknown())
-               std::cout << "ptr is unknown motherfucker\n";
+               std::cout << "ptr is unknown\n";
             else
                std::cout << "ptr target " << ptr2.target->getID() << "\n";
           }*/
@@ -533,7 +554,7 @@ void PointerAnalysis::run() {
   changed.clear();
 
   initialize_queue();
-
+  begin_pta = 1;
   // don't count the globals in the processed nodes
   uint64_t total_processed = 0;
   std::clock_t time_start;
