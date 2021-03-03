@@ -580,7 +580,7 @@ void PointerAnalysis::run() {
     std::cerr << "[PTA] Info: processing " << to_process.size() << " PSNodes\n";
     iteration();
     total_processed += to_process.size();
-    // if (total_processed > 900000) {
+    // if (total_processed > 160000) {
     // This is the one I usually run
     // if (total_processed > 80000) {
     if (total_processed > 40000) {

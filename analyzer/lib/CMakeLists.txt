@@ -43,6 +43,7 @@ target_link_libraries(Instrumenter
   PUBLIC PMem
   PRIVATE AddrTracker
   PRIVATE ${llvm_transformutils}
+  PUBLIC ${PMEM_LIBRARIES}
 )
 
 add_library(LLVMInstrument SHARED
@@ -51,6 +52,7 @@ add_library(LLVMInstrument SHARED
 
 target_link_libraries(LLVMInstrument
   PUBLIC Instrumenter
+  PUBLIC ${PMEM_LIBRARIES}
 )
 
 add_library(Slicer SHARED

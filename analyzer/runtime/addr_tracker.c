@@ -106,8 +106,9 @@ void __arthas_addr_tracker_init() {
 inline void __arthas_track_addr(char *addr, unsigned int guid) {
   // TODO: replace the fprintf with buffering and async write
    fprintf(__arthas_tracker_file, "%p,%u\n", addr, guid);
+   //printf("%p,%u\n", addr, guid);
   // pthread_mutex_lock(&lock);
-/*  if (address_count > MAX_ADDRESSES) {
+  /*if (address_count > MAX_ADDRESSES) {
     printf("too large %d\n", address_count);
     pthread_mutex_lock(&lock);
     pthread_mutex_unlock(&lock);
@@ -140,9 +141,11 @@ bool __arthas_addr_tracker_dump() {
 
 void __arthas_addr_tracker_finish() {
   // close the tracker file
+  printf("arthas addr tracker finish\n");
   for (int i = 0; i < address_count; i++)
     fprintf(__arthas_tracker_file, "%p,%u\n", addresses[i], guids[i]);
   address_count = 0;
   fflush(__arthas_tracker_file);
-  // fclose(__arthas_tracker_file);
+  fclose(__arthas_tracker_file);
+
 }

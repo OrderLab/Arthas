@@ -1,15 +1,12 @@
-if(FALSE) # fake a block comment
+add_executable(reactor2 
+  ../lib/reactor-opts.cpp
+  reactor2.cpp
+)
+
 
 add_executable(reactor 
   main.cpp
 )
-endif()
-
-add_executable(reactor2 
-  reactor-opts.cpp
-  reactor2.cpp
-)
-if(FALSE) # fake a block comment
 
 target_link_libraries(reactor
   PUBLIC reactor_core
@@ -42,7 +39,7 @@ target_link_libraries(reactor_server
   ${GRPC_CPP}
   ${PROTOBUF_LIBPROTOBUF}
 )
-endif()
+
 target_link_libraries(reactor2
   PUBLIC checkpoint
   PUBLIC rollback

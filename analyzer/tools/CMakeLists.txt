@@ -26,6 +26,7 @@ add_executable(instrumentor instrumentor/main.cpp)
 target_link_libraries(instrumentor
   PUBLIC  PMem
   PUBLIC  DefUse
+  PUBLIC ${PMEM_LIBRARIES}
   PRIVATE Instrumenter
   PRIVATE AddrTracker
   PRIVATE Utils
@@ -36,6 +37,7 @@ target_link_libraries(instrumentor
   PRIVATE ${llvm_irreader}
   PRIVATE ${llvm_support}
   PRIVATE ${llvm_core}
+  PUBLIC ${PMEM_LIBRARIES}
   PRIVATE ${llvm_bitwriter}
 )
 add_executable(slicer slicer/main.cpp)
@@ -57,6 +59,7 @@ add_executable(analyzer analyzer/main.cpp)
 target_link_libraries(analyzer
   PRIVATE PMem
   PRIVATE Utils
+  PUBLIC ${PMEM_LIBRARIES}
   PRIVATE Instrumenter
   PRIVATE AddrTracker
   PRIVATE Matcher
@@ -65,6 +68,7 @@ target_link_libraries(analyzer
 target_link_libraries(analyzer
   PRIVATE ${llvm_support}
   PRIVATE ${llvm_analysis}
+  PUBLIC ${PMEM_LIBRARIES}
   PRIVATE ${llvm_bitwriter}
   PRIVATE ${llvm_irreader}
   PRIVATE ${llvm_core}

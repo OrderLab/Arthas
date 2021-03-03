@@ -10,7 +10,7 @@ extern "C" {
 
 using namespace std;
 
-int main() {
+int main(int argc, char *argv[]) {
   string temp_command;
   // string gdb = "gdb -x file ";
   string gdb = "gdb --args ";

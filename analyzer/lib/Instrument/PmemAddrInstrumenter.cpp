@@ -220,7 +220,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
 
   // Specific Insturmentation skipping for spin locks
   // in CCEH
-  /*if (instr) {
+  if (instr) {
     const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
     if (debugInfo) {
       int line = debugInfo->getLine();
@@ -228,24 +228,24 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
           line == 65 || line == 9 || line == 63 || line == 21 || line == 23)
         return false;
     }
-  }*/
+  }
 
   // Skipping certian functions during instrumentation: CCEH
   // Optimization
-  /*Function *func = instr->getFunction();
-  if (func->getName().find("initCCEH") != std::string::npos) {
+  Function *func = instr->getFunction();
+  /*if (func->getName().find("initCCEH") != std::string::npos) {
     return false;
-  }
+  }*/
   if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
     return false;
   }
-  if (func->getName().find("Get") != std::string::npos) {
+  /*if (func->getName().find("Get") != std::string::npos) {
     return false;
-  }
-  if (func->getName().find("initSegment") != std::string::npos) {
+  }*/
+  /*if (func->getName().find("initSegment") != std::string::npos) {
     return false;
-  }
-  if (func->getName().find("Insert") != std::string::npos) {
+  }*/
+  /*if (func->getName().find("Insert") != std::string::npos) {
     if (isa<LoadInst>(instr)) consec_count++;
     if (consec_count % 3 == 0) {
       // do nothing

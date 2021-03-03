@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <chrono>
 
+//#define BATCH_REEXECUTION 1000000
 #define BATCH_REEXECUTION 1
 
 using namespace std;
@@ -268,7 +269,8 @@ bool Reactor::monitor_address_trace() {
            << " for reading address trace file\n";
     return false;
   }
-  int start_pos = 0, end_pos = 0;
+  //int start_pos = 0, end_pos = 0;
+  long long start_pos = 0, end_pos = 0;
   string partial_line, line;
   bool partial = false;
   unsigned lineno = 0;
@@ -891,6 +893,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       decided_slice_seq_numbers[ind] = cpkt_ind;
       cpkt_ind--;
       ind++;
+      total_reverted_items++;
+      total_reexecutions++;
       revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses, s_log,
                                   decided_slice_seq_numbers, ind, c_log );
       if (strcmp(options.pmem_library, "libpmemobj") == 0)
@@ -902,7 +906,10 @@ bool Reactor::react(std::string fault_loc, string inst_str,
             starting_seq_num, addr_off_list.sorted_pmem_addresses, ordered_data,
             (void *)last_pool.pool_addr->addr, s_log);
        if(req_flag2 ==1){
-         printf("reversion has succeeded\n");
+          printf("reversion has succeeded\n");
+          fprintf(fp, "%d items reverted\n", total_reverted_items);
+          fprintf(fp, "total re-executions is %d\n", total_reexecutions);
+          fclose(fp);
           return 1;
        }
        pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
@@ -972,6 +979,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
 
       // Binary reversion for too many addresses
       if (many_address_seq.size() > BATCH_REEXECUTION) {
+      //if (many_address_seq.size() > options.batch_threshold) {
         // TODO: sort many_address_seq by sequence number +
         // get rid of any duplicate numbers
 
