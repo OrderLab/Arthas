@@ -141,7 +141,7 @@ bool __arthas_addr_tracker_dump() {
 
 void __arthas_addr_tracker_finish() {
   // close the tracker file
-  printf("arthas addr tracker finish\n");
+  // printf("arthas addr tracker finish\n");
   for (int i = 0; i < address_count; i++)
     fprintf(__arthas_tracker_file, "%p,%u\n", addresses[i], guids[i]);
   address_count = 0;

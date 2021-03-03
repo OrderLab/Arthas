@@ -40,7 +40,10 @@ typedef struct reactor_options {
   const char *hook_guid_file;
   const char *reexecute_cmd;
   bool arckpt;
+<<<<<<< HEAD
   int batch_threshold;
+=======
+>>>>>>> 41f05f787706ac156000075aed00e8d010cc54e6
   int version_num;
 
   // string representation of the fault instruction

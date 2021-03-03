@@ -910,6 +910,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           fprintf(fp, "%d items reverted\n", total_reverted_items);
           fprintf(fp, "total re-executions is %d\n", total_reexecutions);
           fclose(fp);
+         printf("reversion has succeeded\n");
           return 1;
        }
        pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
