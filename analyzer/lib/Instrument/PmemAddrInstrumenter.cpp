@@ -228,7 +228,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
           line == 65 || line == 9 || line == 63 || line == 21 || line == 23)
         return false;
     }
-  }
+  }*/
 
   // Skipping certian functions during instrumentation: CCEH
   // Optimization
@@ -236,9 +236,9 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   /*if (func->getName().find("initCCEH") != std::string::npos) {
     return false;
   }*/
-  if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
+  /*if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
     return false;
-  }
+  }*/
   /*if (func->getName().find("Get") != std::string::npos) {
     return false;
   }*/

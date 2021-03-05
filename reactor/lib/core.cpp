@@ -207,7 +207,6 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
     errs() << "No hook GUID file specified, abort reaction\n";
     return false;
   }
-
   // Step 0: Parse bitcode file, warm-up matcher
   _state->sys_module = parseModule(*_state->llvm_context, options.bc_file);
   _state->matcher.process(*_state->sys_module);
