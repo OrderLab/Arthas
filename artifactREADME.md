@@ -91,6 +91,12 @@ LDFLAGS = -Wl,--no-as-needed -ldl
 ```
 to the Makefile. Search for the phrase 'LDFLAGS =' and there should be an empty space next to the equals sign, add in “-Wl,--no-as-needed -ldl” right next to the equals sign.
 
+Also, add the pmdk dependency to the Memcached directory 
+```
+cp -r [path to vanilla pmdk]/pmdk [path to Memcached]
+```
+
+
 Then run
 ```
 make -j16
