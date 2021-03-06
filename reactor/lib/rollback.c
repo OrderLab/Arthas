@@ -534,8 +534,6 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
                void *old_pop, seq_log *s_log) {
   int ret_val;
   int reexecute_flag = 0;
-  // char timeout[1000] = "timeout 15 ";
-  // strcat(timeout, reexecution_cmd);
   // the reexcution command is a single line command string
   // if multiple commands are needed, they can be specified
   // with 'cmd1 && cmd2 && cmd3' just like how multi-commands are
@@ -561,7 +559,7 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
   if (reexecute_flag) {
     printf("Reversion attempt %d\n", coarse_grained_tries + 1);
     printf("\n");
-    // TODO: add libpmem support
+
     PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
                                            pmem_addresses, offsets, s_log);
     if (!pop) {
