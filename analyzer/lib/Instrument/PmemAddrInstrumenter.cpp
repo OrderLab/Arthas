@@ -202,74 +202,8 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   bool flush_flag = false;
   bool fence_flag = false;
 
-  // Consecutive Count for nested access instrumentation
-  /*if(consec_count > 0){
-    if (isa<LoadInst>(instr)) {
-      LoadInst *li = dyn_cast<LoadInst>(instr);
-      addr = li->getPointerOperand();
-    }
-    else if (isa<GetElementPtrInst>(instr)) {
-      GetElementPtrInst *gepInst = cast <GetElementPtrInst>(instr);
-      addr = gepInst->getPointerOperand();
-    }
-    else {
-      // instrument the prev instruction but also the current
-      // instruction
-    }
-  }*/
-
-  // Specific Insturmentation skipping for spin locks
-  // in CCEH
-  /*if (instr) {
-    const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
-    if (debugInfo) {
-      int line = debugInfo->getLine();
-      if (line == 253 || line == 36 || line == 37 || line == 60 || line == 59 ||
-          line == 65 || line == 9 || line == 63 || line == 21 || line == 23)
-        return false;
-    }
-  }*/
-
-  // Skipping certian functions during instrumentation: CCEH
-  // Optimization
   Function *func = instr->getFunction();
-  /*if (func->getName().find("initCCEH") != std::string::npos) {
-    return false;
-  }*/
-  /*if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
-    return false;
-  }*/
-  /*if (func->getName().find("Get") != std::string::npos) {
-    return false;
-  }*/
-  /*if (func->getName().find("initSegment") != std::string::npos) {
-    return false;
-  }*/
-  /*if (func->getName().find("Insert") != std::string::npos) {
-  }*/
 
-  // Skipping certian functions during instrumentation: CCEH
-  // Optimization
-  /*Function *func = instr->getFunction();
-  if (func->getName().find("initCCEH") != std::string::npos) {
-    return false;
-  }
-  if (func->getName().find("pmemobj_direct_inline") != std::string::npos) {
-    return false;
-  }
-  if (func->getName().find("Get") != std::string::npos) {
-    return false;
-  }
-  if (func->getName().find("initSegment") != std::string::npos) {
-    return false;
-  }
-  if (func->getName().find("Insert") != std::string::npos) {
-    if (isa<LoadInst>(instr)) consec_count++;
-    if (consec_count % 3 == 0) {
-      // do nothing
-    } else
-      return false;
-  }*/
 
   if (isa<LoadInst>(instr)) {
     LoadInst *li = dyn_cast<LoadInst>(instr);
@@ -281,13 +215,6 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     GetElementPtrInst *gepInst = cast<GetElementPtrInst>(instr);
     addr = gepInst->getPointerOperand();
     //return false;
-    /* errs() << "get element ptr is " << *gepInst << "\n";
-     const llvm::DebugLoc &debugInfo = instr->getDebugLoc();
-     int line = debugInfo->getLine();
-     errs() << "line no is " << line << "\n";
-     line_no_instructions.insert(pair <int, Instruction *> (line, instr));
-     prev_line_no = line;
-     consec_count++;*/
   } else if (isa<CallInst>(instr)) {
     CallInst *ci = dyn_cast<CallInst>(instr);
     Function *callee = ci->getCalledFunction();
@@ -320,8 +247,6 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     } else if (token.compare("clflush") == 0) {
       // cflush function
       addr = ci->getOperand(0);
-      // LoadInst *li = dyn_cast<LoadInst>(addr);
-      // addr = li->getPointerOperand();
       errs() << "deref address is " << *addr << "\n";
       flush_flag = true;
     } else if (token.compare("mmap") == 0) {
@@ -382,25 +307,7 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
     _guid_hook_point_map[PmemVarCurrentGuid] = instr;
     auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
     auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
-    /*if(guid->getZExtValue() == 622 || guid->getZExtValue() == 620 ||
-    guid->getZExtValue() == 621)
-      return false;
-    if(guid->getZExtValue() > 489 && guid->getZExtValue() < 511)
-      return false;
-    if(guid->getZExtValue() > 482 && guid->getZExtValue() < 491)
-      return false;*/
-    /*if(guid->getZExtValue() > 230 && guid->getZExtValue() < 260)
-      return false;*/
-    /*if(addresses[address_count] == NULL)
-      addresses[address_count] = (char *)malloc(20);
-    memcpy(addresses[address_count], (char *)i8addr, 14);
-    guids[address_count] = guid->getValue().getZExtValue();
-    address_count++;
-    if(address_count >= 1000000){*/
     builder.CreateCall(_track_addr_func, {i8addr, guid});
-    // builder.CreateCall(_track_addr_func, {addresses, guids, address_count});
-    // address_count = 0;
-    //}
     PmemVarCurrentGuid++;
   }
   _instrument_cnt++;
