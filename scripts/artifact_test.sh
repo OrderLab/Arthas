@@ -30,7 +30,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "Successfully build Arthas-PMDK"
 
-
+export PMDK_HOME=$root_dir/pmdk
 # build Arthas
 cd $root_dir
 mkdir -p build
@@ -42,6 +42,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "Successfully build Arthas"
 
+export PMDK_HOME=$root_dir/vanilla-pmdk
 # build target system with LLVM, using Memcached as an example
 cd $root_dir
 mkdir -p eval-sys
