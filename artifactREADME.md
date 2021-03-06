@@ -149,7 +149,6 @@ make -j16
 #### 1.5.4 Pelikan ####
 Pelikan includes   
 Due to time constraints, we weren't able to bring f10 and f11 to the artifact evaluation. 
-```
 
 #### 1.5.5 PMEMKV ####
 Pmemkv includes   
