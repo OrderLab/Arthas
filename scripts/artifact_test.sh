@@ -24,6 +24,7 @@ echo "Successfully build vanilla PMDK"
 export PMDK_HOME=$root_dir/pmdk
 # build arthas-pmdk first
 cd $root_dir/pmdk
+git checkout arthas-1.8
 make -j$(nproc)
 if [ $? -ne 0 ]; then
   echo "Failed to build Arthas-PMDK"
