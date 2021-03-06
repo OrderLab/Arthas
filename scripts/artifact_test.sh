@@ -21,8 +21,9 @@ if [ $? -ne 0 ]; then
 fi
 echo "Successfully build vanilla PMDK"
 
+export PMDK_HOME=$root_dir/pmdk
 # build arthas-pmdk first
-cd pmdk
+cd $root_dir/pmdk
 make -j$(nproc)
 if [ $? -ne 0 ]; then
   echo "Failed to build Arthas-PMDK"
@@ -30,7 +31,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "Successfully build Arthas-PMDK"
 
-export PMDK_HOME=$root_dir/pmdk
+
 # build Arthas
 cd $root_dir
 mkdir -p build
@@ -43,6 +44,7 @@ fi
 echo "Successfully build Arthas"
 
 export PMDK_HOME=$root_dir/vanilla-pmdk
+
 # build target system with LLVM, using Memcached as an example
 cd $root_dir
 mkdir -p eval-sys
@@ -54,7 +56,7 @@ git checkout refcount
 ./autogen.sh
 CC=wllvm CFLAGS="-g -O0" LDFLAGS="-Wl,--no-as-needed -ldl" ./configure --enable-pslab
 if [ ! -L pmdk ]; then
-  ln -s $PMDK_HOME 
+  ln -s ../../vanilla-pmdk pmdk
 fi
 make -j$(nproc)
 if [ $? -ne 0 ]; then
@@ -68,6 +70,7 @@ if [ ! -f memcached.bc ]; then
   exit 1
 fi
 echo "Successfully extracted memcached.bc"
+
 
 # now we have the memcached.bc file, we can initiate the Arthas workflow
 export PMDK_HOME=$root_dir/pmdk
