@@ -36,7 +36,7 @@ $ git clone git@github.com:OrderLab/Arthas.git
 $ scripts/artifact_test.sh
 ```
 
-The test script will build Arthas, custom PMDK, target system Memcached, and finally 
+The test script will build Arthas, custom PMDK, vanilla PMDK, target system Memcached, and finally 
 run the Arthas analyzer on the Memcached to instrument it. 
 
 If successful, you should see a Memcached bitcode file in `eval-sys/memcached/memcached.bc` and a Arthas hooks
