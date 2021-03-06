@@ -59,14 +59,14 @@ fi
 echo "Successfully extracted memcached.bc"
 
 # now we have the memcached.bc file, we can initiate the Arthas workflow
-cd $root_dir/scripts
+
+cd $root_dir
+mkdir -p experiment/memcached
+cd experiment/memcached
 bc_path=$root_dir/eval-sys/memcached/memcached.bc
 link_flags="-Wl,-rpath=${PMDK_HOME} -lpmemobj -lpthread -levent -levent_core"
-./instrument-compile.sh -l "$link_flags" --output ../build/memcached-instrumented $bc_path
+$root_dir/scripts/instrument-compile.sh -l "$link_flags" --output $root_dir/build/memcached-instrumented $bc_path
 if [ $? -ne 0 ]; then
   echo "Failed to instrument Memcached with Arthas"
 fi
 echo "Successfully instrumented Memached with Arthas"
-
-# 
-pip install --user python-memcached
