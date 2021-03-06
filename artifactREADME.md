@@ -217,4 +217,8 @@ Above the picture displayed in redis's run, you should see the Time spent number
 memory leak found line (signifying a successful run where Arthas manages to catch a persistent memory leak).
 
 
-For bug f12, we git clone Arthas-eval-pmemkv and checkout branch 
+For bug f12, we git clone Arthas-eval-pmemkv and checkout branch, then run make as stated above.  
+Then run
+```
+./f12
+```
