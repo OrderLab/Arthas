@@ -51,7 +51,7 @@ fi
 echo "sanity checks passed"
 
 # make sure python-memcached module is installed
-# pip install --user python-memcached
+ pip install --user python-memcached
 
 cd $experiment_dir
 
