@@ -186,7 +186,7 @@ cd scripts
 ./f9
 ```
 The results/data will appear in the results folder. You will see the time taken for Arthas to resolve the issues in the .times files 
-and see the reverted data in the results/result.txt
+and see the reverted data in the results/result.txt. Make sure to save the results in result.txt after every time you run a script.
 
 ## Step 3: Running Arthas's Memory Leak Component
 
