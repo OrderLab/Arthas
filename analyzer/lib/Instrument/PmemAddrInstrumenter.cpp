@@ -189,7 +189,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 }
 
 bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
-  //return false;
+  // return false;
   // first check if this instruction has been instrumented before
   if (_hook_point_guid_map.find(instr) != _hook_point_guid_map.end()) {
     DEBUG(errs() << "Skip instrumenting instruction (" << *instr

@@ -1,9 +1,3 @@
-add_executable(reactor2 
-  ../lib/reactor-opts.cpp
-  reactor2.cpp
-)
-
-
 add_executable(reactor 
   main.cpp
 )
@@ -38,21 +32,4 @@ target_link_libraries(reactor_server
   ${GRPC_REFLECTION}
   ${GRPC_CPP}
   ${PROTOBUF_LIBPROTOBUF}
-)
-
-target_link_libraries(reactor2
-  PUBLIC checkpoint
-  PUBLIC rollback
-  PRIVATE Instrumenter
-  PRIVATE Slicer
-  PRIVATE Matcher
-  PRIVATE Utils
-  PRIVATE ${PMEM_LIBRARIES}
-  PRIVATE pthread 
-  PRIVATE dl
-  PRIVATE Matcher
-  PRIVATE DefUse
-  PRIVATE ${llvm_irreader}
-  PRIVATE ${llvm_support}
-  PRIVATE ${llvm_core}
 )

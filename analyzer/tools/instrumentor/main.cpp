@@ -207,8 +207,6 @@ int main(int argc, char *argv[]) {
         // don't instrument
       } else if (instrumenter.instrumentInstr(instr)) {
       }
-      /*if (instrumenter.instrumentInstr(instr)) {
-      }*/
     }
   }
   llvm::errs() << "INSTRUMENTED " << instrument_count << "\n";
