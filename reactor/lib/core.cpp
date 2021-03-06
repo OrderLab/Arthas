@@ -269,7 +269,6 @@ bool Reactor::monitor_address_trace() {
            << " for reading address trace file\n";
     return false;
   }
-  //int start_pos = 0, end_pos = 0;
   long long start_pos = 0, end_pos = 0;
   string partial_line, line;
   bool partial = false;
@@ -422,14 +421,11 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
   uint64_t *offsets;
   int starting_seq_num = 0;
   if (r >= l) {
-    printf("Begin if\n");
     int mid = l + (r - l) / 2;
     auto first_left = seq_list.begin();
-    printf("left stuff\n");
     vector<int>::iterator last_left = seq_list.begin() + (mid + 1);
     vector<int> left(first_left, last_left);
 
-    printf("right stuff\n");
     vector<int>::iterator first_right;
     if (mid == 0 && seq_list.size() == 1)
       first_right = seq_list.begin() + (mid);
@@ -437,13 +433,10 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
       first_right = seq_list.begin() + (mid + 1);
     auto last_right = seq_list.end();
     vector<int> right(first_right, last_right);
-    printf("set up left + right\n");
 
     int *slice_seq_numbers = (int *)malloc(sizeof(int) * right.size());
     printf("slice seq numbers %p %d\n", slice_seq_numbers, (int)right.size());
-    printf("slice seq\n");
     copy(right.begin(), right.end(), slice_seq_numbers);
-    printf("copy right\n");
     decided_total = 0;
     decision_func_sequence_array(slice_seq_numbers, right.size(),
                                  decided_slice_seq_numbers, &decided_total);
@@ -453,14 +446,11 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
     revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
                                     decided_slice_seq_numbers, decided_total,
                                     c_log);
-    printf("reverted right side\n");
     if (strcmp(options.pmem_library, "libpmemobj") == 0) {
       pmemobj_close(*pop);
     }
-    printf("close pop\n");
     single_data *temp_data;
     if (decided_total > 0) {
-      printf("re_execution before\n");
       req_flag2 =
           re_execute(options.reexecute_cmd, options.version_num, addresses,
                      c_log, pmem_addresses, num_data, options.pmem_file,
@@ -468,7 +458,6 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
                      sorted_pmem_addresses, temp_data, pool_address, s_log);
       total_reexecutions++;
     }
-    printf("re_execution\n");
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
                                  num_data, pmem_addresses, offsets, s_log);
@@ -480,13 +469,11 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
       if (binary_reversion_count > BINARY_REVERSION_ATTEMPTS ||
           right.size() == 1) {
         binary_reversion_count = 0;
-        printf("returning 1 here !\n");
         binary_success = 1;
         return 0;
       }
       printf("begin undo\n");
       undo_by_sequence_number_array(s_log, right);
-      printf("undo has finished\n");
 
       free(decided_slice_seq_numbers);
       free(slice_seq_numbers);
@@ -497,7 +484,6 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
       printf("begin undo\n");
 
       undo_by_sequence_number_array(s_log, right);
-      printf("undo has finished\n");
 
       if (binary_reversion_count > BINARY_REVERSION_ATTEMPTS ||
           left.size() == 1) {
