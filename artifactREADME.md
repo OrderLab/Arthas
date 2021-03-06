@@ -16,7 +16,7 @@ In order to get any bug running, you’ll have to install these:
 ### Step 1.1: Install vanilla PMDK ###
 
 Install Intel’s PMDK persistent memory library from: https://github.com/pmem/pmdk 
-We used version 1.4.2 of pmdk, but later versions should also be fine.
+We used version 1.8 of pmdk, but later versions should also be fine.
 
 
 ### Step 1.2: Install Arthas’ checkpoint component (modified PMDK) ###
