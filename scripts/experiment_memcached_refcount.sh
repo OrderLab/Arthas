@@ -57,7 +57,7 @@ cd $experiment_dir
 
 # clean up previous instance first
 kill_pid_file memcached.pid "Memcached server"
-rm /mnt/pmem/memcached.pm
+rm /mnt/pmem/memcached.pm 2>&1 >/dev/null
 
 echo "Starting instrumented Memcached..."
 $instrumented_memcahed -p 11211 -U 11211 & echo $! > memcached.pid
@@ -85,7 +85,32 @@ python $scripts_dir/memcached_stats.py
 wait
 echo "Triggered Memcached refcount bug"
 
+# make sure we are in experiment dir
+cd $experiment_dir
+
 echo "(Optional) Getting rid of duplicate GUID entries"
 pmem_addr="pmem_addr_pid_${memcached_pid}.dat"
 perl -i -ne 'print if ! $x{$_}++' $pmem_addr
 echo "Finished with duplicate removal"
+
+echo "Getting the Arthas reactor server ready"
+prepared=output_log
+
+$root_dir/build/bin/reactor_server -g memcached-hook-guids.map -b $root_dir/build/memcached-instrumented.bc -a $pmem_addr -p /mnt/pmem/memcached.pm -t store.db -l libpmemobj -n 1 --rxcmd "$scripts_dir/memcached_refcount_reexec.sh" &
+echo $! > reactor_server.pid &
+while :
+do
+  if test -f "$prepared"; then
+    break
+  fi
+  sleep 1
+done
+echo "Arthas reactor server is ready!!"
+
+# starting the client request
+echo "Query Arthas reactor server"
+$root_dir/build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+tput setaf 2; echo "Recovery finished!!"
+
+# clean up
+kill_pid_file reactor_server.pid "Arthas reactor server"
