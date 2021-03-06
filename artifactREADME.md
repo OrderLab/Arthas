@@ -222,3 +222,6 @@ Then run
 ```
 ./f12
 ```
+
+Similarly, the memory leak found print statements demonstrate a successful run and the time is also displayed.
+
