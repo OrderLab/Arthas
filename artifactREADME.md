@@ -225,3 +225,16 @@ Then run
 
 Similarly, the memory leak found print statements demonstrate a successful run and the time is also displayed.
 
+## Misc.
+
+In order to get optimized numbers for bug f4, comment out line 
+```
+#define BATCH_REEXECUTION 1
+```
+and uncomment out line 
+```
+//#define BATCH_REEXECUTION 1000000
+```
+at the top of [Arthas]/reactor/lib/core.cpp file and then call make again 
+before rerunning f4 to see improved performance. Don't forget to change this parameter again 
+before running the other bugs.
