@@ -148,20 +148,7 @@ make -j16
 
 #### 1.5.4 Pelikan ####
 Pelikan includes   
-Bug f10: Value len overflow
-```
-git checkout val
-```
-Due to time constraints, we weren't able to bring f11 to the artifact evaluation. 
-
-After checkout the branch then you can run 
-```
-mkdir build && cd build
-CC=wllvm cmake ..
-make USE_PMEM=yes -j16
-cd _bin
-extract-bc pelikan_twemcache
-opt -loweratomic <pelikan_twemcache.bc> pelikan_twemcache-lower.bc
+Due to time constraints, we weren't able to bring f10 and f11 to the artifact evaluation. 
 ```
 
 #### 1.5.5 PMEMKV ####
