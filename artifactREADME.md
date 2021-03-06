@@ -264,7 +264,7 @@ echo "Triggered memcached refcount bug"
 ```
 Here we call runScript to run memcached-instrumented and we also call python_insert which is a python script that uses python-memcache to insert a workload of millions of keys to memcached. We then sleep for 150 seconds (2 minutes 30 seconds) before killing the python script. We then call perl_script which triggers the memcached refcount bug.
 
-### 4.4: Duplicate removal ###
+### 4.4: Duplicate removal (optional) ###
 ```
 echo "(Optional) Getting rid of duplicate GUID entries"
 pmem_addr="pmem_addr_pid_${memcached_pid}.dat"
