@@ -58,6 +58,7 @@ cd $experiment_dir
 # clean up previous instance first
 kill_pid_file memcached.pid "Memcached server"
 rm /mnt/pmem/memcached.pm 2>&1 >/dev/null
+rm output_log
 
 echo "Starting instrumented Memcached..."
 $instrumented_memcahed -p 11211 -U 11211 & echo $! > memcached.pid
@@ -73,13 +74,13 @@ sleep 5  # wait until Memcached fully starts
 
 echo "Inserting workload for 2 mins and 30 seconds"
 python $scripts_dir/memcached_inserts.py & echo $! > workload_driver.pid
-sleep 5
+sleep 150
 
 kill_pid_file workload_driver.pid "Memcached client"
 echo "Finished Workload insertion for 2 mins and 30 seconds"
 python $scripts_dir/memcached_stats.py
 
-# (sleep 2; kill_pid_file memcached.pid "Memcached server") &
+#(sleep 2; kill_pid_file memcached.pid "Memcached server") &
 (sleep 2; $scripts_dir/memcached_kill.sh $experiment_dir) &
 ($scripts_dir/memcached_refcount_bug_trigger.sh > refcount_bug_trigger.out 2>&1) &
 wait
