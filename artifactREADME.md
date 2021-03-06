@@ -16,13 +16,13 @@ In order to get any bug running, you’ll have to install these:
 ### Step 1.1: Install vanilla PMDK ###
 
 Install Intel’s PMDK persistent memory library from: https://github.com/pmem/pmdk 
-We used version 1.4.2 of pmdk, but later versions should also be fine. (git checkout tags/1.4.2)
+We used version 1.8 of pmdk, but later versions should also be fine.
 
 
 ### Step 1.2: Install Arthas’ checkpoint component (modified PMDK) ###
 
 Install Arthas's checkpoint component (which is a modified version of pmdk). Install from https://github.com/OrderLab/PMDK-Arthas 
-The installation instructions should mostly be the same except, skip the checkout tags/1.4.2 (pmdk arthas’ current version is fine) and you won’t have to install most of the dependencies since they’ll already be taken care of from step 1.1. 
+The installation instructions should mostly be the same except you should use branch arthas-1.8. You also won’t have to install most of the dependencies since they’ll already be taken care of from step 1.1. 
 
 ```
 export PMDK_HOME=[path to modified PMDK directory]
@@ -34,7 +34,7 @@ Make sure to set this environment variable either using the command line or addi
 Install wllvm from https://github.com/travitch/whole-program-llvm 
 Follow the instructions on the github page.
 
-Set environment variables for wllvm to use in systems in Step 3.
+Set environment variables for wllvm to use in systems.
 ``` 
 export LLVM_COMPILER=clang
 export LLVM_HOME=/opt/software/llvm/3.9.1/dist
