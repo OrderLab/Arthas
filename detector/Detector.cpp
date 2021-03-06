@@ -11,18 +11,46 @@ extern "C" {
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  string temp_command;
-  // string gdb = "gdb -x file ";
-  string gdb = "gdb --args ";
-  string line_command;
 
-  /*cout << "Start System you wish to run \n";
-  getline(cin, line_command);
-  temp_command = gdb + line_command;
-  const char *command = temp_command.c_str();
+  if(strcmp(argv[1], "run") == 0){
+    string temp_command;
+    // string gdb = "gdb -x file ";
+    string gdb = "gdb --args ";
+    string line_command;
 
-  system(command);*/
+    cout << "Start System you wish to run \n";
+    getline(cin, line_command);
+    temp_command = gdb + line_command;
+    const char *command = temp_command.c_str();
 
+    system(command);
+
+  }
+  else if(strcmp(argv[1], "analyze") == 0){
+    ifstream myfile("gdb.txt");
+
+    std::size_t found;
+    string line, line2, func_name, line_no, combined, token;
+    string delimiter = ":";
+
+    map<string, string> func_line_mapping;
+    if (myfile.is_open()) {
+      while (getline(myfile, line)) {
+        if (line[0] == '#') {
+          found = line.find_last_of(' ');
+          combined = line.substr(found + 1);
+          func_name = combined.substr(0, combined.find(delimiter));
+          std::cout << "file: " << func_name << "\n";
+          line_no = combined.substr(combined.find(delimiter) + 1);
+          std::cout << "line no: " << line_no << "\n";
+	  std::cout << "Run extractor with these inputs\n";
+          break;
+          //func_line_mapping.insert(pair<string, string>(func_name, line_no));
+        }
+      }
+    }
+
+  }
   /*void *callstack[128];
   int i, frames = backtrace(callstack, 128);
   char** strs = backtrace_symbols(callstack, frames);
@@ -30,7 +58,11 @@ int main(int argc, char *argv[]) {
     printf("STACK TRACE: %s\n", strs[i]);
   }
   free(strs);*/
-  string line, line2, func_name, line_no, combined, token;
+
+
+  // Code to compare two different runs and detect if bug is pmem
+  // or not
+  /*string line, line2, func_name, line_no, combined, token;
   string delimiter = ":";
   std::size_t found;
   ifstream myfile("gdb.txt");
@@ -83,34 +115,6 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-  }
-
-  /*if (myfile.is_open() && myfile2.is_open()){
-     while ( getline (myfile, line) && getline(myfile2, line2)){
-       if(line[0] == '#' && line2[0] == '#'){
-         if(line != line2){
-           cout << line << "\n";
-         }
-         cout << "DIFFERENT LINES\n";
-         cout << line << "\n";
-         cout << line2 << "\n";
-         // TODO: use locator to collect llvm instruction
-         // trace_values.insert(result);
-       }
-     }
   }*/
 
-  /*bool persistent_flag = false;
-  PMemVariableLocator locator;
-  locator.runOnFunction(*F);
-  for (auto vi = locator.var_begin(); vi != locator.var_end(); ++vi) {
-    for (auto t = trace_values.begin(); t != trace_values.end();
-         ++trace_values) {
-      if(*vi == *t){
-        //Persistent Value is involved
-        persistent_flag = true;
-        break;
-      }
-    }
-  }*/
 }

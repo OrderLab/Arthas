@@ -169,7 +169,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                               const llvm::Function *F) {
   PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
-  llvm::errs() << "Call instruction for creation is " << *CInst << "\n";
+  //llvm::errs() << "Call instruction for creation is " << *CInst << "\n";
   auto &subg = getAndConnectSubgraph(F, CInst, callNode);
 
   // the operands to the return node (which works as a phi node)
@@ -397,7 +397,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
     case Instruction::FPExt:
       // these instructions reinterpert the pointer,
       // nothing better we can do here (I think?)
-      std::cout << "unknown\n";
+      //std::cout << "unknown\n";
       seq = &createUnknown(&Inst);
       break;
     case Instruction::Add:
@@ -417,7 +417,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &LLVMPointerGraphBuilder::buildInstruction(
         seq = &createCast(&Inst);
       else {
         seq = &createUnknown(&Inst);
-        std::cout << "unknown\n";
+        //std::cout << "unknown\n";
       }
       break;
     case Instruction::InsertElement:

@@ -393,6 +393,7 @@ bool Reactor::wait_address_trace_ready() {
 
   fp = fopen("output_log", "w+");
   fprintf(fp, "Address trace ready\n");
+  fflush(fp);
 
   _state->trace_processed = true;
   _state->processing_trace = false;
