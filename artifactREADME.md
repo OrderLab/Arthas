@@ -148,21 +148,7 @@ make -j16
 
 #### 1.5.4 Pelikan ####
 Pelikan includes   
-Bug f10: Value len overflow
-```
-git checkout val
-```
-Due to time constraints, we weren't able to bring f11 to the artifact evaluation. 
-
-After checkout the branch then you can run 
-```
-mkdir build && cd build
-CC=wllvm cmake ..
-make USE_PMEM=yes -j16
-cd _bin
-extract-bc pelikan_twemcache
-opt -loweratomic <pelikan_twemcache.bc> pelikan_twemcache-lower.bc
-```
+Due to time constraints, we weren't able to bring f10 and f11 to the artifact evaluation. 
 
 #### 1.5.5 PMEMKV ####
 Pmemkv includes   
@@ -182,6 +168,11 @@ cd [Arthas directory]
 vim arthas.conf
 ```
 
+Also, make sure to install the python-memcache python package to ensure that the scripts below work
+https://www.tummy.com/software/python-memcached/
+https://stackoverflow.com/questions/868690/good-examples-of-python-memcache-memcached-being-used-in-python
+Note: python 3 does not support this
+
 ## Step 2: Running Arthas on the bugs
 
 After completing the above steps we can now run Arthas on bugs f1-f7 and f9. 
@@ -200,7 +191,7 @@ cd scripts
 ./f9
 ```
 The results/data will appear in the results folder. You will see the time taken for Arthas to resolve the issues in the .times files 
-and see the reverted data in the results/result.txt
+and see the reverted data in the results/result.txt. Make sure to save the results in result.txt after every time you run a script.
 
 ## Step 3: Running Arthas's Memory Leak Component
 
@@ -217,4 +208,24 @@ Above the picture displayed in redis's run, you should see the Time spent number
 memory leak found line (signifying a successful run where Arthas manages to catch a persistent memory leak).
 
 
-For bug f12, we git clone Arthas-eval-pmemkv and checkout branch 
+For bug f12, we git clone Arthas-eval-pmemkv and checkout branch, then run make as stated above.  
+Then run
+```
+./f12
+```
+
+Similarly, the memory leak found print statements demonstrate a successful run and the time is also displayed.
+
+## Misc.
+
+In order to get optimized numbers for bug f4, comment out line 
+```
+#define BATCH_REEXECUTION 1
+```
+and uncomment out line 
+```
+//#define BATCH_REEXECUTION 1000000
+```
+at the top of [Arthas]/reactor/lib/core.cpp file and then call make again 
+before rerunning f4 to see improved performance. Don't forget to change this parameter again 
+before running the other bugs.

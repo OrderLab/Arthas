@@ -50,7 +50,6 @@ uint32_t createDgFlags(struct dg_options &options) {
 }
 
 bool Reactor::compute_dependencies() {
-  //return true;
   std::unique_lock<std::mutex> lk(_lock);
   if (_state->dependency_computed) {
     return true;
@@ -410,6 +409,7 @@ void undo_by_sequence_number_array(seq_log *s_log, std::vector<int> &seq_list) {
   }
 }
 
+/* Binary Reversion Function to reduce data loss */
 int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
                      PMEMobjpool **pop, checkpoint_log *c_log, int num_data,
                      void *pool_address, struct reactor_options &options) {
