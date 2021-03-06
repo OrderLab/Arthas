@@ -21,29 +21,6 @@ if [ $? -ne 0 ]; then
 fi
 echo "Successfully build vanilla PMDK"
 
-export PMDK_HOME=$root_dir/pmdk
-# build arthas-pmdk first
-cd $root_dir/pmdk
-git checkout arthas-1.8
-make -j$(nproc)
-if [ $? -ne 0 ]; then
-  echo "Failed to build Arthas-PMDK"
-  exit 1
-fi
-echo "Successfully build Arthas-PMDK"
-
-
-# build Arthas
-cd $root_dir
-mkdir -p build
-cd build && cmake ..
-make -j$(nproc)
-if [ $? -ne 0 ]; then
-  echo "Failed to build Arthas"
-  exit 1
-fi
-echo "Successfully build Arthas"
-
 export PMDK_HOME=$root_dir/vanilla-pmdk
 
 # build target system with LLVM, using Memcached as an example
@@ -76,11 +53,33 @@ echo "Successfully extracted memcached.bc"
 # now we have the memcached.bc file, we can initiate the Arthas workflow
 export PMDK_HOME=$root_dir/pmdk
 
+# build arthas-pmdk first
+cd $root_dir/pmdk
+git checkout arthas-1.8
+make -j$(nproc)
+if [ $? -ne 0 ]; then
+  echo "Failed to build Arthas-PMDK"
+  exit 1
+fi
+echo "Successfully build Arthas-PMDK"
+
+
+# build Arthas
+cd $root_dir
+mkdir -p build
+cd build && cmake ..
+make -j$(nproc)
+if [ $? -ne 0 ]; then
+  echo "Failed to build Arthas"
+  exit 1
+fi
+echo "Successfully build Arthas"
+
 cd $root_dir
 mkdir -p experiment/memcached
 cd experiment/memcached
 bc_path=$root_dir/eval-sys/memcached/memcached.bc
-link_flags="-Wl,-rpath=${PMDK_HOME} -lpmemobj -lpthread -levent -levent_core"
+link_flags="-Wl,-rpath=${PMDK_HOME}/src/nondebug -lpmemobj -lpthread -levent -levent_core"
 $root_dir/scripts/instrument-compile.sh -l "$link_flags" --output $root_dir/build/memcached-instrumented $bc_path
 if [ $? -ne 0 ]; then
   echo "Failed to instrument Memcached with Arthas"
