@@ -80,7 +80,14 @@ $ cd ../pmdk
 $ make -j $(nproc)
 ```
 
-### B.3: Building Target System (Memcached)
+### B.3: Building Vanilla PMDK
+
+```
+$ cd ../vanilla-pmdk
+$ make -j $(nproc)
+```
+
+### B.4: Building Target System (Memcached)
 
 Make sure the LLVM environment variables are set:
 ```
@@ -107,7 +114,7 @@ $ extract-bc memcached
 
 If successful, a bitcode file `memcached.bc` will be extracted.
 
-### B.4: Instrumenting Target System
+### B.5: Instrumenting Target System
 
 Once we have the `memcached.bc` file, we can then use Arthas's instrumenter to
 instrument the Memcached executable with the pmem address trace behavior and
@@ -122,7 +129,7 @@ $ scripts/instrument-compile.sh -l "$link_flags" --output build/memcached-instru
 
 This will create a new executable in build called memcached-instrumented that we will use to run memcached. 
 
-### B.5: Running Memcached, Inserting a Workload, and Triggering the Bug 
+### B.6: Running Memcached, Inserting a Workload, and Triggering the Bug 
 
 We run the `memcached-instrumented` executable and call a Python script to insert a workload 
 of millions of keys to Memcached. We then sleep for 150 seconds (2 minutes 30 
@@ -146,7 +153,7 @@ $ echo "Triggered Memcached refcount bug"
 ```
 
 
-### B.6: Duplicate removal (optional)
+### B.7: Duplicate removal (optional)
 
 This is an optional step where we remove any duplicates in the address trace
 file, Arthas will still work even if we don't do this step.
@@ -156,7 +163,7 @@ $ pmem_addr="pmem_addr_pid_${memcached_pid}.dat"
 $ perl -i -ne 'print if ! $x{$_}++' $pmem_addr
 ```
 
-### B.7: Arthas's Reactor Server
+### B.8: Arthas's Reactor Server
 
 We then run Arthas's reactor server on memcached-instrumented's byte code and
 our previous run's mem address trace file, building up the server until it's
@@ -167,12 +174,12 @@ $ reexec_path=$(cd ../.. && pwd)/scripts/memcached_refcount_reexec.sh
 $ ../../build/bin/reactor_server -g memcached-hook-guids.map -b ../../build/memcached-instrumented.bc -a $pmem_addr -p /mnt/pmem/memcached.pm -t store.db -l libpmemobj -n 1 --rxcmd "$reexec_path" &
 ```
 
-### B.8: Arthas's Reactor Client
+### B.9: Arthas's Reactor Client
 
 We then use Arthas's reactor client to send a reversion request to Arthas's server
 
 ```
-$ ../../build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+$ ../../build/bin/reactor_client -i '%82 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
 ```
 
 Then Arthas's reactor will begin the reversion and re-execution of Memcached in order to mitigate the fault.
