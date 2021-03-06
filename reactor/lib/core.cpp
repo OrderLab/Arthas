@@ -137,7 +137,6 @@ bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   out_stream << "=================Slice list " << slice_graph->slice_id();
   out_stream << "=================\n";
 #endif
-  auto &persistent_vars = locator->vars();
   for (Slice *slice : slices) {
     slice->setPersistence(pmem_vars);
 // slice->setPersistence(persistent_vars);
@@ -406,10 +405,8 @@ bool Reactor::wait_address_trace_ready() {
 }
 
 void undo_by_sequence_number_array(seq_log *s_log, std::vector<int> &seq_list) {
-  int curr_version;
-  for (int i = 0; i < seq_list.size(); i++) {
+  for (int i = 0; i < (int)seq_list.size(); i++) {
     single_data search_data = lookup(s_log, seq_list[i]);
-    curr_version = search_data.version;
     undo_by_sequence_number(search_data, seq_list[i]);
   }
 }
@@ -443,7 +440,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
     printf("set up left + right\n");
 
     int *slice_seq_numbers = (int *)malloc(sizeof(int) * right.size());
-    printf("slice seq numbers %p %d\n", slice_seq_numbers, right.size());
+    printf("slice seq numbers %p %d\n", slice_seq_numbers, (int)right.size());
     printf("slice seq\n");
     copy(right.begin(), right.end(), slice_seq_numbers);
     printf("copy right\n");
@@ -512,8 +509,6 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         decision_func_sequence_array(slice_seq_numbers, left.size(),
                                      decided_slice_seq_numbers, &decided_total);
         printf("reverting %d\n", decided_total);
-        int s_num[1];
-        // s_num[0] = decided_slice_seq_numbers[0];
         binary_reverted_items = decided_total;
 
         revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
@@ -708,8 +703,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   r_log->size = *total_size;
   r_log->list =
       (struct seq_node **)malloc(sizeof(struct seq_node) * *total_size);
-  printf("total size is %d\n", *total_size);
-  for (int i = 0; i < *total_size; i++) {
+  printf("total size is %d\n", (int)*total_size);
+  for (int i = 0; i < (int)*total_size; i++) {
     r_log->list[i] = NULL;
   }
 
@@ -757,7 +752,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   std::cout << "insert into multimap" << num_data << "\n";
   time_start = clock();
-  for (int j = 0; j < num_data; j++) {
+  for (int j = 0; j < (int)num_data; j++) {
     typedef std::multimap<uint64_t, int>::iterator MMAPIterator;
     std::pair<MMAPIterator, MMAPIterator> result =
         offset_seq_map.equal_range(addr_off_list.offsets[j]);
@@ -771,10 +766,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   errs() << "Multimap iteration took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   time_start = clock();
-  int *seq_count = (int *)malloc(sizeof(int));
-  single_data search_data;
   int *sequences = (int *)malloc(sizeof(int) * s_log->size);
-  int count = 0;
 
   multimap<const void *, int> address_seq_nums;
   for (int i = 0; i < (int)s_log->size; i++) {
@@ -834,7 +826,6 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   time_start = clock();
   printf("zzz high num is %d\n", high_num);
   int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * s_log->size);
-  int *decided_total = (int *)malloc(sizeof(int));
 
   time_end = clock();
   errs() << "pmem addr trace creation took  "
@@ -845,8 +836,6 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   //arckpt(high_num, decided_slice_seq_numbers);
   if(options.arckpt){
     printf("begin arcpkt\n");
-    int reversion_num = 100000;
-    int rollback_version;
     int cpkt_ind = high_num;
     single_data *ordered_data;
     while(cpkt_ind > 0){
@@ -927,16 +916,14 @@ bool Reactor::react(std::string fault_loc, string inst_str,
 
       // Binary reversion for too many addresses
       if (many_address_seq.size() > BATCH_REEXECUTION) {
-      //if (many_address_seq.size() > options.batch_threshold) {
 
-        printf("many address size is %d\n", many_address_seq.size());
+        printf("many address size is %d\n", (int)many_address_seq.size());
         printf("item count is %d\n", it_count);
         sort(many_address_seq.begin(), many_address_seq.end());
 
         printf("binary rev\n");
         binary_success = -1;
-        int binary_rev_result =
-            binary_reversion(many_address_seq, 0, many_address_seq.size() - 1,
+        binary_reversion(many_address_seq, 0, many_address_seq.size() - 1,
                              s_log, (PMEMobjpool **)&pop, c_log, num_data,
                              (void *)last_pool.pool_addr->addr, options);
         total_reverted_items += binary_reverted_items;
@@ -944,7 +931,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         printf("total reverted items is %d\n", total_reverted_items);
         printf("total re-executions is %d\n", total_reexecutions);
 	fprintf(fp2, "%d items reverted\n", total_reverted_items);
-	fprintf(fp2, "total items is %d\n", *total_size);
+	fprintf(fp2, "total items is %d\n", (int)*total_size);
 	fflush(fp2);
 	fclose(fp2);
         if (binary_success == 1){
@@ -958,16 +945,12 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       // Here we should do reversion on collected seq numbers and try
       // try reexecution
       if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && 0) {
-        printf("many address size in low is %d\n", many_address_seq.size());
-        printf("new pop in low is %p\n", pop);
         int *decided_slice_seq_numbers =
             (int *)malloc(sizeof(int) * s_log->size);
         int *decided_total = (int *)malloc(sizeof(int));
         *decided_total = 0;
-        // cout << "decision func\n";
         decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
                                      decided_slice_seq_numbers, decided_total);
-        // cout << "revert by seq num\n";
         single_data *ordered_data;
         revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses,
                                         s_log, decided_slice_seq_numbers,
