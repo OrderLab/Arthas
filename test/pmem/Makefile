@@ -16,7 +16,7 @@ endif
 CC = gcc
 RM = rm
 
-EXES = hello_libpmem hello_libpmemobj pmem_variables pmem_vector pta test_criu libpmem_variables low_level oid macro nest consistency
+EXES = hello_libpmem hello_libpmemobj pmem_variables pmem_vector
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
@@ -40,35 +40,6 @@ hello_libpmemobj.o: hello_libpmemobj.c
 pmem_variables.o: pmem_variables.c
 	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
 
-libpmem_variables.o: libpmem_variables.c
-	$(CC) -c $< -o $@ $(LIBPMEM_CFLAGS)
-
-pta.o: pta.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-test_criu.o: test_criu.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-oid.o: oid.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-macro.o: macro.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-consistency.o: consistency.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-nest.o: nest.c
-	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
-
-low_level: low_level.o
-	$(CC) -o $@ $< $(LIBPMEM_LDFLAGS)
-
-
-low_level.o: low_level.c
-	$(CC) -c $< -o $@ $(LIBPMEM_CFLAGS)
-
-
 hello_libpmem: hello_libpmem.o
 	 $(CC) -o $@ $< $(LIBPMEM_LDFLAGS)
 
@@ -77,27 +48,6 @@ hello_libpmemobj: hello_libpmemobj.o
 
 pmem_variables: pmem_variables.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-libpmem_variables: libpmem_variables.o
-	 $(CC) -o $@ $< $(LIBPMEM_LDFLAGS)
-
-pta: pta.o
-	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-oid: oid.o
-	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-macro: macro.o
-	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-consistency: consistency.o
-	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-nest: nest.o
-	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
-
-test_criu: test_criu.o
-	$(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 pmem_vector: pmem_vector.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
