@@ -168,9 +168,9 @@ cd [Arthas directory]
 vim arthas.conf
 ```
 
-Also, make sure to install the python-memcache python package to ensure that the scripts below work
-https://www.tummy.com/software/python-memcached/
-https://stackoverflow.com/questions/868690/good-examples-of-python-memcache-memcached-being-used-in-python
+Also, make sure to install the python-memcache python package to ensure that the scripts below work  
+https://www.tummy.com/software/python-memcached/  
+https://stackoverflow.com/questions/868690/good-examples-of-python-memcache-memcached-being-used-in-python  
 Note: python 3 does not support this
 
 ## Step 2: Running Arthas on the bugs
