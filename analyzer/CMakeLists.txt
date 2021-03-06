@@ -1,5 +1,9 @@
 if (DEFINED ENV{PMDK_HOME})
   set(PMDK_HOME "$ENV{PMDK_HOME}")
+else()
+  if (EXISTS ${ROOT_SOURCE_DIR}/pmdk/src)
+    set(PMDK_HOME ${ROOT_SOURCE_DIR}/pmdk)
+  endif()
 endif()
 
 if (PMDK_HOME)
@@ -13,9 +17,9 @@ else()
   pkg_check_modules(PMEM REQUIRED libpmemobj libpmem)
 endif()
 
-message(STATUS "a PMEM include path: ${PMEM_INCLUDE_DIRS}")
-message(STATUS "a PMEM library path: ${PMEM_LIBRARY_DIRS}")
-message(STATUS "a PMEM libraries: ${PMEM_LIBRARIES}")
+message(STATUS "PMEM include path: ${PMEM_INCLUDE_DIRS}")
+message(STATUS "PMEM library path: ${PMEM_LIBRARY_DIRS}")
+message(STATUS "PMEM libraries: ${PMEM_LIBRARIES}")
 link_directories(${PMEM_LIBRARY_DIRS})
 
 # we need to add the two definitions in order to compile and use dg

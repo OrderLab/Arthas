@@ -1,5 +1,9 @@
 if (DEFINED ENV{PMDK_HOME})
   set(PMDK_HOME "$ENV{PMDK_HOME}")
+else()
+  if (EXISTS ${ROOT_SOURCE_DIR}/pmdk/src)
+    set(PMDK_HOME ${ROOT_SOURCE_DIR}/pmdk)
+  endif()
 endif()
 
 if (PMDK_HOME) 
