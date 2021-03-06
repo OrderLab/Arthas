@@ -91,6 +91,12 @@ LDFLAGS = -Wl,--no-as-needed -ldl
 ```
 to the Makefile. Search for the phrase 'LDFLAGS =' and there should be an empty space next to the equals sign, add in “-Wl,--no-as-needed -ldl” right next to the equals sign.
 
+Also, add the pmdk dependency to the Memcached directory 
+```
+cp -r [path to vanilla pmdk]/pmdk [path to Memcached]
+```
+
+
 Then run
 ```
 make -j16
@@ -178,7 +184,7 @@ vim arthas.conf
 
 ## Step 2: Running Arthas on the bugs
 
-After completing the above steps we can now run Arthas on bugs f1-f7 and f9-f10.   
+After completing the above steps we can now run Arthas on bugs f1-f7 and f9. 
 Bugs f8 and f12 are memory leak bugs and will be run in a different manner. 
 
 ```
@@ -187,6 +193,48 @@ cd scripts
 ./f1
 ./f2
 ./f3
+./f4
+./f5
+./f6
+./f7
+./f9
 ```
 The results/data will appear in the results folder. You will see the time taken for Arthas to resolve the issues in the .times files 
 and see the reverted data in the results/result.txt
+
+## Step 3: Running Arthas's Memory Leak Component
+
+We can now run Arthas on bugs f8 and f12. 
+
+For bug f8, we git clone Arthas-eval-redis and checkout branch memleak
+After compiling Redis like we previously stated then follow this command
+
+```
+cd [Memleak Redis directory]/src
+./f8
+```
+Above the picture displayed in redis's run, you should see the Time spent numbers and 
+memory leak found line (signifying a successful run where Arthas manages to catch a persistent memory leak).
+
+
+For bug f12, we git clone Arthas-eval-pmemkv and checkout branch, then run make as stated above.  
+Then run
+```
+./f12
+```
+
+Similarly, the memory leak found print statements demonstrate a successful run and the time is also displayed.
+
+## Misc.
+
+In order to get optimized numbers for bug f4, comment out line 
+```
+#define BATCH_REEXECUTION 1
+```
+and uncomment out line 
+```
+//#define BATCH_REEXECUTION 1000000
+```
+at the top of [Arthas]/reactor/lib/core.cpp file and then call make again 
+before rerunning f4 to see improved performance. Don't forget to change this parameter again 
+before running the other bugs.
