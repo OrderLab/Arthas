@@ -148,21 +148,7 @@ make -j16
 
 #### 1.5.4 Pelikan ####
 Pelikan includes   
-Bug f10: Value len overflow
-```
-git checkout val
-```
-Due to time constraints, we weren't able to bring f11 to the artifact evaluation. 
-
-After checkout the branch then you can run 
-```
-mkdir build && cd build
-CC=wllvm cmake ..
-make USE_PMEM=yes -j16
-cd _bin
-extract-bc pelikan_twemcache
-opt -loweratomic <pelikan_twemcache.bc> pelikan_twemcache-lower.bc
-```
+Due to time constraints, we weren't able to bring f10 and f11 to the artifact evaluation. 
 
 #### 1.5.5 PMEMKV ####
 Pmemkv includes   
@@ -200,7 +186,7 @@ cd scripts
 ./f9
 ```
 The results/data will appear in the results folder. You will see the time taken for Arthas to resolve the issues in the .times files 
-and see the reverted data in the results/result.txt
+and see the reverted data in the results/result.txt. Make sure to save the results in result.txt after every time you run a script.
 
 ## Step 3: Running Arthas's Memory Leak Component
 
