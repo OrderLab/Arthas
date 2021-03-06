@@ -226,3 +226,65 @@ cd [Arthas directory]/scripts/
 
 We will walk through the individual steps here to get a better understanding of what's happening.   
 
+### 4.1: Building ####
+
+We first build Arthas and Arthas-PMDK before then building our target Memcached system using wllvm to produce bytecode of the Memcached executable
+```
+CC=wllvm CFLAGS="-g -O0" LDFLAGS="-Wl,--no-as-needed -ldl" ./configure --enable-pslab
+make -j$(nproc)
+echo "Successfully build Memached with LLVM"
+extract-bc memcached
+```
+The above step showing how we build Memcached with LLVM and eventually extract the bytecode.
+
+### 4.2: Instrumentation ###
+Once we have the memcached.bc file, we can then use Arthas's instrumenter to instrument the Memcached executable with the pmem address trace behavior and checkpoint component. 
+```
+bc_path=$root_dir/eval-sys/memcached/memcached.bc
+link_flags="-Wl,-rpath=${PMDK_HOME} -lpmemobj -lpthread -levent -levent_core"
+./instrument-compile.sh -l "$link_flags" --output ../build/memcached-instrumented $bc_path
+```
+This will create a new executable in build called memcached-instrumented that we will use to run memcached. 
+
+### 4.3: Running Memcached, Inserting a Workload, and Triggering the Bug ###
+
+```
+(./runScript > sample_output  2>&1 &)
+(sleep 2; ./python_insert)
+wait
+sleep 150
+./python_kill
+memcached_pid=$(cat memcached.pid)
+echo "Finished Workload insertion for 2 mins and 30 seconds"
+python pythonstats.py
+(sleep 1; ./killScript) &
+(./perl_script > sample_output  2>&1 ) &
+wait
+echo "Triggered memcached refcount bug"
+```
+Here we call runScript to run memcached-instrumented and we also call python_insert which is a python script that uses python-memcache to insert a workload of millions of keys to memcached. We then sleep for 150 seconds (2 minutes 30 seconds) before killing the python script. We then call perl_script which triggers the memcached refcount bug.
+
+### 4.4: Duplicate removal ###
+```
+echo "(Optional) Getting rid of duplicate GUID entries"
+pmem_addr="pmem_addr_pid_${memcached_pid}.dat"
+perl -i -ne 'print if ! $x{$_}++' $pmem_addr
+echo "Finished with duplicate removal"
+```
+This is an optional step where we remove any duplicates in the address trace file, Arthas will still work even if we don't do this step.
+
+### 4.5: Arthas's Reactor Server ###
+We then run Arthas's reactor server on memcached-instrumented's byte code and our previous run's mem address trace file, building up the server until it's ready to serve reversion requests. 
+
+```
+../build/bin/reactor_server -g memcached-hook-guids.map -b ../build/memcached-instrumented.bc -a $pmem_addr -p /mnt/pmem/memcached.pm -t store.db -l libpmemobj -n 1 --rxcmd './refcountScript' &
+```
+
+### 4.6: Arthas's Reactor Client ###
+We then use Arthas's reactor client to send a reversion request to Arthas's server
+```
+../build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+```
+Then Arthas's reactor will begin the reversion and re-execution of Memcached in order to mitigate the fault.
+
+
