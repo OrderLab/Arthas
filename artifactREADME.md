@@ -216,16 +216,13 @@ Then run
 
 Similarly, the memory leak found print statements demonstrate a successful run and the time is also displayed.
 
-## Misc.
+## Step 4: Running Arthas for test case f1: Individual workflow walkthrough
 
-In order to get optimized numbers for bug f4, comment out line 
+To test Arthas on bug f1 and see how it works run the following commands
 ```
-#define BATCH_REEXECUTION 1
+cd [Arthas directory]/scripts/
+./artifact_test.sh
 ```
-and uncomment out line 
-```
-//#define BATCH_REEXECUTION 1000000
-```
-at the top of [Arthas]/reactor/lib/core.cpp file and then call make again 
-before rerunning f4 to see improved performance. Don't forget to change this parameter again 
-before running the other bugs.
+
+We will walk through the individual steps here to get a better understanding of what's happening.   
+
