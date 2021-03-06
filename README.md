@@ -1,16 +1,66 @@
 # Source code repository for Arthas
 
-# Build
+Table of Contents
+=================
 
-## Compile the tool
+   * [Source code repository for Arthas](#source-code-repository-for-arthas)
+      * [Requirements](#requirements)
+      * [Environment Variables](#environment-variables)
+      * [Build](#build)
+         * [Compile Arthas](#compile-arthas)
+         * [Compile custom PMDK](#compile-custom-pmdk)
+         * [Compile test programs](#compile-test-programs)
+         * [Compile a large system for analysis](#compile-a-large-system-for-analysis)
+      * [Usage](#usage)
+      * [Code Styles](#code-styles)
+
+## Requirements
+
+* Arthas is tested in a Linux machine running Ubuntu 18.04. The server should have 
+a persistent memory device (Intel Optane DC persistent memory) or at least 
+an [emulated device](https://pmem.io/2016/02/22/pm-emulation.html). 
+* The Arthas analyzer is built on top of LLVM 3.9. 
+* To analyze a target system using LLVM, we should install the `wllvm` wrapper: `pip install wllvm`.
+* We also need to build a custom PMDK (Persistent Memory Development Kit) from its source code, thus [PMDK's dependencies](https://github.com/pmem/pmdk#dependencies) should be installed. 
+  * For Ubuntu 18.04, the installation command is:
+```
+$ sudo apt install autoconf automake pkg-config libglib2.0-dev libfabric-dev pandoc libncurses5-dev
+```
+
+## Environment Variables
+
+To use the `wllvm` wrapper for compiling a target system, set the following 
+environment variables:
+
+``` 
+export LLVM_COMPILER=clang
+export LLVM_HOME=/opt/software/llvm/3.9.1/dist
+export LLVM_COMPILER_PATH=$LLVM_HOME/bin
+export PATH=$LLVM_COMPILER_PATH:$PATH
+```
+
+The `LLVM_HOME` path should be replaced appropriately if running on a different machine.
+
+## Build
+
+### Compile Arthas
 
 ```
-mkdir build
-cd build && cmake ..
-make -j4
+$ git clone git@github.com:OrderLab/Arthas.git
+$ git submodule update --init
+$ mkdir build
+$ cd build && cmake ..
+$ make -j4
 ```
 
-## Compile the test programs
+### Compile custom PMDK
+
+```
+$ cd ../pmdk
+$ make -j $(nproc)
+```
+
+### Compile test programs
 
 We include a set of simple test programs for testing the Arthas analyzer,
 detector, and reactor during development.
@@ -33,65 +83,33 @@ program has a corresponding Makefile to build the executable as well as the
 bitcode files.
 
 
-## Compile a large system for analysis
+### Compile a large system for analysis
 
 For large software, we need to modify its build system to use clang for compilation.
 The most systematic way is using the [WLLVM](https://github.com/travitch/whole-program-llvm) 
 wrapper.
 
-TBA
+Below is an example of compiling Memcached (a buggy version) for analysis:
 
-# Usage
+```
+$ mkdir -p eval-sys
+$ git clone https://github.com/OrderLab/Arthas-eval-Memcached eval-sys/memcached
+$ cd eval-sys/memcached
+$ git checkout refcount
+$ ./autogen.sh
+$ CC=wllvm CFLAGS="-g -O0" LDFLAGS="-Wl,--no-as-needed -ldl" ./configure --enable-pslab
+$ ln -s ../../vanilla-pmdk pmdk
+$ make -j$(nproc)
+$ extract-bc memcached
+```
+
+If successful, a bitcode file `memcached.bc` will be extracted.
+
+## Usage
 
 Arthas consists of the analyzer, detector and reactor components. The usage
 instruction for each component is in the README of its corresponding directory.
 
-# Code Style
+## Code Styles
 
-### Command-Line
-We follow the [Google Cpp Style Guide](https://google.github.io/styleguide/cppguide.html#Formatting). 
-There is a [.clang-format](.clang-format) file in the root directory that is derived from this style.
-It can be used with the `clang-format` tool to reformat the source files, e.g.,
-
-```
-$ clang-format -style=file analyzer/lib/Slicing/Slicer.cpp
-```
-
-This will use the `.clang-format` file to re-format the source file and print it to the console. 
-To re-format the file in-place, add the `-i` flag.
-
-```
-$ clang-format -i -style=file analyzer/lib/Slicing/Slicer.cpp
-$ clang-format -i -style=file analyzer/lib/*/*.cpp
-```
-
-### Make target
-We defined a make target in the CMakeFiles to run `clang-format` on all source
-files when invoked. 
-
-```
-make format
-```
-
-(first time using it should do a `cd build; cmake ..`)
-
-### IDE
-If you are using Clion, the IDE supports `.clang-format` style. Go to `Settings/Preferences | Editor | Code Style`, 
-check the box `Enable ClangFormat with clangd server`. 
-
-### Vim
-`clang-format` can also be integrated with vim [doc](http://clang.llvm.org/docs/ClangFormat.html#clion-integration).
-Put the following in your `.vimrc` will automatically run `clang-format` whenever
-you save (write) the `.cpp` or `.h` files. The `Ctrl-K` command will format
-selected regions.
-
-```
-map <C-K> :pyf /opt/software/llvm/3.9.1/dist/share/clang/clang-format.py<cr>
-imap <C-K> <c-o>:pyf /opt/software/llvm/3.9.1/dist/share/clang/clang-format.py<cr>
-
-function! Formatonsave()
-  let l:formatdiff = 1
-  pyf /opt/software/llvm/3.9.1/dist/share/clang/clang-format.py
-endfunction
-autocmd BufWritePre *.h,*.cc,*.cpp call Formatonsave()
-```
+Please refer to the [code style](codestyle.md) for the coding convention and practice.
