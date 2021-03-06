@@ -73,7 +73,7 @@ sleep 5  # wait until Memcached fully starts
 
 echo "Inserting workload for 2 mins and 30 seconds"
 python $scripts_dir/memcached_inserts.py & echo $! > workload_driver.pid
-sleep 30
+sleep 5
 
 kill_pid_file workload_driver.pid "Memcached client"
 echo "Finished Workload insertion for 2 mins and 30 seconds"
@@ -109,8 +109,9 @@ echo "Arthas reactor server is ready!!"
 
 # starting the client request
 echo "Query Arthas reactor server"
-$root_dir/build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+$root_dir/build/bin/reactor_client -i '%82 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
 tput setaf 2; echo "Recovery finished!!"
 
 # clean up
 kill_pid_file reactor_server.pid "Arthas reactor server"
+rm output_log
