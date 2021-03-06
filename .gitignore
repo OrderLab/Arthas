@@ -40,3 +40,7 @@ data.txt
 
 /eval-sys/
 /experiment/
+
+scripts/*-hook-guids.map
+scripts/*.pid
+scripts/pmem_addr_*.dat
