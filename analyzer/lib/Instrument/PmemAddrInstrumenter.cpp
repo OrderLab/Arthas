@@ -202,9 +202,6 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   bool flush_flag = false;
   bool fence_flag = false;
 
-  Function *func = instr->getFunction();
-
-
   if (isa<LoadInst>(instr)) {
     LoadInst *li = dyn_cast<LoadInst>(instr);
     addr = li->getPointerOperand();

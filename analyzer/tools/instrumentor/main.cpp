@@ -54,7 +54,6 @@ void instrumentPmemPointers(Function *F, dg::LLVMPointerAnalysis *pta,
     Instruction *inst = &*I;
     Value *val = dyn_cast<Value>(inst);
     auto ps = pta->getPointsTo(val);
-    auto rd = rda->getNode(val);
     if (!ps) {
       continue;
     }
@@ -166,8 +165,7 @@ int main(int argc, char *argv[]) {
   std::clock_t time_start = clock();
   auto slicer = make_unique<DgSlicer>(M.get(), SliceDirection::Full);
   uint32_t flags = SlicerDgFlags::ENABLE_PTA | SlicerDgFlags::INTER_PROCEDURAL;
-  SlicerDgFlags::ENABLE_CONTROL_DEP;
-  Function *entry = nullptr;
+  //SlicerDgFlags::ENABLE_CONTROL_DEP;
   auto options = slicer->createDgOptions(flags);
   slicer->computeDependencies(options);
   llvm::errs() << "done with slice creation\n";
