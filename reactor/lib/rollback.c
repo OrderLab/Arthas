@@ -142,8 +142,7 @@ void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
 }
 
 
-void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
-                                int seq_num, void *pop, void *old_pop,
+void seq_coarse_grain_reversion(int seq_num, void *pop, void *old_pop,
                                 struct checkpoint_log *c_log, seq_log *s_log) {
   single_data revert_data = lookup(s_log, seq_num);
   int curr_version = revert_data.version;
@@ -180,8 +179,7 @@ struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log) {
 }
 
 PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
-                                 int num_data, uint64_t *offsets,
-                                 seq_log *s_log) {
+                                 int num_data, seq_log *s_log) {
   PMEMobjpool *pop = pmemobj_open(path, layout);
   printf("new pop is %p\n", pop);
   if (pop == NULL) {
@@ -203,10 +201,9 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
 }
 
 int re_execute(const char *reexecution_cmd, int version_num,
-               struct checkpoint_log *c_log, void **pmem_addresses,
-               int num_data, const char *path, const char *layout,
-               uint64_t *offsets, int reversion_type, int seq_num,
-               void **sorted_pmem_addresses, void *old_pop, 
+               struct checkpoint_log *c_log, int num_data, const char *path,
+               const char *layout, int reversion_type,
+               int seq_num,  void *old_pop,
                seq_log *s_log) {
   int ret_val;
   int reexecute_flag = 0;
@@ -234,11 +231,10 @@ int re_execute(const char *reexecution_cmd, int version_num,
     printf("\n");
 
     PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
-                                           offsets, s_log);
+                                           s_log);
     if (!pop) {
       system("./killScript");
-      pop = redo_pmem_addresses(path, layout, num_data, offsets,
-                                s_log);
+      pop = redo_pmem_addresses(path, layout, num_data, s_log);
     }
     if (reversion_type == COARSE_GRAIN_NAIVE) {
       // coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num -
@@ -246,8 +242,7 @@ int re_execute(const char *reexecution_cmd, int version_num,
       //                       num_data, offsets);
     } else if (reversion_type == COARSE_GRAIN_SEQUENCE) {
       if (seq_num < 0) return -1;
-      seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, seq_num,
-                                 pop, old_pop, c_log, s_log);
+      seq_coarse_grain_reversion(seq_num, pop, old_pop, c_log, s_log);
     } else {
       pmemobj_close(pop);
       return -1;
@@ -256,9 +251,8 @@ int re_execute(const char *reexecution_cmd, int version_num,
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");
     re_execute(reexecution_cmd, version_num - 1, c_log,
-               pmem_addresses, num_data, path, layout, offsets, reversion_type,
-               seq_num - 1, sorted_pmem_addresses, old_pop,
-               s_log);
+               num_data, path, layout, reversion_type,
+               seq_num - 1, old_pop, s_log);
   }
   return 1;
 }

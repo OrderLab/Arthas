@@ -31,15 +31,13 @@ void coarse_grain_reversion(void **addresses, struct checkpoint_log *c_log,
                             int num_data, uint64_t *offsets);
 
 PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
-                                 int num_data, uint64_t *offsets,
-                                 seq_log *s_log);
+                                 int num_data, seq_log *s_log);
 
 int re_execute(const char *rexecution_cmd, int version_num,
-               struct checkpoint_log *c_log, void **pmem_addresses,
-               int num_data, const char *path, const char *layout,
-               uint64_t *offsets, int reversion_type, int seq_num,
-               void **sorted_pmem_addresses, void *old_pop,
-               seq_log *s_log);
+               struct checkpoint_log *c_log, int num_data,
+               const char *path, const char *layout,
+               int reversion_type, int seq_num,
+               void *old_pop, seq_log *s_log);
 
 void revert_by_address(const void *search_address, const void *address,
                        int variable_index, int version, int type, size_t size,
@@ -68,8 +66,7 @@ void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
                              void **sorted_pmem_addresses, uint64_t *offsets,
                              seq_log *s_log);
 
-void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
-                                int seq_num, void *pop, void *old_pop,
+void seq_coarse_grain_reversion(int seq_num, void *pop, void *old_pop,
                                 struct checkpoint_log *c_log, seq_log *s_log);
 
 void revert_by_sequence_number_array(seq_log *s_log, int *seq_numbers,
