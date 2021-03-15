@@ -180,8 +180,8 @@ struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log) {
 }
 
 PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
-                                 int num_data, void **pmem_addresses,
-                                 uint64_t *offsets, seq_log *s_log) {
+                                 int num_data, uint64_t *offsets,
+                                 seq_log *s_log) {
   PMEMobjpool *pop = pmemobj_open(path, layout);
   printf("new pop is %p\n", pop);
   if (pop == NULL) {
@@ -234,10 +234,10 @@ int re_execute(const char *reexecution_cmd, int version_num,
     printf("\n");
 
     PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
-                                           pmem_addresses, offsets, s_log);
+                                           offsets, s_log);
     if (!pop) {
       system("./killScript");
-      pop = redo_pmem_addresses(path, layout, num_data, pmem_addresses, offsets,
+      pop = redo_pmem_addresses(path, layout, num_data, offsets,
                                 s_log);
     }
     if (reversion_type == COARSE_GRAIN_NAIVE) {

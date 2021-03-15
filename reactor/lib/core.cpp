@@ -458,7 +458,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
     }
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                 num_data, pmem_addresses, offsets, s_log);
+                                 num_data, offsets, s_log);
     binary_reversion_count++;
     // Check if succeeded
     if (req_flag2 == 1) {
@@ -510,7 +510,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         }
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
           *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                     num_data, pmem_addresses, offsets, s_log);
+                                     num_data, offsets, s_log);
         if (req_flag2 == 1) {
           cout << "reversion with sequence numbers array has succeeded\n";
           binary_success = 1;
@@ -554,8 +554,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         return 1;
      }
      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
+                                        num_data, addr_off_list.offsets, s_log);
   }
 }*/
 
@@ -581,8 +580,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
           starting_seq_num, addr_off_list.sorted_pmem_addresses,
           (void *)last_pool.pool_addr->addr, s_log);
       pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
+                                        num_data, addr_off_list.offsets, s_log);
    }
    if (req_flag2 == 1) {
      cout << "reversion with sequence numbers array has succeeded\n";
@@ -590,8 +588,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
    }
    if (strcmp(options.pmem_library, "libpmemobj2") == 0)
      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
+                                        num_data, addr_off_list.offsets, s_log);
 }*/
 
 bool Reactor::react(std::string fault_loc, string inst_str,
@@ -843,8 +840,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           return 1;
        }
        pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                          num_data, addr_off_list.pmem_addresses,
-                                          addr_off_list.offsets, s_log);
+                                          num_data, addr_off_list.offsets, s_log);
     }
     printf("finished arcpkt\n");
     return 1;
@@ -950,7 +946,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           total_reexecutions++;
           pop = (void *)redo_pmem_addresses(
               options.pmem_file, options.pmem_layout, num_data,
-              addr_off_list.pmem_addresses, addr_off_list.offsets, s_log);
+              addr_off_list.offsets, s_log);
           total_reverted_items += *decided_total;
         }
         if (req_flag2 == 1) {
@@ -1017,7 +1013,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   if (!pop) {
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                          addr_off_list.pmem_addresses, addr_off_list.offsets);
+                          addr_off_list.offsets);
   }
   coarse_grain_reversion(addr_off_list.addresses, c_log,
                          addr_off_list.pmem_addresses, options.version_num,
