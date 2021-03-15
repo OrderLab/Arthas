@@ -143,8 +143,7 @@ void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
 
 
 void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
-                                int seq_num, single_data *ordered_data,
-                                void *pop, void *old_pop,
+                                int seq_num, void *pop, void *old_pop,
                                 struct checkpoint_log *c_log, seq_log *s_log) {
   single_data revert_data = lookup(s_log, seq_num);
   int curr_version = revert_data.version;
@@ -207,8 +206,8 @@ int re_execute(const char *reexecution_cmd, int version_num,
                struct checkpoint_log *c_log, void **pmem_addresses,
                int num_data, const char *path, const char *layout,
                uint64_t *offsets, int reversion_type, int seq_num,
-               void **sorted_pmem_addresses, single_data *ordered_data,
-               void *old_pop, seq_log *s_log) {
+               void **sorted_pmem_addresses, void *old_pop, 
+               seq_log *s_log) {
   int ret_val;
   int reexecute_flag = 0;
   // the reexcution command is a single line command string
@@ -248,7 +247,7 @@ int re_execute(const char *reexecution_cmd, int version_num,
     } else if (reversion_type == COARSE_GRAIN_SEQUENCE) {
       if (seq_num < 0) return -1;
       seq_coarse_grain_reversion(offsets, sorted_pmem_addresses, seq_num,
-                                 ordered_data, pop, old_pop, c_log, s_log);
+                                 pop, old_pop, c_log, s_log);
     } else {
       pmemobj_close(pop);
       return -1;
@@ -258,7 +257,7 @@ int re_execute(const char *reexecution_cmd, int version_num,
     printf("\n");
     re_execute(reexecution_cmd, version_num - 1, c_log,
                pmem_addresses, num_data, path, layout, offsets, reversion_type,
-               seq_num - 1, sorted_pmem_addresses, ordered_data, old_pop,
+               seq_num - 1, sorted_pmem_addresses, old_pop,
                s_log);
   }
   return 1;
