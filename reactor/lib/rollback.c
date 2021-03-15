@@ -27,8 +27,7 @@ void decision_func_sequence_array(int *old_seq_numbers, int old_total,
   qsort(new_seq_numbers, *new_total, sizeof(int), reverse_cmpfunc);
 }
 
-void revert_by_sequence_number_array(void **sorted_pmem_addresses,
-                                     seq_log *s_log, int *seq_numbers,
+void revert_by_sequence_number_array(seq_log *s_log, int *seq_numbers,
                                      int total_seq_num,
                                      struct checkpoint_log *c_log) {
   int curr_version, rollback_version;
@@ -47,15 +46,14 @@ void revert_by_sequence_number_array(void **sorted_pmem_addresses,
           checkpoint_data old_check_data = c_node->c_data;
           curr_version = old_check_data.version;
           rollback_version = curr_version;
-          revert_by_sequence_number_checkpoint(sorted_pmem_addresses,
-                                               old_check_data, rollback_version,
+          revert_by_sequence_number_checkpoint(old_check_data, rollback_version,
                                                search_data);
         }
       }
       continue;
     }
-    revert_by_sequence_number(sorted_pmem_addresses, search_data,
-                              seq_numbers[i], rollback_version, s_log);
+    revert_by_sequence_number(search_data, seq_numbers[i], 
+                              rollback_version, s_log);
   }
 }
 
@@ -78,7 +76,7 @@ void revert_by_transaction(void **sorted_pmem_addresses, struct tx_log *t_log,
       }
       if (t_temp->ordered_data.version != 0 && !already_reverted) {
         search_data = lookup(s_log, t_temp->ordered_data.sequence_number);
-        revert_by_sequence_number(sorted_pmem_addresses, search_data,
+        revert_by_sequence_number(search_data,
                                   t_temp->ordered_data.sequence_number,
                                   t_temp->ordered_data.version - 1, s_log);
       }
@@ -107,16 +105,14 @@ void undo_by_sequence_number(single_data search_data, int seq_num) {
   memcpy(search_data.sorted_pmem_address, search_data.data, search_data.size);
 }
 
-void revert_by_sequence_number_checkpoint(void **sorted_pmem_addresses,
-                                          checkpoint_data old_check_data,
+void revert_by_sequence_number_checkpoint(checkpoint_data old_check_data,
                                           int rollback_version,
                                           single_data search_data) {
   memcpy(search_data.sorted_pmem_address, old_check_data.data[rollback_version],
          old_check_data.size[rollback_version]);
 }
 
-void revert_by_sequence_number(void **sorted_pmem_addresses,
-                               single_data search_data, int seq_num,
+void revert_by_sequence_number(single_data search_data, int seq_num,
                                int rollback_version, seq_log *s_log) {
   lookup_undo_save(s_log, seq_num, search_data.sorted_pmem_address,
                    search_data.size);

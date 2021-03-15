@@ -48,8 +48,7 @@ void revert_by_address(const void *search_address, const void *address,
 int search_for_address(const void *address, size_t size,
                        struct checkpoint_log *c_log);
 
-void revert_by_sequence_number(void **sorted_pmem_addresses,
-                               single_data search_data, int seq_num,
+void revert_by_sequence_number(single_data search_data, int seq_num,
                                int rollback_version, seq_log *s_log);
 
 void revert_by_offset(uint64_t search_offset, const void *address,
@@ -60,8 +59,7 @@ struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log);
 
 int checkpoint_hashcode(checkpoint_log *c_log, uint64_t offset);
 
-void revert_by_sequence_number_checkpoint(void **sorted_pmem_addresses,
-                                          checkpoint_data old_check_data,
+void revert_by_sequence_number_checkpoint(checkpoint_data old_check_data,
                                           int rollback_version,
                                           single_data search_data);
 
@@ -75,8 +73,7 @@ void seq_coarse_grain_reversion(uint64_t *offsets, void **sorted_pmem_addresses,
                                 void *pop, void *old_pop,
                                 struct checkpoint_log *c_log, seq_log *s_log);
 
-void revert_by_sequence_number_array(void **sorted_pmem_addresses,
-                                     seq_log *s_log, int *seq_numbers,
+void revert_by_sequence_number_array(seq_log *s_log, int *seq_numbers,
                                      int total_seq_num,
                                      struct checkpoint_log *c_log);
 

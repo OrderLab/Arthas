@@ -443,7 +443,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
 
     printf("reverting %d\n", decided_total);
     binary_reverted_items = decided_total;
-    revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
+    revert_by_sequence_number_array(s_log,
                                     decided_slice_seq_numbers, decided_total,
                                     c_log);
     if (strcmp(options.pmem_library, "libpmemobj") == 0) {
@@ -497,7 +497,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         printf("reverting %d\n", decided_total);
         binary_reverted_items = decided_total;
 
-        revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
+        revert_by_sequence_number_array(s_log,
                                         decided_slice_seq_numbers,
                                         decided_total, c_log);
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
@@ -831,7 +831,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       ind++;
       total_reverted_items++;
       total_reexecutions++;
-      revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses, s_log,
+      revert_by_sequence_number_array(s_log,
                                   decided_slice_seq_numbers, ind, c_log );
       if (strcmp(options.pmem_library, "libpmemobj") == 0)
               pmemobj_close((PMEMobjpool *)pop);
@@ -938,8 +938,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
                                      decided_slice_seq_numbers, decided_total);
         single_data *ordered_data;
-        revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses,
-                                        s_log, decided_slice_seq_numbers,
+        revert_by_sequence_number_array(s_log, decided_slice_seq_numbers,
                                         *decided_total, c_log);
         // Function that iterates through decided slice seq numbers
         // gets the tx_ids associated with them, also reverts those values.
