@@ -203,7 +203,7 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
   return pop;
 }
 
-int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
+int re_execute(const char *reexecution_cmd, int version_num,
                struct checkpoint_log *c_log, void **pmem_addresses,
                int num_data, const char *path, const char *layout,
                uint64_t *offsets, int reversion_type, int seq_num,
@@ -256,7 +256,7 @@ int re_execute(const char *reexecution_cmd, int version_num, void **addresses,
     pmemobj_close(pop);
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");
-    re_execute(reexecution_cmd, version_num - 1, addresses, c_log,
+    re_execute(reexecution_cmd, version_num - 1, c_log,
                pmem_addresses, num_data, path, layout, offsets, reversion_type,
                seq_num - 1, sorted_pmem_addresses, ordered_data, old_pop,
                s_log);

@@ -34,7 +34,7 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
                                  int num_data, void **pmem_addresses,
                                  uint64_t *offsets, seq_log *s_log);
 
-int re_execute(const char *rexecution_cmd, int version_num, void **addresses,
+int re_execute(const char *rexecution_cmd, int version_num,
                struct checkpoint_log *c_log, void **pmem_addresses,
                int num_data, const char *path, const char *layout,
                uint64_t *offsets, int reversion_type, int seq_num,
