@@ -1,6 +1,6 @@
 [submodule "pmdk"]
 	path = pmdk
-	url = git@github.com:OrderLab/Arthas-PMDK.git
+	url = https://github.com/OrderLab/Arthas-PMDK.git
 [submodule "vanilla-pmdk"]
 	path = vanilla-pmdk
 	url = https://github.com/pmem/pmdk.git

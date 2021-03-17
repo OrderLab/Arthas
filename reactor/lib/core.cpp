@@ -29,7 +29,7 @@ int total_reverted_items = 0;
 int binary_reverted_items = 0;
 int total_reexecutions = 0;
 FILE *fp;
-FILE *fp2;
+//FILE *fp2;
 
 // #define DUMP_SLICES 1
 #define BINARY_REVERSION_ATTEMPTS 2
@@ -393,7 +393,7 @@ bool Reactor::wait_address_trace_ready() {
   fp = fopen("output_log", "w+");
   fprintf(fp, "Address trace ready\n");
   fflush(fp);
-  fp2 = fopen("results/result.txt", "a");
+  //fp2 = fopen("results/result.txt", "a");
 
   _state->trace_processed = true;
   _state->processing_trace = false;
@@ -916,10 +916,10 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         printf("done with binary reversion %d\n", binary_success);
         printf("total reverted items is %d\n", total_reverted_items);
         printf("total re-executions is %d\n", total_reexecutions);
-	fprintf(fp2, "%d items reverted\n", total_reverted_items);
-	fprintf(fp2, "total items is %d\n", (int)*total_size);
-	fflush(fp2);
-	fclose(fp2);
+	//fprintf(fp2, "%d items reverted\n", total_reverted_items);
+	//fprintf(fp2, "total items is %d\n", (int)*total_size);
+	//fflush(fp2);
+	//fclose(fp2);
         if (binary_success == 1){
           fprintf(fp, "%d items reverted\n", total_reverted_items);
           fprintf(fp, "total re-executions is %d\n", total_reexecutions);

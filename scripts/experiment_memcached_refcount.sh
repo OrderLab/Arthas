@@ -110,7 +110,8 @@ echo "Arthas reactor server is ready!!"
 
 # starting the client request
 echo "Query Arthas reactor server"
-$root_dir/build/bin/reactor_client -i '%82 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+$root_dir/build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+#$root_dir/build/bin/reactor_client -i '%82 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
 tput setaf 2; echo "Recovery finished!!"
 
 # clean up
