@@ -179,7 +179,7 @@ $ ../../build/bin/reactor_server -g memcached-hook-guids.map -b ../../build/memc
 We then use Arthas's reactor client to send a reversion request to Arthas's server
 
 ```
-$ ../../build/bin/reactor_client -i '%82 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
+$ ../../build/bin/reactor_client -i '%72 = load %struct._stritem*, %struct._stritem** %7, align 8, !dbg !3120' -c 'assoc.c:107'
 ```
 
 Then Arthas's reactor will begin the reversion and re-execution of Memcached in order to mitigate the fault.
