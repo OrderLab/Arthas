@@ -35,6 +35,7 @@ FILE *fp;
 #define BINARY_REVERSION_ATTEMPTS 2
 SetVector<llvm::Value *> pmem_vars;
 
+// Used to configure dependency graph flags
 uint32_t createDgFlags(struct dg_options &options) {
   uint32_t flags = 0;
   if (options.entry_only) flags |= SlicerDgFlags::ENTRY_ONLY;
@@ -49,6 +50,8 @@ uint32_t createDgFlags(struct dg_options &options) {
   return flags;
 }
 
+// computes the dependencies of the executable, you can specify
+// individual flags you want for the dependencies
 bool Reactor::compute_dependencies() {
   std::unique_lock<std::mutex> lk(_lock);
   if (_state->dependency_computed) {
@@ -80,6 +83,7 @@ bool Reactor::compute_dependencies() {
   return ok;
 }
 
+// Compute the slices (slices of nodes) of the given fault instruction
 bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   if (!compute_dependencies()) {
     return false;
@@ -156,6 +160,9 @@ bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   return true;
 }
 
+// Locates the fault instruction and finds the corresponding node
+// using the line number and instruction. Uses fuzzy matching if 
+// necessary
 Instruction *Reactor::locate_fault_instr(string &fault_loc, string &inst_str) {
   if (!_state->matcher.processed()) {
     errs() << "Matcher is not ready, cannot use it\n";
@@ -260,6 +267,8 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
   return true;
 }
 
+// Used to monitor the address trace to see if we are done parsing
+// and analzying the address trace
 bool Reactor::monitor_address_trace() {
   struct reactor_options &options = _state->options;
   std::ifstream addrfile(options.address_file);
@@ -344,6 +353,8 @@ bool Reactor::monitor_address_trace() {
   return true;
 }
 
+// Waiting until the address trace is ready to perform some
+// misc. work on the collected data
 bool Reactor::wait_address_trace_ready() {
   std::unique_lock<std::mutex> lk(_trace_mu);
   if (_state->trace_processed) {
@@ -402,6 +413,7 @@ bool Reactor::wait_address_trace_ready() {
   return true;
 }
 
+// Undo an array of sequence numbers
 void undo_by_sequence_number_array(seq_log *s_log, std::vector<int> &seq_list) {
   for (int i = 0; i < (int)seq_list.size(); i++) {
     single_data search_data = lookup(s_log, seq_list[i]);
@@ -522,6 +534,8 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
   return -1;
 }
 
+// TODO: move this to a compiler/runtime flag instead of commenting it
+// out
 /*void arckpt(int high_num, int *decided_slice_seq_numbers){
   int reversion_num = 100000;
   int rollback_version;
