@@ -7,12 +7,12 @@ a persistent memory device (Intel Optane DC persistent memory) or at least
 an [emulated device](https://pmem.io/2016/02/22/pm-emulation.html). 
 * The Arthas analyzer is built on top of LLVM 3.9. 
 * To analyze a target system using LLVM, we should install the `wllvm` wrapper: `pip install wllvm`.
-* We also need to build a custom PMDK (Persistent Memory Development Kit) from its source code, thus [PMDK's dependencies](https://github.com/pmem/pmdk#dependencies) should be installed. 
+* We also need to build a custom PMDK (Persistent Memory Development Kit) from its source code, thus [PMDK's dependencies](https://github.com/pmem/pmdk#dependencies) should be installed.
   * For Ubuntu 18.04, the installation command is:
 ```
 $ sudo apt install autoconf automake pkg-config libglib2.0-dev libfabric-dev pandoc libncurses5-dev
 ```
-
+* cmake is also a dependency along with protobuf and grpc. 
 **Note for artifact evaluator:** all dependencies have been installed on the test machine, so no extra setup is needed.
 
 ## Environment Variables
