@@ -68,6 +68,7 @@ If successful, you should see `Recovery finished!!`.
 
 ```
 $ git clone git@github.com:OrderLab/Arthas.git
+$ cd Arthas
 $ git submodule update --init
 $ mkdir build
 $ cd build && cmake ..
