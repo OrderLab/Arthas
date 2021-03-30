@@ -13,6 +13,7 @@ an [emulated device](https://pmem.io/2016/02/22/pm-emulation.html).
 $ sudo apt install autoconf automake pkg-config libglib2.0-dev libfabric-dev pandoc libncurses5-dev
 ```
 * cmake is also a dependency along with protobuf and grpc. 
+
 **Note for artifact evaluator:** all dependencies have been installed on the test machine, so no extra setup is needed.
 
 ## Environment Variables
