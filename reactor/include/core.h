@@ -9,6 +9,8 @@
 #ifndef _REACTOR_CORE_H_
 #define _REACTOR_CORE_H_
 
+
+#define LOG_SIZE 16000010
 #include <libpmemobj.h>
 #include <pthread.h>
 #include <algorithm>

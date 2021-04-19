@@ -639,6 +639,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     return -1;
   }
   printf("pop is %p\n", pop);
+
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = _state->addr_trace.pool_addrs().back();
@@ -658,6 +659,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     addr_off_list.addresses[i] = (void *)last_pool.addresses[i]->addr;
     addr_off_list.pmem_addresses[i] = (void *)((uint64_t)pop + offset);
   }
+
   // Step 3: Opening Checkpoint Component PMEM File
   std::clock_t time_start = clock();
   struct checkpoint_log *c_log =
@@ -675,11 +677,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   // Step 4a: Create hashmap of checkpoint entries where logical seq num
   // is the key
   seq_log *s_log = (seq_log *)malloc(sizeof(seq_log));
-  s_log->size = 16000010;
+  s_log->size = LOG_SIZE;
   s_log->list =
-      (struct seq_node **)malloc(sizeof(struct seq_node *) * 16000010);
+      (struct seq_node **)malloc(sizeof(struct seq_node *) * LOG_SIZE);
   int i;
-  for (i = 0; i < 16000010; i++) s_log->list[i] = NULL;
+  for (i = 0; i < LOG_SIZE; i++) s_log->list[i] = NULL;
 
   size_t *total_size = (size_t *)malloc(sizeof(size_t));
   *total_size = 0;
@@ -696,9 +698,9 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   // Step 4b: Create hashmap of checkpoint entries where transaction id
   // is the key
   tx_log *t_log = (tx_log *)malloc(sizeof(tx_log));
-  t_log->size = 16000010;
-  t_log->list = (struct tx_node **)malloc(sizeof(struct tx_node *) * 16000010);
-  for (int i = 0; i < 16000010; i++) t_log->list[i] = NULL;
+  t_log->size = LOG_SIZE;
+  t_log->list = (struct tx_node **)malloc(sizeof(struct tx_node *) * LOG_SIZE);
+  for (int i = 0; i < LOG_SIZE; i++) t_log->list[i] = NULL;
 
   order_by_tx_id(t_log, c_log);
   int pos = txhashCode(t_log, 1);
