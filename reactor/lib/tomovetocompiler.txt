@@ -1,0 +1,64 @@
+// TODO: move this to a compiler/runtime flag instead of commenting it
+// out
+/*void arckpt(int high_num, int *decided_slice_seq_numbers){
+  int reversion_num = 100000;
+  int rollback_version;
+  int cpkt_ind = high_num;
+  while(cpkt_ind > 0){
+    ind = 0;
+    for(int i = cpkt_ind; i > cpkt_ind - reversion_num; i--){
+      if(i < 0)
+        break;
+      decided_slice_seq_numbers[ind] = i;
+      ind++;
+    }
+    cpkt_ind = cpkt_ind - reversion_num;
+    revert_by_sequence_number_array(s_log,
+                                decided_slice_seq_numbers, ind, c_log );
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+            pmemobj_close((PMEMobjpool *)pop);
+    req_flag2 = re_execute(
+          options.reexecute_cmd, options.version_num,
+          c_log, num_data, options.pmem_file,
+          options.pmem_layout, FINE_GRAIN,
+          starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
+     if(req_flag2 ==1){
+       printf("reversion has succeeded\n");
+        return 1;
+     }
+     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+  }
+}*/
+
+/*void onebyoneReversion(){
+  int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
+  int *decided_total = (int *)malloc(sizeof(int));
+  *decided_total = 0;
+   decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
+                            decided_slice_seq_numbers, decided_total);
+   revert_by_sequence_number_array(s_log, decided_slice_seq_numbers,
+                                    *decided_total, c_log);
+   if (*decided_total > 0) {
+     printf("chosen seq number is %d\n", decided_slice_seq_numbers[0]);
+     printf("reverting %d\n", count_higher(s_log,
+     decided_slice_seq_numbers[0]));
+     // calculate sequence numbers
+     if (strcmp(options.pmem_library, "libpmemobj") == 0)
+        pmemobj_close((PMEMobjpool *)pop);
+     req_flag2 = re_execute(
+          options.reexecute_cmd, options.version_num,
+          c_log, num_data, options.pmem_file,
+          options.pmem_layout, FINE_GRAIN,
+          starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
+      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+   }
+   if (req_flag2 == 1) {
+     cout << "reversion with sequence numbers array has succeeded\n";
+     return 1;
+   }
+   if (strcmp(options.pmem_library, "libpmemobj2") == 0)
+     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+}*/
