@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <chrono>
 
-//#define BATCH_REEXECUTION 1000000
-#define BATCH_REEXECUTION 1
+#define BATCH_REEXECUTION 1000000
+//#define BATCH_REEXECUTION 1
 
 using namespace std;
 using namespace llvm;
@@ -840,6 +840,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   vector<int> many_address_seq;
   int it_count = 0;
   int slice_id = 0;
+  bool many_address_clear = false;
   for (Slice *slice : fault_slices) {
     cout << "Slice " << slice_id << "\n";
     slice_id++;
@@ -905,10 +906,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           return 1;
         }
         many_address_seq.clear();
+        many_address_clear = true;
       }
       // Here we should do reversion on collected seq numbers and try
       // try reexecution
-      if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && 0) {
+      if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && !many_address_clear) {
         int *decided_slice_seq_numbers =
             (int *)malloc(sizeof(int) * s_log->size);
         int *decided_total = (int *)malloc(sizeof(int));
@@ -947,6 +949,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         slice_seq_iterator = 1;
       else
         slice_seq_iterator = 0;
+      if(many_address_clear)
+        many_address_clear = false;
     }  // for (auto &slice_item : *slice)
   }    // for (Slice *slice : fault_slices)
 
