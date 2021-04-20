@@ -581,6 +581,7 @@ void Reactor::tx_log_creation(tx_log *t_log, struct checkpoint_log *c_log) {
 // Step 4c: create offset sequence mapping
 void Reactor::offset_seq_creation(multimap<uint64_t, int> &offset_seq_map,
                 struct checkpoint_log *c_log, seq_log * &s_log) {
+  std::cout << "before sort by seq num\n";
   struct seq_node *list;
   struct seq_node *temp;
   for (int i = 0; i < (int)s_log->size; i++) {
@@ -608,6 +609,49 @@ void sort_creation(PmemAddrOffsetList &addr_off_list,
       lookup_modify(s_log, it->second, addr_off_list.pmem_addresses[j]);
     }
   }
+  std::cout << "finished multimap iteration\n";
+}
+
+// Step 4c: sort the addresses arrays by sequence number
+void address_seq_creation(multimap<const void *, int> &address_seq_nums,
+                          seq_log * &s_log, int * & sequences, int * highest_num,
+                          std::unique_ptr<ReactorState> & _state,
+                          int *starting_seq_num, Instruction *fault_inst){
+  struct seq_node *list;
+  struct seq_node *temp;
+  int ind = 0;
+  for (int i = 0; i < (int)s_log->size; i++) {
+    list = s_log->list[i];
+    temp = list;
+    while (temp) {
+      address_seq_nums.insert(pair<const void *, int>(
+          temp->ordered_data.address, temp->sequence_number));
+      temp = temp->next;
+    }
+  }
+
+  typedef std::multimap<const void *, int>::iterator MMAPIterator2;
+  for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
+       it++) {
+    PmemAddrTraceItem *traceItem = *it;
+    if (traceItem->instr == fault_inst) {
+      std::pair<MMAPIterator2, MMAPIterator2> result =
+          address_seq_nums.equal_range((const void *)traceItem->addr);
+      // Iterate over the range
+      ind = 0;
+      *highest_num = -1;
+      for (MMAPIterator2 it = result.first; it != result.second; it++) {
+        sequences[ind] = it->second;
+        if (sequences[ind] > *highest_num) *highest_num = sequences[ind];
+        ind++;
+      }
+      if (*highest_num != -1) {
+        *starting_seq_num = *highest_num;
+      }
+    }
+  }
+  
+
 }
 
 bool Reactor::react(std::string fault_loc, string inst_str,
@@ -706,11 +750,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   addr_off_list.sorted_pmem_addresses =
       (void **)malloc(num_data * sizeof(void *));
   time_start = clock();
-  std::cout << "before sort by seq num\n";
   multimap<uint64_t, int> offset_seq_map;
   offset_seq_creation(offset_seq_map, c_log, s_log);
-  struct seq_node *list;
-  struct seq_node *temp;
   time_end = clock();
   errs() << "Sort by seq num took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
@@ -718,49 +759,19 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   std::cout << "insert into multimap" << num_data << "\n";
   time_start = clock();
   sort_creation(addr_off_list, num_data, c_log, offset_seq_map, s_log);
-  std::cout << "finished multimap iteration\n";
   time_end = clock();
   errs() << "Multimap iteration took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   time_start = clock();
-  int *sequences = (int *)malloc(sizeof(int) * s_log->size);
 
+
+  int *sequences = (int *)malloc(sizeof(int) * s_log->size);
   multimap<const void *, int> address_seq_nums;
-  for (int i = 0; i < (int)s_log->size; i++) {
-    list = s_log->list[i];
-    temp = list;
-    while (temp) {
-      address_seq_nums.insert(pair<const void *, int>(
-          temp->ordered_data.address, temp->sequence_number));
-      temp = temp->next;
-    }
-  }
   int highest_num = -1;
-  int ind = 0;
-  time_end = clock();
-  errs() << "Address seq nums took  "
-         << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
-  time_start = clock();
+  address_seq_creation(address_seq_nums, s_log, sequences, &highest_num,
+                       _state, &starting_seq_num, fault_inst);
   typedef std::multimap<const void *, int>::iterator MMAPIterator2;
-  for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
-       it++) {
-    PmemAddrTraceItem *traceItem = *it;
-    if (traceItem->instr == fault_inst) {
-      std::pair<MMAPIterator2, MMAPIterator2> result =
-          address_seq_nums.equal_range((const void *)traceItem->addr);
-      // Iterate over the range
-      ind = 0;
-      highest_num = -1;
-      for (MMAPIterator2 it = result.first; it != result.second; it++) {
-        sequences[ind] = it->second;
-        if (sequences[ind] > highest_num) highest_num = sequences[ind];
-        ind++;
-      }
-      if (highest_num != -1) {
-        starting_seq_num = highest_num;
-      }
-    }
-  }
+  int ind = 0;
   time_end = clock();
   errs() << "highest num/starting seq num took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
