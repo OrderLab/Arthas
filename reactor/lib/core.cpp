@@ -12,8 +12,8 @@
 
 #define BATCH_REEXECUTION 1000000
 //#define BATCH_REEXECUTION 1
-#define ROLLBACK_MODE 1
-//#define ROLLBACK_MODE 0
+//#define ROLLBACK_MODE 1
+#define ROLLBACK_MODE 0
 
 using namespace std;
 using namespace llvm;
