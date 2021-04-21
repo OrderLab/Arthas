@@ -12,6 +12,8 @@
 
 #define BATCH_REEXECUTION 1000000
 //#define BATCH_REEXECUTION 1
+#define ROLLBACK_MODE 1
+//#define ROLLBACK_MODE 0
 
 using namespace std;
 using namespace llvm;
@@ -650,8 +652,17 @@ void address_seq_creation(multimap<const void *, int> &address_seq_nums,
       }
     }
   }
-  
+}
 
+//finding smallest array elemnt
+int findSmallestElement(int arr[], int n){
+   int temp = arr[0];
+   for(int i=0; i<n; i++) {
+      if(temp>arr[i]) {
+         temp=arr[i];
+      }
+   }
+   return temp;
 }
 
 bool Reactor::react(std::string fault_loc, string inst_str,
@@ -919,6 +930,23 @@ bool Reactor::react(std::string fault_loc, string inst_str,
                                      decided_slice_seq_numbers, decided_total);
         revert_by_sequence_number_array(s_log, decided_slice_seq_numbers,
                                         *decided_total, c_log);
+        if(ROLLBACK_MODE){
+          int lowest_number = findSmallestElement(decided_slice_seq_numbers,
+                                                   *decided_total);
+          int *rollback_seq_numbers = (int *)malloc(sizeof(int) * s_log->size);
+          int total_rollback = 0;
+          for(int i = high_num - 1; i >= lowest_number; i--){
+            int s_num = rev_lookup(r_log, i);
+            if(s_num != 1){
+              rollback_seq_numbers[total_rollback] = i;
+              total_rollback++;
+              insert(r_log, i, empty_data);
+            }
+          }
+          revert_by_sequence_number_array(s_log, rollback_seq_numbers,
+                                          total_rollback, c_log);
+          high_num = lowest_number;
+        }
         // Function that iterates through decided slice seq numbers
         // gets the tx_ids associated with them, also reverts those values.
         /* revert_by_transaction(addr_off_list.sorted_pmem_addresses, t_log,
