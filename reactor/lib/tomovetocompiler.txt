@@ -1,0 +1,128 @@
+// TODO: move this to a compiler/runtime flag instead of commenting it
+// out
+/*void arckpt(int high_num, int *decided_slice_seq_numbers){
+  int reversion_num = 100000;
+  int rollback_version;
+  int cpkt_ind = high_num;
+  while(cpkt_ind > 0){
+    ind = 0;
+    for(int i = cpkt_ind; i > cpkt_ind - reversion_num; i--){
+      if(i < 0)
+        break;
+      decided_slice_seq_numbers[ind] = i;
+      ind++;
+    }
+    cpkt_ind = cpkt_ind - reversion_num;
+    revert_by_sequence_number_array(s_log,
+                                decided_slice_seq_numbers, ind, c_log );
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+            pmemobj_close((PMEMobjpool *)pop);
+    req_flag2 = re_execute(
+          options.reexecute_cmd, options.version_num,
+          c_log, num_data, options.pmem_file,
+          options.pmem_layout, FINE_GRAIN,
+          starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
+     if(req_flag2 ==1){
+       printf("reversion has succeeded\n");
+        return 1;
+     }
+     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+  }
+}*/
+
+/*void onebyoneReversion(){
+  int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
+  int *decided_total = (int *)malloc(sizeof(int));
+  *decided_total = 0;
+   decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
+                            decided_slice_seq_numbers, decided_total);
+   revert_by_sequence_number_array(s_log, decided_slice_seq_numbers,
+                                    *decided_total, c_log);
+   if (*decided_total > 0) {
+     printf("chosen seq number is %d\n", decided_slice_seq_numbers[0]);
+     printf("reverting %d\n", count_higher(s_log,
+     decided_slice_seq_numbers[0]));
+     // calculate sequence numbers
+     if (strcmp(options.pmem_library, "libpmemobj") == 0)
+        pmemobj_close((PMEMobjpool *)pop);
+     req_flag2 = re_execute(
+          options.reexecute_cmd, options.version_num,
+          c_log, num_data, options.pmem_file,
+          options.pmem_layout, FINE_GRAIN,
+          starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
+      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+   }
+   if (req_flag2 == 1) {
+     cout << "reversion with sequence numbers array has succeeded\n";
+     return 1;
+   }
+   if (strcmp(options.pmem_library, "libpmemobj2") == 0)
+     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
+                                        num_data, s_log);
+}*/
+
+//Coarse-grained reversion
+/*starting_seq_num = 19;
+  int curr_version = ordered_data[starting_seq_num].version;
+  revert_by_sequence_number_nonslice((void *)last_pool.pool_addr->addr,
+                                     ordered_data, starting_seq_num,
+                                     curr_version - 1, pop);
+  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pmemobj_close((PMEMobjpool *)pop);
+  int req_flag = re_execute(
+      options.reexecute_cmd, options.version_num,
+      c_log,  num_data, options.pmem_file,
+      options.pmem_layout, COARSE_GRAIN_SEQUENCE,
+      starting_seq_num - 1, (void *)last_pool.pool_addr->addr);
+  if (req_flag == 1) {
+    cout << "reversion with sequence numbers has succeeded\n";
+    return 1;
+  }*/
+
+// Step 6: Coarse-grain reversion
+  // To be deleted: This will be unnecessary once data types are printed
+  /*int c_data_indices[MAX_DATA];
+  for(int i = 0; i < c_log->variable_count; i++){
+    printf("coarse address is %p\n", c_log->c_data[i].address);
+    for(int j = 0; j < num_data; j++){
+      if(addresses[j] == c_log->c_data[i].address){
+        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[j]),
+        *((int *)pmem_addresses[j]));
+        c_data_indices[j] = i;
+      }
+    }
+  }
+  //Actual reversion, argv[4] represents what version to revert to
+  int ind = -1;
+  for(int i = 0; i < num_data; i++){
+    size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
+    ind = search_for_address(addresses[i], size, c_log);
+    printf("ind is %d for %p\n", ind, addresses[i]);
+    revert_by_address(addresses[i], pmem_addresses[i], ind, atoi(argv[4]), 0,
+  size, c_log );
+    printf("AFTER REVERSION coarse value is %f or %d\n", *((double
+  *)pmem_addresses[i]),
+        *((int *)pmem_addresses[i]));
+  }*/
+  /*printf("Reversion attempt %d\n", coarse_grained_tries + 1);
+  if (!pop) {
+    if (strcmp(options.pmem_library, "libpmemobj") == 0)
+      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data);
+  }
+  coarse_grain_reversion(addr_off_list.addresses, c_log,
+                         addr_off_list.pmem_addresses, options.version_num,
+                         num_data, addr_off_list.offsets);
+  if (strcmp(options.pmem_library, "libpmemobj") == 0)
+    pmemobj_close((PMEMobjpool *)pop);
+
+  // Step 7: re-execution
+  re_execute(options.reexecute_cmd, options.version_num,
+             c_log, num_data, options.pmem_file, options.pmem_layout,
+             COARSE_GRAIN_NAIVE, starting_seq_num,
+             (void *)last_pool.pool_addr->addr);
+  // free reexecution_lines and string arrays here
+  return true;*/
+
+

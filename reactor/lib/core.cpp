@@ -10,8 +10,10 @@
 #include <unistd.h>
 #include <chrono>
 
-//#define BATCH_REEXECUTION 1000000
-#define BATCH_REEXECUTION 1
+#define BATCH_REEXECUTION 1000000
+//#define BATCH_REEXECUTION 1
+//#define ROLLBACK_MODE 1
+#define ROLLBACK_MODE 0
 
 using namespace std;
 using namespace llvm;
@@ -35,6 +37,7 @@ FILE *fp;
 #define BINARY_REVERSION_ATTEMPTS 2
 SetVector<llvm::Value *> pmem_vars;
 
+// Used to configure dependency graph flags
 uint32_t createDgFlags(struct dg_options &options) {
   uint32_t flags = 0;
   if (options.entry_only) flags |= SlicerDgFlags::ENTRY_ONLY;
@@ -49,6 +52,8 @@ uint32_t createDgFlags(struct dg_options &options) {
   return flags;
 }
 
+// computes the dependencies of the executable, you can specify
+// individual flags you want for the dependencies
 bool Reactor::compute_dependencies() {
   std::unique_lock<std::mutex> lk(_lock);
   if (_state->dependency_computed) {
@@ -80,6 +85,7 @@ bool Reactor::compute_dependencies() {
   return ok;
 }
 
+// Compute the slices (slices of nodes) of the given fault instruction
 bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   if (!compute_dependencies()) {
     return false;
@@ -156,6 +162,9 @@ bool Reactor::slice_fault_instr(Slices &slices, Instruction *fault_inst) {
   return true;
 }
 
+// Locates the fault instruction and finds the corresponding node
+// using the line number and instruction. Uses fuzzy matching if 
+// necessary
 Instruction *Reactor::locate_fault_instr(string &fault_loc, string &inst_str) {
   if (!_state->matcher.processed()) {
     errs() << "Matcher is not ready, cannot use it\n";
@@ -260,6 +269,8 @@ bool Reactor::prepare(int argc, char *argv[], bool server) {
   return true;
 }
 
+// Used to monitor the address trace to see if we are done parsing
+// and analzying the address trace
 bool Reactor::monitor_address_trace() {
   struct reactor_options &options = _state->options;
   std::ifstream addrfile(options.address_file);
@@ -344,6 +355,8 @@ bool Reactor::monitor_address_trace() {
   return true;
 }
 
+// Waiting until the address trace is ready to perform some
+// misc. work on the collected data
 bool Reactor::wait_address_trace_ready() {
   std::unique_lock<std::mutex> lk(_trace_mu);
   if (_state->trace_processed) {
@@ -402,6 +415,7 @@ bool Reactor::wait_address_trace_ready() {
   return true;
 }
 
+// Undo an array of sequence numbers
 void undo_by_sequence_number_array(seq_log *s_log, std::vector<int> &seq_list) {
   for (int i = 0; i < (int)seq_list.size(); i++) {
     single_data search_data = lookup(s_log, seq_list[i]);
@@ -415,10 +429,6 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
                      void *pool_address, struct reactor_options &options) {
   int decided_total, req_flag2;
   int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * seq_list.size());
-  void **sorted_pmem_addresses;
-  void **addresses;
-  void **pmem_addresses;
-  uint64_t *offsets;
   int starting_seq_num = 0;
   if (r >= l) {
     int mid = l + (r - l) / 2;
@@ -443,24 +453,23 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
 
     printf("reverting %d\n", decided_total);
     binary_reverted_items = decided_total;
-    revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
+    revert_by_sequence_number_array(s_log,
                                     decided_slice_seq_numbers, decided_total,
                                     c_log);
     if (strcmp(options.pmem_library, "libpmemobj") == 0) {
       pmemobj_close(*pop);
     }
-    single_data *temp_data;
     if (decided_total > 0) {
       req_flag2 =
-          re_execute(options.reexecute_cmd, options.version_num, addresses,
-                     c_log, pmem_addresses, num_data, options.pmem_file,
-                     options.pmem_layout, offsets, FINE_GRAIN, starting_seq_num,
-                     sorted_pmem_addresses, temp_data, pool_address, s_log);
+          re_execute(options.reexecute_cmd, options.version_num,
+                     c_log, num_data, options.pmem_file,
+                     options.pmem_layout, FINE_GRAIN, starting_seq_num,
+                     pool_address, s_log);
       total_reexecutions++;
     }
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                 num_data, pmem_addresses, offsets, s_log);
+                                 num_data, s_log);
     binary_reversion_count++;
     // Check if succeeded
     if (req_flag2 == 1) {
@@ -497,23 +506,21 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         printf("reverting %d\n", decided_total);
         binary_reverted_items = decided_total;
 
-        revert_by_sequence_number_array(sorted_pmem_addresses, s_log,
+        revert_by_sequence_number_array(s_log,
                                         decided_slice_seq_numbers,
                                         decided_total, c_log);
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
           pmemobj_close(*pop);
         if (decided_total > 0) {
-          single_data *temp_data;
           req_flag2 = re_execute(
-              options.reexecute_cmd, options.version_num, addresses, c_log,
-              pmem_addresses, num_data, options.pmem_file, options.pmem_layout,
-              offsets, FINE_GRAIN, starting_seq_num, sorted_pmem_addresses,
-              temp_data, pool_address, s_log);
+              options.reexecute_cmd, options.version_num, c_log,
+              num_data, options.pmem_file, options.pmem_layout,
+              FINE_GRAIN, starting_seq_num, pool_address, s_log);
           total_reexecutions++;
         }
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
           *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                     num_data, pmem_addresses, offsets, s_log);
+                                     num_data, s_log);
         if (req_flag2 == 1) {
           cout << "reversion with sequence numbers array has succeeded\n";
           binary_success = 1;
@@ -529,76 +536,134 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
   return -1;
 }
 
-/*void arckpt(int high_num, int *decided_slice_seq_numbers){
-  int reversion_num = 100000;
-  int rollback_version;
-  int cpkt_ind = high_num;
-  single_data *ordered_data;
-  while(cpkt_ind > 0){
-    ind = 0;
-    for(int i = cpkt_ind; i > cpkt_ind - reversion_num; i--){
-      if(i < 0)
-        break;
-      decided_slice_seq_numbers[ind] = i;
-      ind++;
-    }
-    cpkt_ind = cpkt_ind - reversion_num;
-    revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses, s_log,
-                                decided_slice_seq_numbers, ind, c_log );
-    if (strcmp(options.pmem_library, "libpmemobj") == 0)
-            pmemobj_close((PMEMobjpool *)pop);
-    req_flag2 = re_execute(
-          options.reexecute_cmd, options.version_num, addr_off_list.addresses,
-          c_log, addr_off_list.pmem_addresses, num_data, options.pmem_file,
-          options.pmem_layout, addr_off_list.offsets, FINE_GRAIN,
-          starting_seq_num, addr_off_list.sorted_pmem_addresses, ordered_data,
-          (void *)last_pool.pool_addr->addr, s_log);
-     if(req_flag2 ==1){
-       printf("reversion has succeeded\n");
-        return 1;
-     }
-     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
-  }
-}*/
+// Step 4a: Create hashmap of checkpoint entries where logical seq num
+// is the key
+void Reactor::seq_log_creation(seq_log * &s_log, size_t * &total_size,
+                               seq_log * &r_log, struct checkpoint_log *c_log) {
+  // Sequence log creation and handling
+  s_log->size = LOG_SIZE;
+  s_log->list =
+      (struct seq_node **)malloc(sizeof(struct seq_node *) * LOG_SIZE);
+  int i;
+  for (i = 0; i < LOG_SIZE; i++) s_log->list[i] = NULL;
 
-/*void onebyoneReversion(){
-  int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * 20);
-  int *decided_total = (int *)malloc(sizeof(int));
-  *decided_total = 0;
-   decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
-                            decided_slice_seq_numbers, decided_total);
-   single_data *ordered_data;
-   revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses,
-                                    s_log, decided_slice_seq_numbers,
-                                    *decided_total, c_log);
-   if (*decided_total > 0) {
-     printf("chosen seq number is %d\n", decided_slice_seq_numbers[0]);
-     printf("reverting %d\n", count_higher(s_log,
-decided_slice_seq_numbers[0]));
-     // calculate sequence numbers
-     if (strcmp(options.pmem_library, "libpmemobj") == 0)
-        pmemobj_close((PMEMobjpool *)pop);
-     req_flag2 = re_execute(
-          options.reexecute_cmd, options.version_num, addr_off_list.addresses,
-          c_log, addr_off_list.pmem_addresses, num_data, options.pmem_file,
-          options.pmem_layout, addr_off_list.offsets, FINE_GRAIN,
-          starting_seq_num, addr_off_list.sorted_pmem_addresses, ordered_data,
-          (void *)last_pool.pool_addr->addr, s_log);
-      pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
+  // Ordering by sequence number and then initializing the r_log
+  *total_size = 0;
+  order_by_sequence_num(s_log, total_size, c_log);
+  r_log->size = *total_size;
+  r_log->list =
+      (struct seq_node **)malloc(sizeof(struct seq_node) * *total_size);
+  printf("total size is %d\n", (int)*total_size);
+  for (int i = 0; i < (int)*total_size; i++) {
+    r_log->list[i] = NULL;
+  }
+
+}
+
+// Step 4b: Create hashmap of checkpoint entries where transaction id
+// is the key
+void Reactor::tx_log_creation(tx_log *t_log, struct checkpoint_log *c_log) {
+  t_log->size = LOG_SIZE;
+  t_log->list = (struct tx_node **)malloc(sizeof(struct tx_node *) * LOG_SIZE);
+  for (int i = 0; i < LOG_SIZE; i++) t_log->list[i] = NULL;
+
+  order_by_tx_id(t_log, c_log);
+  int pos = txhashCode(t_log, 1);
+  struct tx_node *t_list = t_log->list[pos];
+  struct tx_node *t_temp = t_list;
+  while (t_temp) {
+    printf("data is %f or %d tx id is %d\n",
+           *((double *)t_temp->ordered_data.data),
+           *((int *)t_temp->ordered_data.data), t_temp->ordered_data.tx_id);
+    t_temp = t_temp->next;
+  }
+
+}
+
+// Step 4c: create offset sequence mapping
+void Reactor::offset_seq_creation(multimap<uint64_t, int> &offset_seq_map,
+                struct checkpoint_log *c_log, seq_log * &s_log) {
+  std::cout << "before sort by seq num\n";
+  struct seq_node *list;
+  struct seq_node *temp;
+  for (int i = 0; i < (int)s_log->size; i++) {
+    list = s_log->list[i];
+    temp = list;
+    while (temp) {
+      offset_seq_map.insert(pair<uint64_t, int>(temp->ordered_data.offset,
+                                                temp->sequence_number));
+      temp = temp->next;
+    }
+  }
+}
+
+// Step 4c: sort the addresses arrays by sequence number
+void sort_creation(PmemAddrOffsetList &addr_off_list,
+                            size_t num_data, struct checkpoint_log *c_log,
+                            multimap<uint64_t, int> &offset_seq_map,
+                            seq_log * &s_log){
+  for (int j = 0; j < (int)num_data; j++) {
+    typedef std::multimap<uint64_t, int>::iterator MMAPIterator;
+    std::pair<MMAPIterator, MMAPIterator> result =
+        offset_seq_map.equal_range(addr_off_list.offsets[j]);
+    // Iterate over the range
+    for (MMAPIterator it = result.first; it != result.second; it++) {
+      lookup_modify(s_log, it->second, addr_off_list.pmem_addresses[j]);
+    }
+  }
+  std::cout << "finished multimap iteration\n";
+}
+
+// Step 4c: sort the addresses arrays by sequence number
+void address_seq_creation(multimap<const void *, int> &address_seq_nums,
+                          seq_log * &s_log, int * & sequences, int * highest_num,
+                          std::unique_ptr<ReactorState> & _state,
+                          int *starting_seq_num, Instruction *fault_inst){
+  struct seq_node *list;
+  struct seq_node *temp;
+  int ind = 0;
+  for (int i = 0; i < (int)s_log->size; i++) {
+    list = s_log->list[i];
+    temp = list;
+    while (temp) {
+      address_seq_nums.insert(pair<const void *, int>(
+          temp->ordered_data.address, temp->sequence_number));
+      temp = temp->next;
+    }
+  }
+
+  typedef std::multimap<const void *, int>::iterator MMAPIterator2;
+  for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
+       it++) {
+    PmemAddrTraceItem *traceItem = *it;
+    if (traceItem->instr == fault_inst) {
+      std::pair<MMAPIterator2, MMAPIterator2> result =
+          address_seq_nums.equal_range((const void *)traceItem->addr);
+      // Iterate over the range
+      ind = 0;
+      *highest_num = -1;
+      for (MMAPIterator2 it = result.first; it != result.second; it++) {
+        sequences[ind] = it->second;
+        if (sequences[ind] > *highest_num) *highest_num = sequences[ind];
+        ind++;
+      }
+      if (*highest_num != -1) {
+        *starting_seq_num = *highest_num;
+      }
+    }
+  }
+}
+
+//finding smallest array elemnt
+int findSmallestElement(int arr[], int n){
+   int temp = arr[0];
+   for(int i=0; i<n; i++) {
+      if(temp>arr[i]) {
+         temp=arr[i];
+      }
    }
-   if (req_flag2 == 1) {
-     cout << "reversion with sequence numbers array has succeeded\n";
-     return 1;
-   }
-   if (strcmp(options.pmem_library, "libpmemobj2") == 0)
-     pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                        num_data, addr_off_list.pmem_addresses,
-                                        addr_off_list.offsets, s_log);
-}*/
+   return temp;
+}
 
 bool Reactor::react(std::string fault_loc, string inst_str,
                     reaction_result *result) {
@@ -640,6 +705,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     return -1;
   }
   printf("pop is %p\n", pop);
+
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = _state->addr_trace.pool_addrs().back();
@@ -659,6 +725,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     addr_off_list.addresses[i] = (void *)last_pool.addresses[i]->addr;
     addr_off_list.pmem_addresses[i] = (void *)((uint64_t)pop + offset);
   }
+
   // Step 3: Opening Checkpoint Component PMEM File
   std::clock_t time_start = clock();
   struct checkpoint_log *c_log =
@@ -676,41 +743,15 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   // Step 4a: Create hashmap of checkpoint entries where logical seq num
   // is the key
   seq_log *s_log = (seq_log *)malloc(sizeof(seq_log));
-  s_log->size = 16000010;
-  s_log->list =
-      (struct seq_node **)malloc(sizeof(struct seq_node *) * 16000010);
-  int i;
-  for (i = 0; i < 16000010; i++) s_log->list[i] = NULL;
-
   size_t *total_size = (size_t *)malloc(sizeof(size_t));
-  *total_size = 0;
-  order_by_sequence_num(s_log, total_size, c_log);
   seq_log *r_log = (seq_log *)malloc(sizeof(seq_log));
-  r_log->size = *total_size;
-  r_log->list =
-      (struct seq_node **)malloc(sizeof(struct seq_node) * *total_size);
-  printf("total size is %d\n", (int)*total_size);
-  for (int i = 0; i < (int)*total_size; i++) {
-    r_log->list[i] = NULL;
-  }
+  seq_log_creation(s_log, total_size, r_log, c_log);
 
   // Step 4b: Create hashmap of checkpoint entries where transaction id
   // is the key
   tx_log *t_log = (tx_log *)malloc(sizeof(tx_log));
-  t_log->size = 16000010;
-  t_log->list = (struct tx_node **)malloc(sizeof(struct tx_node *) * 16000010);
-  for (int i = 0; i < 16000010; i++) t_log->list[i] = NULL;
+  tx_log_creation(t_log, c_log);
 
-  order_by_tx_id(t_log, c_log);
-  int pos = txhashCode(t_log, 1);
-  struct tx_node *t_list = t_log->list[pos];
-  struct tx_node *t_temp = t_list;
-  while (t_temp) {
-    printf("data is %f or %d tx id is %d\n",
-           *((double *)t_temp->ordered_data.data),
-           *((int *)t_temp->ordered_data.data), t_temp->ordered_data.tx_id);
-    t_temp = t_temp->next;
-  }
   // Step 5b: Bring in Slice Graph, find starting point in
   // terms of sequence number (connect LLVM Node to seq number)
   int starting_seq_num = -1;
@@ -720,76 +761,28 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   addr_off_list.sorted_pmem_addresses =
       (void **)malloc(num_data * sizeof(void *));
   time_start = clock();
-  std::cout << "before sort by seq num\n";
   multimap<uint64_t, int> offset_seq_map;
-  struct seq_node *list;
-  struct seq_node *temp;
-  for (int i = 0; i < (int)s_log->size; i++) {
-    list = s_log->list[i];
-    temp = list;
-    while (temp) {
-      offset_seq_map.insert(pair<uint64_t, int>(temp->ordered_data.offset,
-                                                temp->sequence_number));
-      temp = temp->next;
-    }
-  }
+  offset_seq_creation(offset_seq_map, c_log, s_log);
   time_end = clock();
   errs() << "Sort by seq num took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
+
   std::cout << "insert into multimap" << num_data << "\n";
   time_start = clock();
-  for (int j = 0; j < (int)num_data; j++) {
-    typedef std::multimap<uint64_t, int>::iterator MMAPIterator;
-    std::pair<MMAPIterator, MMAPIterator> result =
-        offset_seq_map.equal_range(addr_off_list.offsets[j]);
-    // Iterate over the range
-    for (MMAPIterator it = result.first; it != result.second; it++) {
-      lookup_modify(s_log, it->second, addr_off_list.pmem_addresses[j]);
-    }
-  }
-  std::cout << "finished multimap iteration\n";
+  sort_creation(addr_off_list, num_data, c_log, offset_seq_map, s_log);
   time_end = clock();
   errs() << "Multimap iteration took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
   time_start = clock();
-  int *sequences = (int *)malloc(sizeof(int) * s_log->size);
 
+
+  int *sequences = (int *)malloc(sizeof(int) * s_log->size);
   multimap<const void *, int> address_seq_nums;
-  for (int i = 0; i < (int)s_log->size; i++) {
-    list = s_log->list[i];
-    temp = list;
-    while (temp) {
-      address_seq_nums.insert(pair<const void *, int>(
-          temp->ordered_data.address, temp->sequence_number));
-      temp = temp->next;
-    }
-  }
   int highest_num = -1;
-  int ind = 0;
-  time_end = clock();
-  errs() << "Address seq nums took  "
-         << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
-  time_start = clock();
+  address_seq_creation(address_seq_nums, s_log, sequences, &highest_num,
+                       _state, &starting_seq_num, fault_inst);
   typedef std::multimap<const void *, int>::iterator MMAPIterator2;
-  for (auto it = _state->addr_trace.begin(); it != _state->addr_trace.end();
-       it++) {
-    PmemAddrTraceItem *traceItem = *it;
-    if (traceItem->instr == fault_inst) {
-      std::pair<MMAPIterator2, MMAPIterator2> result =
-          address_seq_nums.equal_range((const void *)traceItem->addr);
-      // Iterate over the range
-      ind = 0;
-      highest_num = -1;
-      for (MMAPIterator2 it = result.first; it != result.second; it++) {
-        sequences[ind] = it->second;
-        if (sequences[ind] > highest_num) highest_num = sequences[ind];
-        ind++;
-      }
-      if (highest_num != -1) {
-        starting_seq_num = highest_num;
-      }
-    }
-  }
+  int ind = 0;
   time_end = clock();
   errs() << "highest num/starting seq num took  "
          << 1000.0 * (time_end - time_start) / CLOCKS_PER_SEC << " ms\n";
@@ -823,7 +816,6 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   if(options.arckpt){
     printf("begin arcpkt\n");
     int cpkt_ind = high_num;
-    single_data *ordered_data;
     while(cpkt_ind > 0){
       ind = 0;
       decided_slice_seq_numbers[ind] = cpkt_ind;
@@ -831,16 +823,14 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       ind++;
       total_reverted_items++;
       total_reexecutions++;
-      revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses, s_log,
+      revert_by_sequence_number_array(s_log,
                                   decided_slice_seq_numbers, ind, c_log );
       if (strcmp(options.pmem_library, "libpmemobj") == 0)
               pmemobj_close((PMEMobjpool *)pop);
       req_flag2 = re_execute(
-            options.reexecute_cmd, options.version_num, addr_off_list.addresses,
-            c_log, addr_off_list.pmem_addresses, num_data, options.pmem_file,
-            options.pmem_layout, addr_off_list.offsets, FINE_GRAIN,
-            starting_seq_num, addr_off_list.sorted_pmem_addresses, ordered_data,
-            (void *)last_pool.pool_addr->addr, s_log);
+            options.reexecute_cmd, options.version_num, c_log,
+            num_data, options.pmem_file, options.pmem_layout, FINE_GRAIN,
+            starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
        if(req_flag2 ==1){
           printf("reversion has succeeded\n");
           fprintf(fp, "%d items reverted\n", total_reverted_items);
@@ -850,8 +840,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           return 1;
        }
        pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                          num_data, addr_off_list.pmem_addresses,
-                                          addr_off_list.offsets, s_log);
+                                          num_data, s_log);
     }
     printf("finished arcpkt\n");
     return 1;
@@ -862,6 +851,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   vector<int> many_address_seq;
   int it_count = 0;
   int slice_id = 0;
+  bool many_address_clear = false;
   for (Slice *slice : fault_slices) {
     cout << "Slice " << slice_id << "\n";
     slice_id++;
@@ -927,20 +917,36 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           return 1;
         }
         many_address_seq.clear();
+        many_address_clear = true;
       }
       // Here we should do reversion on collected seq numbers and try
       // try reexecution
-      if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && 0) {
+      if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && !many_address_clear) {
         int *decided_slice_seq_numbers =
             (int *)malloc(sizeof(int) * s_log->size);
         int *decided_total = (int *)malloc(sizeof(int));
         *decided_total = 0;
         decision_func_sequence_array(slice_seq_numbers, slice_seq_iterator,
                                      decided_slice_seq_numbers, decided_total);
-        single_data *ordered_data;
-        revert_by_sequence_number_array(addr_off_list.sorted_pmem_addresses,
-                                        s_log, decided_slice_seq_numbers,
+        revert_by_sequence_number_array(s_log, decided_slice_seq_numbers,
                                         *decided_total, c_log);
+        if(ROLLBACK_MODE){
+          int lowest_number = findSmallestElement(decided_slice_seq_numbers,
+                                                   *decided_total);
+          int *rollback_seq_numbers = (int *)malloc(sizeof(int) * s_log->size);
+          int total_rollback = 0;
+          for(int i = high_num - 1; i >= lowest_number; i--){
+            int s_num = rev_lookup(r_log, i);
+            if(s_num != 1){
+              rollback_seq_numbers[total_rollback] = i;
+              total_rollback++;
+              insert(r_log, i, empty_data);
+            }
+          }
+          revert_by_sequence_number_array(s_log, rollback_seq_numbers,
+                                          total_rollback, c_log);
+          high_num = lowest_number;
+        }
         // Function that iterates through decided slice seq numbers
         // gets the tx_ids associated with them, also reverts those values.
         /* revert_by_transaction(addr_off_list.sorted_pmem_addresses, t_log,
@@ -950,16 +956,14 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           if (strcmp(options.pmem_library, "libpmemobj") == 0)
             pmemobj_close((PMEMobjpool *)pop);
           req_flag2 = re_execute(
-              options.reexecute_cmd, options.version_num,
-              addr_off_list.addresses, c_log, addr_off_list.pmem_addresses,
+              options.reexecute_cmd, options.version_num, c_log,
               num_data, options.pmem_file, options.pmem_layout,
-              addr_off_list.offsets, FINE_GRAIN, starting_seq_num,
-              addr_off_list.sorted_pmem_addresses, ordered_data,
-              (void *)last_pool.pool_addr->addr, s_log);
+              FINE_GRAIN, starting_seq_num, (void *)last_pool.pool_addr->addr,
+              s_log);
           total_reexecutions++;
           pop = (void *)redo_pmem_addresses(
               options.pmem_file, options.pmem_layout, num_data,
-              addr_off_list.pmem_addresses, addr_off_list.offsets, s_log);
+              s_log);
           total_reverted_items += *decided_total;
         }
         if (req_flag2 == 1) {
@@ -973,76 +977,13 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         slice_seq_iterator = 1;
       else
         slice_seq_iterator = 0;
+      if(many_address_clear)
+        many_address_clear = false;
     }  // for (auto &slice_item : *slice)
   }    // for (Slice *slice : fault_slices)
 
   cout << "start regular reversion\n";
   return 1;
-
-  /*starting_seq_num = 19;
-  int curr_version = ordered_data[starting_seq_num].version;
-  revert_by_sequence_number_nonslice((void *)last_pool.pool_addr->addr,
-                                     ordered_data, starting_seq_num,
-                                     curr_version - 1, pop);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0)
-    pmemobj_close((PMEMobjpool *)pop);
-  int req_flag = re_execute(
-      options.reexecute_cmd, options.version_num, addr_off_list.addresses,
-      c_log, addr_off_list.pmem_addresses, num_data, options.pmem_file,
-      options.pmem_layout, addr_off_list.offsets, COARSE_GRAIN_SEQUENCE,
-      starting_seq_num - 1, addr_off_list.sorted_pmem_addresses, ordered_data,
-      (void *)last_pool.pool_addr->addr);
-  if (req_flag == 1) {
-    cout << "reversion with sequence numbers has succeeded\n";
-    return 1;
-  }*/
-
-  // Step 6: Coarse-grain reversion
-  // To be deleted: This will be unnecessary once data types are printed
-  /*int c_data_indices[MAX_DATA];
-  for(int i = 0; i < c_log->variable_count; i++){
-    printf("coarse address is %p\n", c_log->c_data[i].address);
-    for(int j = 0; j < num_data; j++){
-      if(addresses[j] == c_log->c_data[i].address){
-        printf("coarse value is %f or %d\n", *((double *)pmem_addresses[j]),
-        *((int *)pmem_addresses[j]));
-        c_data_indices[j] = i;
-      }
-    }
-  }
-  //Actual reversion, argv[4] represents what version to revert to
-  int ind = -1;
-  for(int i = 0; i < num_data; i++){
-    size_t size = c_log->c_data[c_data_indices[i]].size[atoi(argv[4])];
-    ind = search_for_address(addresses[i], size, c_log);
-    printf("ind is %d for %p\n", ind, addresses[i]);
-    revert_by_address(addresses[i], pmem_addresses[i], ind, atoi(argv[4]), 0,
-  size, c_log );
-    printf("AFTER REVERSION coarse value is %f or %d\n", *((double
-  *)pmem_addresses[i]),
-        *((int *)pmem_addresses[i]));
-  }*/
-  /*printf("Reversion attempt %d\n", coarse_grained_tries + 1);
-  if (!pop) {
-    if (strcmp(options.pmem_library, "libpmemobj") == 0)
-      redo_pmem_addresses(options.pmem_file, options.pmem_layout, num_data,
-                          addr_off_list.pmem_addresses, addr_off_list.offsets);
-  }
-  coarse_grain_reversion(addr_off_list.addresses, c_log,
-                         addr_off_list.pmem_addresses, options.version_num,
-                         num_data, addr_off_list.offsets);
-  if (strcmp(options.pmem_library, "libpmemobj") == 0)
-    pmemobj_close((PMEMobjpool *)pop);
-
-  // Step 7: re-execution
-  re_execute(options.reexecute_cmd, options.version_num,
-             addr_off_list.addresses, c_log, addr_off_list.pmem_addresses,
-             num_data, options.pmem_file, options.pmem_layout,
-             addr_off_list.offsets, COARSE_GRAIN_NAIVE, starting_seq_num,
-             addr_off_list.sorted_pmem_addresses, ordered_data,
-             (void *)last_pool.pool_addr->addr);
-  // free reexecution_lines and string arrays here
-  return true;*/
 }
 
 const char *Reactor::get_checkpoint_file(const char *pmem_library) {

@@ -9,6 +9,8 @@
 #ifndef _REACTOR_CORE_H_
 #define _REACTOR_CORE_H_
 
+
+#define LOG_SIZE 16000010
 #include <libpmemobj.h>
 #include <pthread.h>
 #include <algorithm>
@@ -87,6 +89,11 @@ class Reactor {
   bool wait_address_trace_ready();
 
   bool prepare(int argc, char *argv[], bool server);
+  void seq_log_creation(seq_log * &s_log, size_t * &total_size,
+                        seq_log * &r_log, struct checkpoint_log *c_log);
+  void tx_log_creation(tx_log *t_log, struct checkpoint_log *c_log);
+  void offset_seq_creation(std::multimap<uint64_t, int> &offset_seq_map,
+                struct checkpoint_log *c_log, seq_log * &s_log);
   bool react(std::string fault_loc, std::string inst_str,
              reaction_result *result);
   ReactorState *get_state() { return _state.get(); }

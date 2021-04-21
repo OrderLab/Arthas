@@ -113,9 +113,6 @@ bool PMemVariableLocator::runOnFunction(Function &F) {
   SDEBUG(dbgs() << "[" << F.getName() << "]\n");
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I) {
     Instruction *inst = &*I;
-    /*if (assocInsertSet.find(F.getName()) != assocInsertSet.end()) {
-      itemHardCodeCall(inst);
-    }*/
     if (isa<InvokeInst>(inst)) {
       InvokeInst *invokeInst = cast<InvokeInst>(inst);
       handleInvokeCall(invokeInst);
@@ -194,65 +191,6 @@ void PMemVariableLocator::handleMemKindCall(CallInst *callInst) {
     }
   }
 }
-/*void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
-  if(isa<CallInst>(inst)){
-    CallInst *callInst = cast<CallInst>(inst);
-    Function *callee = callInst->getCalledFunction();
-    if (!callee) return;
-    istringstream iss(callee->getName());
-    std::string token;
-    std::getline(iss, token, '.');
-    if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
-      Value *v = callInst;
-      varList.insert(v);
-       UserGraph g(v);
-      for (auto ui = g.begin(); ui != g.end(); ++ui) {
-        SDEBUG(dbgs() << "- users of the pmem variable: " << *(ui->first)
-                      << "\n");
-        varList.insert(ui->first);
-      }
-    }
-  }
-}*/
-
-/*void PMemVariableLocator::itemHardCodeCall(Instruction *inst) {
-  //Function *callee = callInst->getCalledFunction();
-  //if (!callee) return;
-  //istringstream iss(callee->getName());
-  //std::string token;
-  //std::getline(iss, token, '.');
-  if (isa<StoreInst>(inst)){
-    //errs() << *inst << "\n";
-    StoreInst *storeInst = cast<StoreInst>(inst);
-    Value *v = storeInst->getOperand(0);
-    std::string str;
-    llvm::raw_string_ostream ss(str);
-    ss << *v;
-    if( ss.str().find("%struct._stritem*") != std::string::npos){
-       v = storeInst;
-       varList.insert(v);
-    }
-  }
-  else if (isa<GetElementPtrInst>(inst)){
-    GetElementPtrInst *gepInst = cast <GetElementPtrInst>(inst);
-    std::string str;
-    llvm::raw_string_ostream ss(str);
-    ss << *inst;
-    if (ss.str().find("%struct._stritem*") != std::string::npos){
-      Value *v=  gepInst;
-      varList.insert(v);
-    }
-  }*/
-// if (!isa<LoadInst>(inst)) return;
-// LoadInst *loadInst = cast<LoadInst>(inst);
-// errs() << *loadInst << "\n";
-// Value *v = loadInst->getOperand(0);
-// errs() << "Operand: " << *v << "\n";*/
-// if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
-//  Value *v = callInst;
-//  varList.insert(v);
-//}
-//}
 
 void PMemVariableLocator::handleInvokeCall(InvokeInst *invokeInst) {
   Function *callee = invokeInst->getCalledFunction();
@@ -313,10 +251,6 @@ void PMemVariableLocator::handlePmdkCall(CallInst *callInst) {
   std::getline(iss, token, '.');
   std::cout << "pmdk call " << token << "\n";
 
-  /*if (itemHardcodeSet.find(token) != itemHardcodeSet.end()) {
-    Value *v = callInst;
-    varList.insert(v);
-  }*/
   std::string pmem_direct = "pmemobj_direct_inline";
   // Step 1: Check for PMDK API call instructions
   if (pmdkApiSet.find(token) != pmdkApiSet.end() ||

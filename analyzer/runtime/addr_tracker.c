@@ -76,7 +76,7 @@ void __arthas_save_file(void *address) {
 void __arthas_addr_tracker_init() {
   if (pthread_mutex_init(&lock, NULL) != 0) {
     printf("\n mutex init has failed\n");
-    return 1;
+    return;
   }
   pthread_t thread_id;
   pthread_create(&thread_id, NULL, myThreadFun, NULL);
@@ -106,7 +106,6 @@ void __arthas_addr_tracker_init() {
 inline void __arthas_track_addr(char *addr, unsigned int guid) {
   // TODO: replace the fprintf with buffering and async write
    fprintf(__arthas_tracker_file, "%p,%u\n", addr, guid);
-   //printf("%p,%u\n", addr, guid);
   // pthread_mutex_lock(&lock);
   /*if (address_count > MAX_ADDRESSES) {
     printf("too large %d\n", address_count);
@@ -116,23 +115,7 @@ inline void __arthas_track_addr(char *addr, unsigned int guid) {
   addresses[address_count] = addr;
   guids[address_count] = guid;
   address_count++;*/
-  /*if(address_count >= 10){
-    for(int i = 0; i < 10; i++)
-      fprintf(__arthas_tracker_file, "%p,%u\n", addresses[i], guids[i]);
-    address_count = 0;
-  }*/
 }
-
-/*inline void __arthas_track_addr(char **addresses, unsigned int *guids,
-                                int address_count) {
-  // TODO: replace the fprintf with buffering and async write
-  for(int i = 0; i < address_count; i++){
-    fprintf(__arthas_tracker_file, "%p,%u\n", addresses[i], guids[i]);
-  }
-  //fprintf(__arthas_tracker_file, "%p,%u\n", addr, guid);
-  //guids[guid_count] = guid;
-  //guid_count;
-}*/
 
 bool __arthas_addr_tracker_dump() {
   fflush(__arthas_tracker_file);
@@ -141,7 +124,6 @@ bool __arthas_addr_tracker_dump() {
 
 void __arthas_addr_tracker_finish() {
   // close the tracker file
-  // printf("arthas addr tracker finish\n");
   for (int i = 0; i < address_count; i++)
     fprintf(__arthas_tracker_file, "%p,%u\n", addresses[i], guids[i]);
   address_count = 0;
