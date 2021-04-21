@@ -921,7 +921,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       }
       // Here we should do reversion on collected seq numbers and try
       // try reexecution
-      if (slice_seq_iterator >= 1 && many_address_seq.size() < 11 && !many_address_clear) {
+      if (slice_seq_iterator >= 1 && many_address_seq.size() < BATCH_REEXECUTION && !many_address_clear) {
         int *decided_slice_seq_numbers =
             (int *)malloc(sizeof(int) * s_log->size);
         int *decided_total = (int *)malloc(sizeof(int));
