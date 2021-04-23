@@ -23,8 +23,8 @@
 
 #define DEBUG_TYPE "pmem-addr-instrumenter"
 //#define MAX_ADDRESSES 1000005
-//#define MMAP_SUPPORT 1
-#define MMAP_SUPPORT 0
+#define MMAP_SUPPORT 1
+//#define MMAP_SUPPORT 0
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;

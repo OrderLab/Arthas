@@ -78,7 +78,12 @@ int main(int argc, char *argv[]) {
 
   else{
     printf("file exists\n");
-    
+    int fd = open(path, O_CREAT | O_RDWR);
+    perror("open");
+    if (fd == -1) printf("file creation did not work for some reason\n");
+    void *data =
+        mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    printf("data value is %d\n", *((int *)data));
   }
 }
 

@@ -42,6 +42,9 @@ static const char *PmemObjCreateCallInstrStr =
 // the pmem_map_file call instruction string to identify mmap region
 static const char *PmemCreateCallInstrStr = "call i8* @pmem_map_file";
 
+// the mmap file call instruction string to identify mmap region
+static const char *MmapCreateCallInstrStr = "call i8* @mmap";
+
 // regular expression for the register format in the LLVM instruction: %N
 static const regex register_regex("\\%\\d+");
 
@@ -82,6 +85,10 @@ bool PmemAddrTraceItem::parse(string &item_str, PmemAddrTraceItem &item,
       } else if (item.var->instruction.find(PmemCreateCallInstrStr) !=
                  string::npos) {
         errs() << "Found a libpmem file address " << item.addr_str << "\n";
+        item.is_mmap = true;
+      } else if (item.var->instruction.find(MmapCreateCallInstrStr) != 
+                 string::npos) {
+        errs() << "Found a mmap file address " << item.addr_str << "\n";
         item.is_mmap = true;
       }
     }

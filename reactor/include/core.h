@@ -20,6 +20,11 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unistd.h>
+#include <xmmintrin.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "DefUse/DefUse.h"
 #include "Instrument/PmemAddrTrace.h"

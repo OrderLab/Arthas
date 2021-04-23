@@ -32,6 +32,7 @@ int binary_reverted_items = 0;
 int total_reexecutions = 0;
 FILE *fp;
 //FILE *fp2;
+int fd;
 
 // #define DUMP_SLICES 1
 #define BINARY_REVERSION_ATTEMPTS 2
@@ -699,6 +700,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   else if (strcmp(options.pmem_library, "libpmem") == 0)
     pop = (void *)pmem_map_file(options.pmem_file, PMEM_LEN, PMEM_FILE_CREATE,
                                 0666, &mapped_len, &is_pmem);
+  else if (strcmp(options.pmem_library, "mmap") == 0){
+    fd = open(options.pmem_library, O_CREAT | O_RDWR);
+    if (fd == -1) printf("file opening did not work for some reason\n");
+    pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  }
   if (pop == NULL) {
     cerr << "Could not open pmem file " << options.pmem_file
          << " to get pool start address\n";
@@ -1005,9 +1011,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
 }
 
 const char *Reactor::get_checkpoint_file(const char *pmem_library) {
-  // FIXME: ugly......
+  // FIXME: ugly.....
+  printf("pmem library is %s\n", pmem_library);
   if (strcmp(pmem_library, "libpmem") == 0 ||
-      strcmp(pmem_library, "libpmemobj") == 0) {
+      strcmp(pmem_library, "libpmemobj") == 0 ||
+      strcmp(pmem_library, "mmap") == 0) {
     return "/mnt/pmem/pmem_checkpoint.pm";
   } else if (strcmp(pmem_library, "libpmemobj2") == 0) {
     return "/mnt/pmem/checkpoint.pm";

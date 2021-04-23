@@ -220,7 +220,8 @@ bool check_options(reactor_options_t &options) {
     return false;
   }
   if (!(strcmp(options.pmem_library, "libpmem") == 0 ||
-        strcmp(options.pmem_library, "libpmemobj") == 0)) {
+        strcmp(options.pmem_library, "libpmemobj") == 0 || 
+        strcmp(options.pmem_library, "mmap") == 0 )) {
     fprintf(stderr, "Unrecognized pmem library %s\n", options.pmem_library);
     return false;
   }
