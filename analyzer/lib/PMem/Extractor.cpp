@@ -64,12 +64,12 @@ const set<std::string> PMemVariableLocator::itemHardcodeSet{
 
 const set<std::string> PMemVariableLocator::pmdkApiSet{
     "pmem_persist",          "pmem_msync",   "pmemobj_create",
-    "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file"};
+    "pmemobj_direct_inline", "pmemobj_open", "pmem_map_file", "mmap"};
 
 // FIXME: we probably should treat return value of pmemobj_create
 // as a persistent variable as well...
 const set<std::string> PMemVariableLocator::pmdkPMEMVariableReturnSet{
-    "pmemobj_direct_inline", "pmem_map_file"};
+    "pmemobj_direct_inline", "pmem_map_file", "mmap"};
 
 const set<std::string> PMemVariableLocator::memkindApiSet{
     "memkind_create_pmem", "memkind_create_kind"};

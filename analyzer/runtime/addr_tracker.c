@@ -58,19 +58,23 @@ void __arthas_low_level_init() {
 }
 
 void __arthas_low_level_fence() {
+   printf("low level fence function \n");
   // increment_tx_id();
   // print_checkpoint_log();
 }
 
 void __arthas_low_level_flush(void *address) {
   printf("clflush address is %p\n", address);
-  // insert_value(address, 64, address);
+  insert_value(address, 64, address, calculate_offset(address), 0);
+  //insert_value(address, 64, address, );
   printf("low level flush\n");
 }
 
 void __arthas_save_file(void *address) {
   printf("save file is %p\n", address);
-  // save_pmem_file(address);
+  init_checkpoint_log();
+  mmap_set(address);
+  //save_pmem_file(address);
 }
 
 void __arthas_addr_tracker_init() {

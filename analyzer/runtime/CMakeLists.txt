@@ -1,5 +1,6 @@
 set(libsrc
   addr_tracker.c
+  checkpoint_hashmap.c
 )
 
 

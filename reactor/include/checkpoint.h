@@ -151,6 +151,8 @@ int rev_lookup(seq_log *s_log, int key);
 void lookup_modify(seq_log *s_log, int key, void *addr);
 void lookup_undo_save(seq_log *s_log, int key, void *addr, size_t size);
 int count_higher(seq_log *s_log, int seq_num);
+struct node * lookup_clog(uint64_t offset, checkpoint_log *c_log);
+int offsethashCode(uint64_t offset, checkpoint_log *c_log);
 #ifdef __cplusplus
 }
 #endif

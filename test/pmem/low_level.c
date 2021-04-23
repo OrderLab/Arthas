@@ -47,16 +47,38 @@ int main(int argc, char *argv[]) {
     if (fd == -1) printf("file creation did not work for some reason\n");
 
     fallocate(fd, 0, 0, 1000);
-    char *data =
-        (char *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   // char *data =
+   //     (char *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    void *data = 
+        mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     printf("data is %p\n", data);
     if (data == MAP_FAILED) printf("map has failed \n");
     printf("before data\n");
-    strcpy(data, "hello");
+    int a = 3;
+    memcpy(data, &a, sizeof(int));
+   // strcpy(data, "hello");
     printf("after data clflush pointer is %p\n", data);
     _mm_clflush(data);
+    a = 4;
+    memcpy(data, &a, sizeof(int));
+    _mm_clflush(data);
+    a = 5;
+    memcpy(data, &a, sizeof(int));
+    _mm_clflush(data);
     _mm_sfence();
-    printf("finished %d\n", data[0]);
+
+    int c;
+    if(*((int *)data) == 5)
+      c = 5 - *((int *)data);
+    else
+      c = 4 - *((int *)data);
+    int b = 30 / c;
+    printf("finished %d\n", *((int *)data));
+  }
+
+  else{
+    printf("file exists\n");
+    
   }
 }
 

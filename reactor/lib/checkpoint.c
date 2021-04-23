@@ -386,3 +386,29 @@ int find_highest_seq_num(seq_log *s_log) {
   }
   return highest_seq_num;
 }
+
+int offsethashCode(uint64_t offset, checkpoint_log *c_log) {
+  int ret_val;
+  if (offset < 0) {
+    ret_val = (int)(offset % c_log->size);
+    ret_val = -ret_val;
+  }
+  ret_val = (int)(offset % c_log->size);
+  return ret_val;
+}
+
+struct node *
+lookup_clog(uint64_t offset, checkpoint_log *c_log)
+{
+        int pos = offsethashCode(offset, c_log);
+        struct node *list = c_log->list[pos];
+        struct node *temp = list;
+        while (temp) {
+                if (temp->offset == offset) {
+                        return temp;
+                }
+                temp = temp->next;
+        }
+        return NULL;
+}
+

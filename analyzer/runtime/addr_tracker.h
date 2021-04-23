@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include "checkpoint.h"
+#include "checkpoint_hashmap.h"
 #include "libpmem.h"
 
 #ifdef __cplusplus

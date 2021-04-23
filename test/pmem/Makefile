@@ -16,7 +16,7 @@ endif
 CC = gcc
 RM = rm
 
-EXES = hello_libpmem hello_libpmemobj pmem_variables pmem_vector
+EXES = hello_libpmem hello_libpmemobj pmem_variables pmem_vector low_level
 SRC = $(wildcard *.c)
 BITCODES = $(patsubst %.c, %.bc, $(SRC))
 ASSEMBLYS = $(patsubst %.bc, %.ll, $(BITCODES))
@@ -40,6 +40,9 @@ hello_libpmemobj.o: hello_libpmemobj.c
 pmem_variables.o: pmem_variables.c
 	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
 
+low_level.o: low_level.c
+	$(CC) -c $< -o $@ $(LIBPMEMOBJ_CFLAGS)
+
 hello_libpmem: hello_libpmem.o
 	 $(CC) -o $@ $< $(LIBPMEM_LDFLAGS)
 
@@ -50,6 +53,9 @@ pmem_variables: pmem_variables.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 pmem_vector: pmem_vector.o
+	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
+
+low_level: low_level.o
 	 $(CC) -o $@ $< $(LIBPMEMOBJ_LDFLAGS)
 
 

@@ -23,6 +23,8 @@
 
 #define DEBUG_TYPE "pmem-addr-instrumenter"
 //#define MAX_ADDRESSES 1000005
+//#define MMAP_SUPPORT 1
+#define MMAP_SUPPORT 0
 using namespace std;
 using namespace llvm;
 using namespace llvm::pmem;
@@ -114,7 +116,7 @@ bool PmemAddrInstrumenter::initHookFuncs(Module &M) {
 
   // Create Function for low level flush
   _low_level_flush_func = cast<Function>(
-      M.getOrInsertFunction(getLowLevelFlushName(), VoidTy, nullptr));
+      M.getOrInsertFunction(getLowLevelFlushName(), VoidTy, _I8PtrTy, nullptr));
   if (!_low_level_flush_func) {
     errs() << "could not find function " << getLowLevelFlushName() << "\n";
     return false;
@@ -226,10 +228,17 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
         std::getline(iss, token, '.');
       }
     }
+    errs() << "token is " << token << "\n";
     if (token.compare("pmemobj_create") == 0) {
       pool = true;
       addr = ci;
+    } else if (MMAP_SUPPORT && token.compare("mmap") == 0) {
+      addr = ci;
+      errs() << "mmap address is " << *addr << "\n";
+      //addr = ci->getOperand(0);
+      malloc_flag = true;
     } else if (PMemVariableLocator::callReturnsPmemVar(token.data())) {
+      errs() << "returns pmem variable\n";
       addr = ci;
     } else if (token.compare("pmemobj_tx_add_range_direct") == 0) {
       addr = ci->getOperand(0);
@@ -237,18 +246,17 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
       addr = ci->getOperand(0);
     } else if (token.compare("pmemobj_persist") == 0) {
       addr = ci->getOperand(1);
-    } else if (token.compare("sfence") == 0) {
+    } else if (MMAP_SUPPORT && token.compare("sfence") == 0) {
       // sfence function
+      errs() << "sfence here\n";
       fence_flag = true;
       // return true;
-    } else if (token.compare("clflush") == 0) {
+    } else if (MMAP_SUPPORT && token.compare("clflush") == 0) {
       // cflush function
+      //addr = ci;
       addr = ci->getOperand(0);
       errs() << "deref address is " << *addr << "\n";
       flush_flag = true;
-    } else if (token.compare("mmap") == 0) {
-      addr = ci;
-      malloc_flag = true;
     } else {
       errs() << "return false\n";
       return false;
@@ -264,27 +272,40 @@ bool PmemAddrInstrumenter::instrumentInstr(Instruction *instr) {
   builder.SetInsertPoint(instr->getNextNode());
 
   // Low Level Support
-  /*if(malloc_flag){
-    auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
-    builder.CreateCall(_save_file_func, {i8addr});
-    _instrument_cnt++;
-    return true;
+  if(MMAP_SUPPORT){
+    if(malloc_flag){
+      auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+      builder.CreateCall(_save_file_func, {i8addr});
+      _instrument_cnt++;
+      _hook_point_guid_map[instr] = PmemVarCurrentGuid;
+      _guid_hook_point_map[PmemVarCurrentGuid] = instr;
+      auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
+      builder.CreateCall(_track_addr_func, {i8addr, guid});
+      PmemVarCurrentGuid++;
+      return true;
+    }
+    if(fence_flag){
+      builder.CreateCall(_low_level_fence_func, None);
+      _instrument_cnt++;
+      return true;
+    }
+    if(flush_flag){
+      auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
+      builder.CreateCall(_low_level_flush_func, {i8addr});
+      _instrument_cnt++;
+      _hook_point_guid_map[instr] = PmemVarCurrentGuid;
+      _guid_hook_point_map[PmemVarCurrentGuid] = instr;
+      auto guid = ConstantInt::get(_I32Ty, PmemVarCurrentGuid, false);
+      builder.CreateCall(_track_addr_func, {i8addr, guid});
+      PmemVarCurrentGuid++;
+      return true;
+    }
+    else if (!flush_flag && !fence_flag){
+      // Get rid of this eventually
+      errs() << "not flush or fence\n";
+      return true;
+    }
   }
-  if(fence_flag){
-    builder.CreateCall(_low_level_fence_func, None);
-    _instrument_cnt++;
-    return true;
-  }
-  if(flush_flag){
-    auto i8addr = builder.CreateBitCast(addr, _I8PtrTy);
-    builder.CreateCall(_low_level_flush_func, {i8addr});
-    _instrument_cnt++;
-    return true;
-  }
-  else if (!flush_flag && !fence_flag){
-    // Get rid of this eventually
-    return true;
-  }*/
 
   if (_track_with_printf) {
     Value *str;

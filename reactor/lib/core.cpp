@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <chrono>
 
-#define BATCH_REEXECUTION 1000000
-//#define BATCH_REEXECUTION 1
+//#define BATCH_REEXECUTION 1000000
+#define BATCH_REEXECUTION 1
 //#define ROLLBACK_MODE 1
 #define ROLLBACK_MODE 0
 
@@ -878,6 +878,24 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           for (int i = ind - 1; i >= 0; i--) {
             int search_num = rev_lookup(r_log, sequences[i]);
             if (sequences[i] != -1 && search_num != 1) {
+              /*single_data search_data = lookup(s_log, sequences[i]);
+              // Figure out how to only revert the most recent sequence num
+              printf("sequence number is %d\n", sequences[i]);
+              struct node *found_node = lookup_clog(search_data.offset, c_log);
+              if(found_node == NULL){
+                printf("NULL FOUND NODe\n");
+              }
+	      else{
+                int data_index = found_node->c_data.version;
+                for(int j = 0; j <= data_index; j++){
+                  printf("version is %d size is %ld seq num is %d value is %f or %d or %s\n",
+                                       j, found_node->c_data.size[j],
+                                       found_node->c_data.sequence_number[j],
+                                       *((double *)found_node->c_data.data[j]),
+                                       *((int *)found_node->c_data.data[j]),
+                                       (char *)found_node->c_data.data[j]);
+                }
+              }*/
               if (i == 0) it_count++;
               many_address_seq.push_back(sequences[i]);
               slice_seq_numbers[slice_seq_iterator] = sequences[i];
