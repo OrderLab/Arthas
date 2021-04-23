@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <chrono>
 
-#define BATCH_REEXECUTION 1000000
-//#define BATCH_REEXECUTION 1
+//#define BATCH_REEXECUTION 1000000
+#define BATCH_REEXECUTION 1
 //#define ROLLBACK_MODE 1
 #define ROLLBACK_MODE 0
 
