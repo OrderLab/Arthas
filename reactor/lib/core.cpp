@@ -10,10 +10,14 @@
 #include <unistd.h>
 #include <chrono>
 
-//#define BATCH_REEXECUTION 1000000
-#define BATCH_REEXECUTION 1
+#define BATCH_REEXECUTION 1000000
+//#define BATCH_REEXECUTION 1
+
 //#define ROLLBACK_MODE 1
 #define ROLLBACK_MODE 0
+
+#define ONE_VER_REVERSION 1
+//#define ONE_VER_REVERSION 0
 
 using namespace std;
 using namespace llvm;
@@ -852,6 +856,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
   int it_count = 0;
   int slice_id = 0;
   bool many_address_clear = false;
+  map<int, int> one_ver_multimap;
+  map<uint64_t, int> prev_ver_map;
   for (Slice *slice : fault_slices) {
     cout << "Slice " << slice_id << "\n";
     slice_id++;
@@ -875,9 +881,59 @@ bool Reactor::react(std::string fault_loc, string inst_str,
             ind++;
           }
           sort(sequences, sequences + ind, greater<int>());
-          for (int i = ind - 1; i >= 0; i--) {
+          for (int i = 0; i < ind; i++) {
+          //for (int i = ind - 1; i >= 0; i--) {
             int search_num = rev_lookup(r_log, sequences[i]);
             if (sequences[i] != -1 && search_num != 1) {
+              if(ONE_VER_REVERSION == 1){
+                single_data search_data = lookup(s_log, sequences[i]);
+                // Figure out how to only revert the most recent sequence num
+                //printf("sequence number is %d\n", sequences[i]);
+                struct node *found_node = lookup_clog(search_data.offset, c_log);
+                if(found_node == NULL){
+                  printf("NULL FOUND NODe\n");
+                }
+                else{
+                  int data_total = found_node->c_data.version;
+                  int data_index;
+                  for(int j = 0; j <= data_total; j++){
+                    /*printf("version is %d size is %ld seq num is %d value is %f or %d or %s\n",
+                                         j, found_node->c_data.size[j],
+                                         found_node->c_data.sequence_number[j],
+                                         *((double *)found_node->c_data.data[j]),
+                                         *((int *)found_node->c_data.data[j]),
+                                         (char *)found_node->c_data.data[j]);*/
+                    if(sequences[i] == found_node->c_data.sequence_number[j])
+                      data_index = j;
+                  }
+                  //printf("data index is %d\n", data_index);
+                  if(data_index == data_total){
+                    one_ver_multimap.insert(pair<int,int>(sequences[i],1));
+                    prev_ver_map.insert(pair<uint64_t,int>(search_data.offset, data_index));
+                  }
+                  else{
+                    bool allowed_to_revert = false;
+                    int data_high = prev_ver_map.find(search_data.offset)->second;
+                    for(int k = data_index+1; k <= data_high; k++){
+                      if(one_ver_multimap.find(found_node->c_data.sequence_number[k])
+                          == one_ver_multimap.end()){
+                        //Couldn't find the newer version to revert in this batch
+                        allowed_to_revert = true;
+                      }
+		      else
+		        allowed_to_revert = false;
+                    }
+                   if(allowed_to_revert){
+                     one_ver_multimap.insert(pair<int,int>(sequences[i], 1));
+                     prev_ver_map[search_data.offset] = data_index;
+                   }
+                   else{
+                      //printf("skipping sequence number %d\n", sequences[i]);
+                      continue;
+                   }
+                  }
+                }
+              }
               if (i == 0) it_count++;
               many_address_seq.push_back(sequences[i]);
               slice_seq_numbers[slice_seq_iterator] = sequences[i];
@@ -885,6 +941,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
               insert(r_log, sequences[i], empty_data);
             }
           }
+          one_ver_multimap.clear();
           // one-by-one reversion
           // onebyoneReversion();
         }  // if(traceItem->instr == dep_inst)

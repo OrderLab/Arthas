@@ -72,7 +72,7 @@ int handle_behavior(char *path) {
       *pmem_int_ptr2 = 13;
       pmemobj_tx_add_range_direct(pmem_double_ptr, sizeof(double));
       *pmem_double_ptr = 10;
-      pmemobj_tx_add_range_direct(pmem_str_ptr, 5);
+      //pmemobj_tx_add_range_direct(pmem_str_ptr, 5);
       // pmemobj_tx_add_range_direct(pmem_int_ptrs[0], sizeof(int) * 5);
     }
     TX_ONABORT { printf("abort2 %s\n", pmemobj_errormsg()); }
