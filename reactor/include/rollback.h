@@ -11,6 +11,8 @@
 
 #include <unistd.h>
 #include "checkpoint.h"
+#include <sys/mman.h>
+#include <sys/fcntl.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,7 +39,8 @@ int re_execute(const char *rexecution_cmd, int version_num,
                struct checkpoint_log *c_log, int num_data,
                const char *path, const char *layout,
                int reversion_type, int seq_num,
-               void *old_pop, seq_log *s_log);
+               void *old_pop, seq_log *s_log,
+               const char *pmem_library);
 
 void revert_by_address(const void *search_address, const void *address,
                        int variable_index, int version, int type, size_t size,

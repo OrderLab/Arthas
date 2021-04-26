@@ -116,9 +116,26 @@ void revert_by_sequence_number(single_data search_data, int seq_num,
                                int rollback_version, seq_log *s_log) {
   lookup_undo_save(s_log, seq_num, search_data.sorted_pmem_address,
                    search_data.size);
+  if (search_data.old_size[rollback_version] == 4)
+    printf("Value before seq num %d is %d offset %ld\n", seq_num,
+           *(int *)search_data.sorted_pmem_address,
+           search_data.offset);
+  else if (search_data.old_size[rollback_version] == 8)
+    printf("Value before seq num %d is %f offset %ld\n", seq_num,
+           *(double *)search_data.sorted_pmem_address,
+           search_data.offset);
   memcpy(search_data.sorted_pmem_address,
          search_data.old_data[rollback_version],
          search_data.old_size[rollback_version]);
+  if (search_data.old_size[rollback_version] == 4)
+    printf("AFTER Value before seq num %d is %d offset %ld\n", seq_num,
+           *(int *)search_data.sorted_pmem_address,
+           search_data.offset);
+  else if (search_data.old_size[rollback_version] == 8)
+    printf("AFTER Value before seq num %d is %f offset %ld\n", seq_num,
+           *(double *)search_data.sorted_pmem_address,
+           search_data.offset);
+
 }
 
 void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
@@ -180,7 +197,7 @@ struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log) {
 
 PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
                                  int num_data, seq_log *s_log) {
-  PMEMobjpool *pop = pmemobj_open(path, layout);
+  PMEMobjpool *pop = (void *)pmemobj_open(path, layout);
   printf("new pop is %p\n", pop);
   if (pop == NULL) {
     printf("could not open pop %s\n", pmemobj_errormsg());
@@ -204,7 +221,7 @@ int re_execute(const char *reexecution_cmd, int version_num,
                struct checkpoint_log *c_log, int num_data, const char *path,
                const char *layout, int reversion_type,
                int seq_num,  void *old_pop,
-               seq_log *s_log) {
+               seq_log *s_log, const char *pmem_library) {
   int ret_val;
   int reexecute_flag = 0;
   // the reexcution command is a single line command string
@@ -229,30 +246,49 @@ int re_execute(const char *reexecution_cmd, int version_num,
   if (reexecute_flag) {
     printf("Reversion attempt %d\n", coarse_grained_tries + 1);
     printf("\n");
-
-    PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
-                                           s_log);
-    if (!pop) {
-      system("./killScript");
-      pop = redo_pmem_addresses(path, layout, num_data, s_log);
-    }
-    if (reversion_type == COARSE_GRAIN_NAIVE) {
-      // coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num -
-      // 1,
-      //                       num_data, offsets);
-    } else if (reversion_type == COARSE_GRAIN_SEQUENCE) {
-      if (seq_num < 0) return -1;
-      seq_coarse_grain_reversion(seq_num, pop, old_pop, c_log, s_log);
-    } else {
+    
+    if (strcmp(pmem_library, "libpmemobj") == 0){
+      PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
+                                             s_log);
+      if (!pop) {
+        system("./killScript");
+        pop = redo_pmem_addresses(path, layout, num_data, s_log);
+      }
+      if (reversion_type == COARSE_GRAIN_NAIVE) {
+        // coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num -
+        // 1,
+        //                       num_data, offsets);
+      } else if (reversion_type == COARSE_GRAIN_SEQUENCE) {
+        if (seq_num < 0) return -1;
+        seq_coarse_grain_reversion(seq_num, pop, old_pop, c_log, s_log);
+      } else {
+        pmemobj_close(pop);
+        return -1;
+      }
       pmemobj_close(pop);
-      return -1;
     }
-    pmemobj_close(pop);
+    else if (strcmp(pmem_library, "mmap") == 0){
+      int fd = open(path, O_CREAT | O_RDWR, 0777);
+      perror("eerror");
+      if (fd == -1) printf("file opening did not work for some reason\n");
+      void * pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+      struct seq_node *list;
+      struct seq_node *temp;
+      for (int i = 0; i < (int)s_log->size; i++) {
+        list = s_log->list[i];
+        temp = list;
+        while (temp) {
+          temp->ordered_data.sorted_pmem_address =
+             (void *)((uint64_t)pop + temp->ordered_data.offset);
+          temp = temp->next;
+        }
+      }
+    }
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");
     re_execute(reexecution_cmd, version_num - 1, c_log,
                num_data, path, layout, reversion_type,
-               seq_num - 1, old_pop, s_log);
+               seq_num - 1, old_pop, s_log, pmem_library);
   }
   return 1;
 }

@@ -10,8 +10,8 @@
 #include <unistd.h>
 #include <chrono>
 
-//#define BATCH_REEXECUTION 1000000
-#define BATCH_REEXECUTION 1
+#define BATCH_REEXECUTION 1000000
+//#define BATCH_REEXECUTION 1
 //#define ROLLBACK_MODE 1
 #define ROLLBACK_MODE 0
 
@@ -465,7 +465,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
           re_execute(options.reexecute_cmd, options.version_num,
                      c_log, num_data, options.pmem_file,
                      options.pmem_layout, FINE_GRAIN, starting_seq_num,
-                     pool_address, s_log);
+                     pool_address, s_log, options.pmem_library);
       total_reexecutions++;
     }
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
@@ -516,7 +516,8 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
           req_flag2 = re_execute(
               options.reexecute_cmd, options.version_num, c_log,
               num_data, options.pmem_file, options.pmem_layout,
-              FINE_GRAIN, starting_seq_num, pool_address, s_log);
+              FINE_GRAIN, starting_seq_num, pool_address, s_log,
+              options.pmem_library);
           total_reexecutions++;
         }
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
@@ -701,7 +702,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     pop = (void *)pmem_map_file(options.pmem_file, PMEM_LEN, PMEM_FILE_CREATE,
                                 0666, &mapped_len, &is_pmem);
   else if (strcmp(options.pmem_library, "mmap") == 0){
-    fd = open(options.pmem_library, O_CREAT | O_RDWR);
+    fd = open(options.pmem_file, O_CREAT | O_RDWR, 0777);
+    perror("eerror");
     if (fd == -1) printf("file opening did not work for some reason\n");
     pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   }
@@ -711,7 +713,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
     return -1;
   }
   printf("pop is %p\n", pop);
-
+  int atemp = 3;
+  memcpy(pop, &atemp, sizeof(int));
   // Step 2.c: Calculating offsets from pointers
   // FIXME: assuming last pool is the pool of the pmemobj_open
   PmemAddrPool &last_pool = _state->addr_trace.pool_addrs().back();
@@ -836,7 +839,8 @@ bool Reactor::react(std::string fault_loc, string inst_str,
       req_flag2 = re_execute(
             options.reexecute_cmd, options.version_num, c_log,
             num_data, options.pmem_file, options.pmem_layout, FINE_GRAIN,
-            starting_seq_num, (void *)last_pool.pool_addr->addr, s_log);
+            starting_seq_num, (void *)last_pool.pool_addr->addr, s_log,
+            options.pmem_library);
        if(req_flag2 ==1){
           printf("reversion has succeeded\n");
           fprintf(fp, "%d items reverted\n", total_reverted_items);
@@ -983,11 +987,29 @@ bool Reactor::react(std::string fault_loc, string inst_str,
               options.reexecute_cmd, options.version_num, c_log,
               num_data, options.pmem_file, options.pmem_layout,
               FINE_GRAIN, starting_seq_num, (void *)last_pool.pool_addr->addr,
-              s_log);
+              s_log, options.pmem_library);
           total_reexecutions++;
-          pop = (void *)redo_pmem_addresses(
+         if (strcmp(options.pmem_library, "libpmemobj") == 0)
+            pop = (void *)redo_pmem_addresses(
               options.pmem_file, options.pmem_layout, num_data,
               s_log);
+          else if (strcmp(options.pmem_library, "mmap") == 0){
+            fd = open(options.pmem_file, O_CREAT | O_RDWR, 0777);
+            perror("eerror");
+            if (fd == -1) printf("file opening did not work for some reason\n");
+            pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            struct seq_node *list;
+            struct seq_node *temp;
+            for (int i = 0; i < (int)s_log->size; i++) {
+              list = s_log->list[i];
+              temp = list;
+              while (temp) {
+                temp->ordered_data.sorted_pmem_address =
+                 (void *)((uint64_t)pop + temp->ordered_data.offset);
+                temp = temp->next;
+               }
+             }
+          }
           total_reverted_items += *decided_total;
         }
         if (req_flag2 == 1) {

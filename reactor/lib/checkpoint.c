@@ -59,7 +59,8 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
     }
     *old_pool = (uint64_t)pop;
   } else if (strcmp(pmem_library, "libpmem") == 0 ||
-             strcmp(pmem_library, "libpmemobj") == 0) {
+             strcmp(pmem_library, "libpmemobj") == 0 || 
+             strcmp(pmem_library, "mmap") == 0) {
     char *pmemaddr;
     size_t mapped_len;
     int is_pmem;
@@ -108,7 +109,7 @@ struct checkpoint_log *reconstruct_checkpoint(const char *file_path,
   }
   printf("RECONSTRUCTED CHECKPOINT COMPONENT:\n");
   printf("variable count is %d\n", variable_count);
-  // print_checkpoint_log(c_log);
+   //print_checkpoint_log(c_log);
   return c_log;
 }
 
@@ -197,6 +198,7 @@ void order_by_sequence_num(seq_log *s_log, size_t *total_size,
         ordered_data.address = temp->c_data.address;
         ordered_data.offset = temp->offset;
         ordered_data.data = malloc(temp->c_data.size[j]);
+        printf("data is %p size is %ld\n", ordered_data.data, temp->c_data.size[j]);
         memcpy(ordered_data.data, temp->c_data.data[j], temp->c_data.size[j]);
         ordered_data.size = temp->c_data.size[j];
         ordered_data.version = j;
@@ -311,8 +313,14 @@ void lookup_undo_save(seq_log *s_log, int key, void *addr, size_t size) {
   struct seq_node *temp = list;
   while (temp) {
     if (temp->sequence_number == key) {
+      int atemp = 1;
+      memcpy(temp->ordered_data.data, &atemp, sizeof(int));
+      printf("after first memcpy %p\n", temp->ordered_data.sorted_pmem_address);
+      memcpy(temp->ordered_data.sorted_pmem_address, &atemp, sizeof(int));
+      printf("temp->ordered_data data %p %ld\n", temp->ordered_data.data, size);
       memcpy(temp->ordered_data.data, temp->ordered_data.sorted_pmem_address,
              size);
+      printf("after memcpy\n");
       return;
     }
     temp = temp->next;

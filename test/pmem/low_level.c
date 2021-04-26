@@ -43,7 +43,7 @@ static void print_err_message(int err) {
 int main(int argc, char *argv[]) {
   char *path = argv[1];
   if (access(path, F_OK) != 0) {
-    int fd = open(path, O_CREAT | O_RDWR);
+    int fd = open(path, O_CREAT | O_RDWR, 0777);
     if (fd == -1) printf("file creation did not work for some reason\n");
 
     fallocate(fd, 0, 0, 1000);
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
 
   else{
     printf("file exists\n");
-    int fd = open(path, O_CREAT | O_RDWR);
+    int fd = open(path, O_CREAT | O_RDWR, 0777);
     perror("open");
     if (fd == -1) printf("file creation did not work for some reason\n");
     void *data =

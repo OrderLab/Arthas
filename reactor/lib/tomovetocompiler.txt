@@ -126,3 +126,13 @@
   return true;*/
 
 
+
+
+if (search_data.old_size[rollback_version] == 4)
+    printf("Value before seq num %d is %d offset %ld\n", seq_num,
+           *(int *)search_data.sorted_pmem_address,
+           search_data.offset);
+  else if (search_data.old_size[rollback_version] == 8)
+    printf("Value before seq num %d is %f offset %ld\n", seq_num,
+           *(double *)search_data.sorted_pmem_address,
+           search_data.offset);
