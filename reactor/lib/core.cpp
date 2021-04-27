@@ -10,10 +10,13 @@
 #include <unistd.h>
 #include <chrono>
 
-//#define BATCH_REEXECUTION 1000000
-#define BATCH_REEXECUTION 1
+#define BATCH_REEXECUTION 1000000
+//#define BATCH_REEXECUTION 1
 //#define ROLLBACK_MODE 1
 #define ROLLBACK_MODE 0
+
+#define TX_REVERSION 1
+//#define TX_REVERSION 0
 
 using namespace std;
 using namespace llvm;
@@ -949,9 +952,11 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         }
         // Function that iterates through decided slice seq numbers
         // gets the tx_ids associated with them, also reverts those values.
-        /* revert_by_transaction(addr_off_list.sorted_pmem_addresses, t_log,
+        if (TX_REVERSION){
+         revert_by_transaction(addr_off_list.sorted_pmem_addresses, t_log,
                              decided_slice_seq_numbers, *decided_total,
-           s_log);*/
+           s_log);
+        }
         if (*decided_total > 0) {
           if (strcmp(options.pmem_library, "libpmemobj") == 0)
             pmemobj_close((PMEMobjpool *)pop);

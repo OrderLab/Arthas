@@ -62,6 +62,7 @@ void revert_by_transaction(void **sorted_pmem_addresses, struct tx_log *t_log,
                            seq_log *s_log) {
   int tx_id;
   int already_reverted = 0;
+  printf("begin reverting transaction nums\n");
   for (int i = 0; i < total_seq_num; i++) {
     single_data search_data = lookup(s_log, seq_numbers[i]);
     tx_id = search_data.tx_id;
@@ -114,11 +115,27 @@ void revert_by_sequence_number_checkpoint(checkpoint_data old_check_data,
 
 void revert_by_sequence_number(single_data search_data, int seq_num,
                                int rollback_version, seq_log *s_log) {
+  if (search_data.old_size[rollback_version] == 4)
+    printf("Value before seq num %d is %d offset %ld\n", seq_num,
+           *(int *)search_data.sorted_pmem_address,
+           search_data.offset);
+  else if (search_data.old_size[rollback_version] == 8)
+    printf("Value before seq num %d is %f offset %ld\n", seq_num,
+           *(double *)search_data.sorted_pmem_address,
+           search_data.offset);
   lookup_undo_save(s_log, seq_num, search_data.sorted_pmem_address,
                    search_data.size);
   memcpy(search_data.sorted_pmem_address,
          search_data.old_data[rollback_version],
          search_data.old_size[rollback_version]);
+  if (search_data.old_size[rollback_version] == 4)
+    printf("Value after seq num %d is %d offset %ld\n", seq_num,
+           *(int *)search_data.sorted_pmem_address,
+           search_data.offset);
+  else if (search_data.old_size[rollback_version] == 8)
+    printf("Value after seq num %d is %f offset %ld\n", seq_num,
+           *(double *)search_data.sorted_pmem_address,
+           search_data.offset);
 }
 
 void sort_by_sequence_number(void **addresses, size_t total_size, int num_data,
