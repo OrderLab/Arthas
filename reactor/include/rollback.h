@@ -32,8 +32,9 @@ void coarse_grain_reversion(void **addresses, struct checkpoint_log *c_log,
                             void **pmem_addresses, int version_num,
                             int num_data, uint64_t *offsets);
 
-PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
-                                 int num_data, seq_log *s_log);
+void *redo_pmem_addresses(const char *path, const char *layout,
+                           int num_data, seq_log *s_log,
+                           const char *pmem_library);
 
 int re_execute(const char *rexecution_cmd, int version_num,
                struct checkpoint_log *c_log, int num_data,

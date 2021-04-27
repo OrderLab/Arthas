@@ -195,13 +195,23 @@ struct node *search_for_offset(uint64_t old_off, checkpoint_log *c_log) {
   return NULL;
 }
 
-PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
-                                 int num_data, seq_log *s_log) {
-  PMEMobjpool *pop = (void *)pmemobj_open(path, layout);
-  printf("new pop is %p\n", pop);
-  if (pop == NULL) {
-    printf("could not open pop %s\n", pmemobj_errormsg());
-    return NULL;
+void *redo_pmem_addresses(const char *path, const char *layout,
+                          int num_data, seq_log *s_log,
+                          const char *pmem_library) {
+  void *pop;
+  if(strcmp(pmem_library, "libpmemobj") == 0){
+    pop = (void *)pmemobj_open(path, layout);
+    printf("new pop is %p\n", pop);
+    if (pop == NULL) {
+      printf("could not open pop %s\n", pmemobj_errormsg());
+      return NULL;
+    }
+  }
+  else if(strcmp(pmem_library, "mmap") == 0){
+     int fd = open(path, O_CREAT | O_RDWR, 0777);
+      perror("eerror");
+      if (fd == -1) printf("file opening did not work for some reason\n");
+      void * pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   }
   struct seq_node *list;
   struct seq_node *temp;
@@ -214,6 +224,7 @@ PMEMobjpool *redo_pmem_addresses(const char *path, const char *layout,
       temp = temp->next;
     }
   }
+
   return pop;
 }
 
@@ -249,10 +260,10 @@ int re_execute(const char *reexecution_cmd, int version_num,
     
     if (strcmp(pmem_library, "libpmemobj") == 0){
       PMEMobjpool *pop = redo_pmem_addresses(path, layout, num_data,
-                                             s_log);
+                                             s_log, pmem_library);
       if (!pop) {
         system("./killScript");
-        pop = redo_pmem_addresses(path, layout, num_data, s_log);
+        pop = redo_pmem_addresses(path, layout, num_data, s_log, pmem_library);
       }
       if (reversion_type == COARSE_GRAIN_NAIVE) {
         // coarse_grain_reversion(addresses, c_log, pmem_addresses, version_num -
@@ -268,21 +279,8 @@ int re_execute(const char *reexecution_cmd, int version_num,
       pmemobj_close(pop);
     }
     else if (strcmp(pmem_library, "mmap") == 0){
-      int fd = open(path, O_CREAT | O_RDWR, 0777);
-      perror("eerror");
-      if (fd == -1) printf("file opening did not work for some reason\n");
-      void * pop = (void *)mmap(NULL, 100, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-      struct seq_node *list;
-      struct seq_node *temp;
-      for (int i = 0; i < (int)s_log->size; i++) {
-        list = s_log->list[i];
-        temp = list;
-        while (temp) {
-          temp->ordered_data.sorted_pmem_address =
-             (void *)((uint64_t)pop + temp->ordered_data.offset);
-          temp = temp->next;
-        }
-      }
+      void *pop = redo_pmem_addresses(path, layout, num_data,
+                                             s_log, pmem_library);
     }
     printf("Reexecution %d: \n", coarse_grained_tries);
     printf("\n");

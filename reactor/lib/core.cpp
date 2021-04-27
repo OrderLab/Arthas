@@ -426,7 +426,7 @@ void undo_by_sequence_number_array(seq_log *s_log, std::vector<int> &seq_list) {
 
 /* Binary Reversion Function to reduce data loss */
 int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
-                     PMEMobjpool **pop, checkpoint_log *c_log, int num_data,
+                     void **pop, checkpoint_log *c_log, int num_data,
                      void *pool_address, struct reactor_options &options) {
   int decided_total, req_flag2;
   int *decided_slice_seq_numbers = (int *)malloc(sizeof(int) * seq_list.size());
@@ -458,7 +458,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
                                     decided_slice_seq_numbers, decided_total,
                                     c_log);
     if (strcmp(options.pmem_library, "libpmemobj") == 0) {
-      pmemobj_close(*pop);
+      pmemobj_close((PMEMobjpool *)*pop);
     }
     if (decided_total > 0) {
       req_flag2 =
@@ -470,7 +470,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
     }
     if (strcmp(options.pmem_library, "libpmemobj") == 0)
       *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                 num_data, s_log);
+                                 num_data, s_log, options.pmem_library);
     binary_reversion_count++;
     // Check if succeeded
     if (req_flag2 == 1) {
@@ -511,7 +511,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
                                         decided_slice_seq_numbers,
                                         decided_total, c_log);
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
-          pmemobj_close(*pop);
+          pmemobj_close((PMEMobjpool *)*pop);
         if (decided_total > 0) {
           req_flag2 = re_execute(
               options.reexecute_cmd, options.version_num, c_log,
@@ -522,7 +522,7 @@ int binary_reversion(std::vector<int> &seq_list, int l, int r, seq_log *s_log,
         }
         if (strcmp(options.pmem_library, "libpmemobj") == 0)
           *pop = redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                     num_data, s_log);
+                                     num_data, s_log, options.pmem_library);
         if (req_flag2 == 1) {
           cout << "reversion with sequence numbers array has succeeded\n";
           binary_success = 1;
@@ -850,7 +850,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
           return 1;
        }
        pop = (void *)redo_pmem_addresses(options.pmem_file, options.pmem_layout,
-                                          num_data, s_log);
+                                          num_data, s_log, options.pmem_library);
     }
     printf("finished arcpkt\n");
     return 1;
@@ -928,7 +928,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
         printf("binary rev\n");
         binary_success = -1;
         binary_reversion(many_address_seq, 0, many_address_seq.size() - 1,
-                             s_log, (PMEMobjpool **)&pop, c_log, num_data,
+                             s_log, (void **)&pop, c_log, num_data,
                              (void *)last_pool.pool_addr->addr, options);
         total_reverted_items += binary_reverted_items;
         printf("done with binary reversion %d\n", binary_success);
@@ -992,7 +992,7 @@ bool Reactor::react(std::string fault_loc, string inst_str,
          if (strcmp(options.pmem_library, "libpmemobj") == 0)
             pop = (void *)redo_pmem_addresses(
               options.pmem_file, options.pmem_layout, num_data,
-              s_log);
+              s_log, options.pmem_library);
           else if (strcmp(options.pmem_library, "mmap") == 0){
             fd = open(options.pmem_file, O_CREAT | O_RDWR, 0777);
             perror("eerror");
