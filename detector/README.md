@@ -26,5 +26,14 @@ The resulting candidate function and line number can then be used to pass into t
 Extractor which will give you the candidate set of instructions to use in the reactor
 
 
+## Soft and Hard Fault Analyze ##
+Run the detector's fault analyzer to see if the fault is a hard fault or soft fault:
+
+```
+./Detector fault
+```
+
+make sure that the two runs of your system are logged to two different gdb logs called 'gdb.txt' and 'gdb2.txt'
+
 [//]: <> (set logging on: set pagination off, thread apply all bt full, r)
 
